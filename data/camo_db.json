@@ -1,0 +1,966 @@
+{
+  "operator": {
+    "id": "op-01",
+    "name": "Aerolíneas Sul-Americana CAMO (SkyAir)",
+    "icaoCode": "SKA",
+    "country": "Brazil",
+    "status": "ACTIVE",
+    "camoCertificate": "RBAC 121 / EASA Part-CAMO.BR.0042"
+  },
+  "currentUser": {
+    "id": "usr-camo-01",
+    "name": "Eng. Fábio Teraoka",
+    "email": "fteraoka1@gmail.com",
+    "role": "CHIEF_CAMO_ENGINEER",
+    "licenseNumber": "ANAC/EASA CAMO-BR-0941",
+    "signatureStamp": "FT-ENG-CAMO-AUTH-2026"
+  },
+  "aircraft": [
+    {
+      "id": "ac-01",
+      "operatorId": "op-01",
+      "registration": "PR-GUO",
+      "msn": "38124",
+      "manufacturer": "Boeing",
+      "model": "737-800",
+      "series": "Next Generation (NG)",
+      "aircraftType": "Commercial Transport",
+      "status": "OPERATIONAL",
+      "totalFlightHours": 28450,
+      "totalCycles": 14200,
+      "totalLandings": 14200,
+      "variableNumber": "YC123",
+      "lineNo": "3452",
+      "manufactureDate": "2014-06-18"
+    },
+    {
+      "id": "ac-02",
+      "operatorId": "op-01",
+      "registration": "PR-VBC",
+      "msn": "41200",
+      "manufacturer": "Boeing",
+      "model": "737-800",
+      "series": "Next Generation (NG)",
+      "aircraftType": "Commercial Transport",
+      "status": "OPERATIONAL",
+      "totalFlightHours": 19800,
+      "totalCycles": 9500,
+      "totalLandings": 9500,
+      "variableNumber": "YC456",
+      "lineNo": "4102",
+      "manufactureDate": "2017-03-22"
+    },
+    {
+      "id": "ac-03",
+      "operatorId": "op-01",
+      "registration": "PR-AIA",
+      "msn": "5490",
+      "manufacturer": "Airbus",
+      "model": "A320-214",
+      "series": "A320ceo",
+      "aircraftType": "Commercial Transport",
+      "status": "OPERATIONAL",
+      "totalFlightHours": 22100,
+      "totalCycles": 11300,
+      "totalLandings": 11300,
+      "manufactureDate": "2013-09-10"
+    },
+    {
+      "id": "ac-04",
+      "operatorId": "op-01",
+      "registration": "PP-SMR",
+      "msn": "43315",
+      "manufacturer": "Boeing",
+      "model": "737-8",
+      "series": "737 MAX",
+      "aircraftType": "Commercial Transport",
+      "status": "OPERATIONAL",
+      "totalFlightHours": 6200,
+      "totalCycles": 3100,
+      "totalLandings": 3100,
+      "variableNumber": "ZM004",
+      "lineNo": "7210",
+      "manufactureDate": "2019-11-05"
+    },
+    {
+      "id": "ac-test-737-01",
+      "operatorId": "op-camo-01",
+      "registration": "PR-TESTA",
+      "msn": "10001",
+      "manufacturer": "Boeing",
+      "model": "737-800",
+      "series": "NG",
+      "aircraftType": "Commercial Transport",
+      "status": "OPERATIONAL",
+      "totalFlightHours": 8000,
+      "totalCycles": 4000,
+      "totalLandings": 4000,
+      "manufactureDate": "2018-05-15"
+    },
+    {
+      "id": "ac-test-737-02",
+      "operatorId": "op-camo-01",
+      "registration": "PR-TESTB",
+      "msn": "10002",
+      "manufacturer": "Boeing",
+      "model": "737-800",
+      "series": "NG",
+      "aircraftType": "Commercial Transport",
+      "status": "OPERATIONAL",
+      "totalFlightHours": 6500,
+      "totalCycles": 3200,
+      "totalLandings": 3200,
+      "manufactureDate": "2019-08-20"
+    }
+  ],
+  "engines": [
+    {
+      "id": "eng-01",
+      "aircraftId": "ac-01",
+      "manufacturer": "CFM International",
+      "model": "CFM56-7B26",
+      "serialNumber": "894120",
+      "position": "Pos 1 - Left Wing",
+      "totalHours": 28450,
+      "totalCycles": 14200,
+      "status": "INSTALLED"
+    },
+    {
+      "id": "eng-02",
+      "aircraftId": "ac-01",
+      "manufacturer": "CFM International",
+      "model": "CFM56-7B26",
+      "serialNumber": "894125",
+      "position": "Pos 2 - Right Wing",
+      "totalHours": 28450,
+      "totalCycles": 14200,
+      "status": "INSTALLED"
+    },
+    {
+      "id": "eng-03",
+      "aircraftId": "ac-02",
+      "manufacturer": "CFM International",
+      "model": "CFM56-7B26",
+      "serialNumber": "901234",
+      "position": "Pos 1 - Left Wing",
+      "totalHours": 19800,
+      "totalCycles": 9500,
+      "status": "INSTALLED"
+    },
+    {
+      "id": "eng-04",
+      "aircraftId": "ac-02",
+      "manufacturer": "CFM International",
+      "model": "CFM56-7B26",
+      "serialNumber": "901235",
+      "position": "Pos 2 - Right Wing",
+      "totalHours": 19800,
+      "totalCycles": 9500,
+      "status": "INSTALLED"
+    },
+    {
+      "id": "eng-05",
+      "aircraftId": "ac-03",
+      "manufacturer": "CFM International",
+      "model": "CFM56-5B4/P",
+      "serialNumber": "697410",
+      "position": "Pos 1 - Left Wing",
+      "totalHours": 22100,
+      "totalCycles": 11300,
+      "status": "INSTALLED"
+    },
+    {
+      "id": "eng-06",
+      "aircraftId": "ac-03",
+      "manufacturer": "CFM International",
+      "model": "CFM56-5B4/P",
+      "serialNumber": "697412",
+      "position": "Pos 2 - Right Wing",
+      "totalHours": 22100,
+      "totalCycles": 11300,
+      "status": "INSTALLED"
+    }
+  ],
+  "components": [
+    {
+      "id": "comp-01",
+      "manufacturer": "Boeing Flight Controls / Parker",
+      "partNumber": "12345-01",
+      "serialNumber": "456789",
+      "componentType": "FLIGHT_CONTROLS",
+      "description": "Elevator Tab Control Pushrod & Bushing Assembly",
+      "status": "SERVICEABLE",
+      "totalHours": 14200,
+      "totalCycles": 7100
+    },
+    {
+      "id": "comp-02",
+      "manufacturer": "Boeing Flight Controls / Parker",
+      "partNumber": "12345-01",
+      "serialNumber": "498112",
+      "componentType": "FLIGHT_CONTROLS",
+      "description": "Elevator Tab Control Pushrod & Bushing Assembly",
+      "status": "SERVICEABLE",
+      "totalHours": 9500,
+      "totalCycles": 4750
+    },
+    {
+      "id": "comp-03",
+      "manufacturer": "Crane Aerospace",
+      "partNumber": "D28156-103",
+      "serialNumber": "FBP-8812",
+      "componentType": "FUEL_SYSTEM",
+      "description": "Main Fuel Boost Pump Assembly",
+      "status": "SERVICEABLE",
+      "totalHours": 18200,
+      "totalCycles": 9100
+    },
+    {
+      "id": "comp-04",
+      "manufacturer": "Airbus / Liebherr",
+      "partNumber": "A320-HYD-044",
+      "serialNumber": "PTU-5521",
+      "componentType": "HYDRAULIC",
+      "description": "Hydraulic Power Transfer Unit (PTU)",
+      "status": "SERVICEABLE",
+      "totalHours": 22100,
+      "totalCycles": 11300
+    }
+  ],
+  "installations": [
+    {
+      "id": "inst-01",
+      "componentId": "comp-01",
+      "aircraftId": "ac-01",
+      "aircraftRegistration": "PR-GUO",
+      "position": "Empennage - Left Elevator Tab Pushrod",
+      "installationDate": "2020-04-12",
+      "installationHours": 14250,
+      "installationCycles": 7100,
+      "currentStatus": "INSTALLED",
+      "installedBy": "TAM MRO Service Station",
+      "workOrderRef": "WO-2020-0412-ET"
+    },
+    {
+      "id": "inst-02",
+      "componentId": "comp-02",
+      "aircraftId": "ac-02",
+      "aircraftRegistration": "PR-VBC",
+      "position": "Empennage - Left Elevator Tab Pushrod",
+      "installationDate": "2021-08-05",
+      "installationHours": 10300,
+      "installationCycles": 4750,
+      "currentStatus": "INSTALLED",
+      "installedBy": "GOL Aerotech MRO",
+      "workOrderRef": "WO-2021-0805-ET"
+    },
+    {
+      "id": "inst-03",
+      "componentId": "comp-03",
+      "aircraftId": "ac-01",
+      "aircraftRegistration": "PR-GUO",
+      "position": "Center Wing Tank - Left Boost Pump",
+      "installationDate": "2019-11-20",
+      "installationHours": 10250,
+      "installationCycles": 5100,
+      "currentStatus": "INSTALLED",
+      "installedBy": "SkyAir CAMO Base",
+      "workOrderRef": "WO-2019-1120-BP"
+    },
+    {
+      "id": "inst-04",
+      "componentId": "comp-04",
+      "aircraftId": "ac-03",
+      "aircraftRegistration": "PR-AIA",
+      "position": "Main Landing Gear Bay - Hydraulic Bay",
+      "installationDate": "2018-05-14",
+      "installationHours": 0,
+      "installationCycles": 0,
+      "currentStatus": "INSTALLED",
+      "installedBy": "Airbus Delivery Center",
+      "workOrderRef": "ORIG-DELIVERY"
+    }
+  ],
+  "installedSoftware": [],
+  "actionAccomplishments": [],
+  "requirements": [
+    {
+      "id": "cr-2026-09-01",
+      "sourceType": "AD",
+      "sourceNumber": "FAA AD 2026-09-01",
+      "revision": "Original Issue",
+      "title": "Boeing 737-800 Series: Fuselage High Pressure Duct Skin NDT Ultrasonic Inspection",
+      "issuingAuthority": "FAA",
+      "issueDate": "2026-01-15",
+      "effectiveDate": "2026-02-01",
+      "emergencyAd": false,
+      "status": "APPROVED",
+      "createdBy": "CAMO Automated Compliance Pipeline (Phase 5.3.1)",
+      "updatedBy": "CAMO Automated Compliance Pipeline (Phase 5.3.1)",
+      "applicabilityRule": {
+        "id": "rule-cr-2026-09-01",
+        "complianceRequirementId": "cr-2026-09-01",
+        "aircraftManufacturers": [
+          "Boeing"
+        ],
+        "aircraftModels": [
+          "737-800"
+        ],
+        "componentPartNumbers": [],
+        "rawText": "This AD applies to all The Boeing Company Model 737-800 airplanes, certificated in any category."
+      },
+      "requirementDetails": {
+        "initialThreshold": "Within 500 flight hours or 90 days after the effective date of this AD, whichever occurs first.",
+        "complianceTime": "500 FH / 90 Days",
+        "requiredInspection": "High-frequency ultrasonic and eddy-current inspection of the fuselage high pressure duct skins in accordance with Boeing Alert SB 737-53A1420."
+      },
+      "mandatedActions": [
+        {
+          "id": "act-2026-09-01-1",
+          "paragraphReference": "Paragraph (g)(1)",
+          "actionType": "ONE_TIME_INSPECTION",
+          "description": "Perform ultrasonic inspection of the fuselage high pressure duct skins in accordance with Boeing Alert SB 737-53A1420.",
+          "sequence": 1,
+          "accomplishmentReference": {
+            "documentReference": "Boeing Alert Service Bulletin 737-53A1420"
+          },
+          "complianceThreshold": {
+            "thresholdType": "CALENDAR_DAYS",
+            "thresholdValue": 365,
+            "rawDescription": "Within 365 days after the effective date of this AD"
+          }
+        }
+      ],
+      "sourceDocument": {
+        "fileName": "2026-09001.pdf",
+        "fileSize": 245760,
+        "mimeType": "application/pdf",
+        "documentHash": "9f83c605d4458b3e6e8e899b867c293774889c1753c1507d8d479a96e95b0561",
+        "rawExtractedText": "DEPARTMENT OF TRANSPORTATION Federal Aviation Administration 14 CFR Part 39 AD 2026-09-01..."
+      },
+      "documentProcessingStatus": "EXTRACTED",
+      "extractionStatus": "SUCCESS",
+      "createdAt": "2026-01-15T08:10:00.000Z",
+      "updatedAt": "2026-01-15T08:10:00.000Z",
+      "applicabilityCriteria": {
+        "aircraftModel": {
+          "status": "REQUIRED",
+          "values": [
+            "737-800"
+          ],
+          "confidence": "HIGH",
+          "reasoning": "Target aircraft models: 737-800"
+        },
+        "aircraftMSN": {
+          "status": "NOT_REQUIRED",
+          "ranges": [],
+          "list": [],
+          "confidence": "HIGH",
+          "reasoning": "AD applies to all serial numbers of applicable models (no MSN restriction)"
+        },
+        "aircraftConfiguration": {
+          "status": "NOT_REQUIRED",
+          "conditions": [],
+          "confidence": "HIGH"
+        },
+        "engineModel": {
+          "status": "NOT_REQUIRED",
+          "values": [],
+          "confidence": "HIGH",
+          "reasoning": "No engine model restriction"
+        },
+        "enginePartNumber": {
+          "status": "NOT_REQUIRED",
+          "values": [],
+          "confidence": "HIGH"
+        },
+        "engineSerialNumber": {
+          "status": "NOT_REQUIRED",
+          "ranges": [],
+          "list": [],
+          "confidence": "HIGH"
+        },
+        "componentIdentity": {
+          "status": "NOT_REQUIRED",
+          "values": [],
+          "confidence": "HIGH"
+        },
+        "componentPartNumber": {
+          "status": "NOT_REQUIRED",
+          "values": [],
+          "confidence": "HIGH",
+          "reasoning": "No component P/N restriction"
+        },
+        "componentSerialNumber": {
+          "status": "NOT_REQUIRED",
+          "ranges": [],
+          "list": [],
+          "confidence": "HIGH"
+        },
+        "modificationStatus": {
+          "status": "NOT_REQUIRED",
+          "conditions": [],
+          "confidence": "HIGH"
+        },
+        "softwareConfiguration": {
+          "status": "NOT_REQUIRED",
+          "conditions": [],
+          "values": [],
+          "confidence": "HIGH"
+        }
+      }
+    },
+    {
+      "id": "req-ad-2024-12-05",
+      "sourceType": "AD",
+      "sourceNumber": "FAA AD 2024-12-05",
+      "revision": "Original Issue",
+      "title": "Boeing 737-800/900 Series: Elevator Tab Pushrod and Bushing Repetitive Inspection",
+      "issuingAuthority": "FAA",
+      "issueDate": "2024-06-10",
+      "effectiveDate": "2024-07-15",
+      "emergencyAd": false,
+      "status": "ASSESSED",
+      "createdAt": "2026-08-16T14:00:00.000Z",
+      "createdBy": "Eng. Fábio Teraoka",
+      "updatedAt": "2026-08-16T14:15:00.000Z",
+      "updatedBy": "Eng. Fábio Teraoka",
+      "applicabilityRule": {
+        "id": "rule-01",
+        "complianceRequirementId": "req-ad-2024-12-05",
+        "aircraftManufacturers": [
+          "Boeing"
+        ],
+        "aircraftModels": [
+          "737-700",
+          "737-800",
+          "737-900",
+          "737-900ER"
+        ],
+        "componentPartNumbers": [
+          "12345-01",
+          "12345-02"
+        ],
+        "componentSerialRanges": {
+          "from": "400000",
+          "to": "500000",
+          "description": "Serial numbers 400000 through 500000 inclusive"
+        },
+        "affectedConfiguration": "Aircraft equipped with Elevator Tab Pushrod P/N 12345-01 or 12345-02 in serial range 400000 to 500000.",
+        "otherEffectivityCriteria": "Does not apply if Boeing Service Bulletin B737-27A1305 has already been accomplished as terminating action.",
+        "rawText": "Applicability: This AD applies to The Boeing Company Model 737-700, 737-800, 737-900, and 737-900ER series airplanes, certificated in any category, having elevator tab pushrod P/N 12345-01 or 12345-02 with serial numbers between 400000 and 500000 installed."
+      },
+      "requirementDetails": {
+        "initialThreshold": "Within 500 flight hours or 6 months after the effective date of this AD, whichever occurs first.",
+        "complianceTime": "500 FH / 6 Months threshold",
+        "repetitiveInterval": "Repetitive detailed visual and ultrasonic inspection every 500 flight hours or 12 calendar months.",
+        "requiredInspection": "Perform detailed visual inspection (DVI) for pushrod play, corrosion, and ultrasonic inspection of pushrod bushing for fatigue cracking.",
+        "modification": "If cracking or excessive play exceeds 0.015 inches, replace pushrod assembly with approved terminating part P/N 98765-02.",
+        "replacement": "Replace cracked pushrods prior to further flight.",
+        "optionalMethod": "Alternative Method of Compliance (AMOC) may be submitted to Seattle ACO Branch.",
+        "terminatingAction": "Installation of redesigned pushrod P/N 98765-02 per Boeing Alert SB 737-27A1305 terminates the repetitive inspections.",
+        "requiredParts": [
+          "P/N 98765-02 (Terminating Pushrod)",
+          "P/N MS21244-4 (Bushing Pin)"
+        ],
+        "requiredDocumentation": "Record compliance in Aircraft Tech Log; report any cracked pushrod findings to FAA Seattle ACO Branch within 10 days."
+      }
+    }
+  ],
+  "assessments": [
+    {
+      "id": "ass-01",
+      "complianceRequirementId": "req-ad-2024-12-05",
+      "entityType": "AIRCRAFT",
+      "entityId": "ac-01",
+      "entityRegistration": "PR-GUO",
+      "entityMsn": "38124",
+      "entityModel": "737-800",
+      "entityLabel": "PR-GUO (MSN 38124 - Boeing 737-800)",
+      "result": "APPLICABLE",
+      "applicabilityStatus": "APPLICABLE",
+      "complianceStatus": "OPEN",
+      "confidence": "HIGH",
+      "reasoning": [
+        "[APPLICABILITY: APPLICABLE] Aircraft model Boeing 737-800 is explicitly within AD effectivity list.",
+        "Affected component P/N 12345-01 is installed on PR-GUO (Position: Left Elevator Tab).",
+        "Component S/N 456789 is within the affected serial range (400000 through 500000).",
+        "[COMPLIANCE: OPEN] AD requires initial inspection within 500 FH / 6 months, followed by repetitive inspections every 500 FH.",
+        "Verified against confirmed Knowledge Fact KB-01 & FAA Form 8130-3 evidence."
+      ],
+      "matchedCriteria": {
+        "aircraftModelMatch": {
+          "matched": true,
+          "status": "CONFIRMED",
+          "detail": "Model B737-800 matches AD effectivity [737-700, 737-800, 737-900, 737-900ER]",
+          "confidence": 100
+        },
+        "componentMatch": {
+          "matched": true,
+          "status": "CONFIRMED",
+          "detail": "Installed component P/N 12345-01 with S/N 456789 falls inside affected range 400000-500000",
+          "confidence": 100,
+          "evidenceRef": "ARC #456789-2020 / WO-2020-0412-ET"
+        },
+        "configurationMatch": {
+          "matched": true,
+          "status": "CONFIRMED",
+          "detail": "Terminating mod SB 737-27A1305 not yet incorporated",
+          "confidence": 100
+        }
+      },
+      "assessedBy": "Rule Engine v2.0 (Decoupled CAMO Logic)",
+      "assessmentDate": "2026-08-16T14:10:00.000Z",
+      "status": "PENDING_APPROVAL"
+    },
+    {
+      "id": "ass-02",
+      "complianceRequirementId": "req-ad-2024-12-05",
+      "entityType": "AIRCRAFT",
+      "entityId": "ac-02",
+      "entityRegistration": "PR-VBC",
+      "entityMsn": "41200",
+      "entityModel": "737-800",
+      "entityLabel": "PR-VBC (MSN 41200 - Boeing 737-800)",
+      "result": "APPLICABLE",
+      "applicabilityStatus": "APPLICABLE",
+      "complianceStatus": "OPEN",
+      "confidence": "HIGH",
+      "reasoning": [
+        "[APPLICABILITY: APPLICABLE] Aircraft model Boeing 737-800 is within AD effectivity.",
+        "Installed component P/N 12345-01 (S/N 498112) is within the affected serial range (400000 through 500000).",
+        "[COMPLIANCE: OPEN] Repetitive inspection schedule required every 500 FH.",
+        "Verified via component installation record WO-2021-0805-ET."
+      ],
+      "matchedCriteria": {
+        "aircraftModelMatch": {
+          "matched": true,
+          "status": "CONFIRMED",
+          "detail": "Model B737-800 matches AD effectivity",
+          "confidence": 100
+        },
+        "componentMatch": {
+          "matched": true,
+          "status": "CONFIRMED",
+          "detail": "Installed component P/N 12345-01 with S/N 498112 falls in affected range 400000-500000",
+          "confidence": 100,
+          "evidenceRef": "WO-2021-0805-ET"
+        }
+      },
+      "assessedBy": "Rule Engine v2.0 (Decoupled CAMO Logic)",
+      "assessmentDate": "2026-08-16T14:10:00.000Z",
+      "status": "PENDING_APPROVAL"
+    },
+    {
+      "id": "ass-03",
+      "complianceRequirementId": "req-ad-2024-12-05",
+      "entityType": "AIRCRAFT",
+      "entityId": "ac-03",
+      "entityRegistration": "PR-AIA",
+      "entityMsn": "5490",
+      "entityModel": "A320-214",
+      "entityLabel": "PR-AIA (MSN 5490 - Airbus A320-214)",
+      "result": "NOT_APPLICABLE",
+      "applicabilityStatus": "NOT_APPLICABLE",
+      "complianceStatus": "NOT_REQUIRED",
+      "confidence": "HIGH",
+      "reasoning": [
+        "[APPLICABILITY: NOT APPLICABLE] Aircraft model Airbus A320-214 is not manufactured by Boeing and is not listed in AD effectivity (Boeing 737-700/800/900).",
+        "No affected Boeing components are installed on this Airbus aircraft.",
+        "[COMPLIANCE: NOT REQUIRED] Compliance is not required for non-applicable airframe."
+      ],
+      "matchedCriteria": {
+        "aircraftModelMatch": {
+          "matched": false,
+          "status": "NOT_PRESENT",
+          "detail": "Aircraft model Airbus A320-214 is not in [737-700, 737-800, 737-900, 737-900ER]",
+          "confidence": 100
+        }
+      },
+      "assessedBy": "Rule Engine v2.0 (Decoupled CAMO Logic)",
+      "assessmentDate": "2026-08-16T14:10:00.000Z",
+      "status": "PENDING_APPROVAL"
+    }
+  ],
+  "obligations": [
+    {
+      "id": "obl-cr-2026-09-01-ac-test-737-01-act-act-2026-09-01-1",
+      "complianceRequirementId": "cr-2026-09-01",
+      "adNumber": "FAA AD 2026-09-01",
+      "adRevision": "Original Issue",
+      "adTitle": "Boeing 737-800 Series: Fuselage High Pressure Duct Skin NDT Ultrasonic Inspection",
+      "issuingAuthority": "FAA",
+      "aircraftId": "ac-test-737-01",
+      "targetEntity": {
+        "entityType": "AIRCRAFT",
+        "entityId": "ac-test-737-01",
+        "aircraftId": "ac-test-737-01",
+        "aircraftRegistration": "PR-TESTA",
+        "aircraftMsn": "10001",
+        "aircraftModel": "737-800"
+      },
+      "applicabilityStatus": "APPLICABLE",
+      "applicabilityReasoning": [
+        "Model match Boeing 737-800"
+      ],
+      "mandatedActionId": "act-2026-09-01-1",
+      "mandatedActionParagraph": "Paragraph (g)(1)",
+      "actionDescription": "Perform ultrasonic inspection of the fuselage high pressure duct skins in accordance with Boeing Alert SB 737-53A1420.",
+      "status": "REVIEW_REQUIRED",
+      "previousStatus": "IDENTIFIED",
+      "statusReason": "Obrigação de aeronavegabilidade ativa e em vigor aguardando cumprimento.",
+      "threshold": {
+        "thresholdType": "CALENDAR_DAYS",
+        "thresholdValue": 365,
+        "description": "Within 365 days after the effective date of this AD"
+      },
+      "temporalCounters": {
+        "effectiveDate": "2026-02-01",
+        "currentAirframeFH": 8000,
+        "currentAirframeFC": 4000,
+        "cycleCount": 0,
+        "isOverdue": false,
+        "isDueSoon": false,
+        "alertWindow": {
+          "alertWindowDays": 30,
+          "alertWindowFH": 100,
+          "alertWindowFC": 50
+        },
+        "calculationInputHash": "d4c4100e786c7100",
+        "lastCalculatedAt": "2026-09-08T11:40:43.278Z",
+        "complianceDueDate": "2027-02-01",
+        "nextDueDate": "2027-02-01",
+        "remainingDays": 146,
+        "earliestDue": {
+          "parameter": "CALENDAR_DAYS",
+          "value": "2027-02-01"
+        },
+        "latestDue": {
+          "parameter": "CALENDAR_DAYS",
+          "value": "2027-02-01"
+        },
+        "controllingLimit": "CALENDAR_DAYS",
+        "controllingReason": "Single constraint: 2027-02-01",
+        "calculationExplanation": {
+          "referenceDescription": "Effective Date of AD (2026-02-01)",
+          "requirementDescription": "Threshold: Within 365 days after the effective date of this AD.",
+          "currentStatusDescription": "Airframe as of 2026-09-08: 8000 FH, 4000 FC",
+          "calculatedDueDescription": "Date Due: 2027-02-01.",
+          "remainingDescription": "Remaining: 146 days.",
+          "controllingRule": "Single constraint: 2027-02-01",
+          "summary": "Controlling Limit: CALENDAR_DAYS (Single constraint: 2027-02-01). Overdue: NO, Due Soon: NO."
+        }
+      },
+      "evidence": [],
+      "reviewState": {
+        "requiresHumanReview": true,
+        "reviewReasons": [
+          "Data ambiguity in manual paragraph"
+        ],
+        "originalAutoStatus": "OPEN"
+      },
+      "stateTransitions": [
+        {
+          "id": "trans-1788867643278-y44d6",
+          "fromStatus": "IDENTIFIED",
+          "toStatus": "OPEN",
+          "reason": "Obrigação de aeronavegabilidade ativa e em vigor aguardando cumprimento.",
+          "timestamp": "2026-09-08T11:40:43.278Z",
+          "ruleResponsible": "RULE_OBLIGATION_OPEN_ACTIVE",
+          "actor": "Review-Test"
+        }
+      ],
+      "engineVersion": "6.3.0",
+      "createdAt": "2026-09-08T11:40:43.278Z",
+      "createdBy": "Review-Test",
+      "updatedAt": "2026-09-08T11:40:43.278Z",
+      "updatedBy": "Review-Test",
+      "version": 1
+    }
+  ],
+  "evidence": [],
+  "questions": [],
+  "knowledgeFacts": [
+    {
+      "id": "fact-01",
+      "title": "P/N 12345-01 is installed on Boeing 737-800 PR-GUO (S/N 456789)",
+      "factType": "COMPONENT_INSTALLED",
+      "subjectType": "AIRCRAFT",
+      "subjectId": "ac-01",
+      "subjectLabel": "PR-GUO (MSN 38124)",
+      "predicate": "has_installed_component",
+      "objectValue": "P/N 12345-01 (S/N 456789)",
+      "details": {
+        "partNumber": "12345-01",
+        "serialNumber": "456789",
+        "position": "Empennage - Left Elevator Tab Pushrod"
+      },
+      "source": "Aircraft Technical Log & FAA Form 8130-3 Tag (WO-2020-0412-ET)",
+      "evidenceSummary": "FAA 8130-3 Authorized Release Certificate #ARC-456789-2020 verified by CAMO Airworthiness.",
+      "confidence": 100,
+      "createdDate": "2024-01-15T10:00:00.000Z",
+      "createdBy": "Eng. Fábio Teraoka",
+      "lastVerified": "2026-08-16T12:00:00.000Z",
+      "verifiedBy": "Eng. Fábio Teraoka",
+      "usageCount": 2
+    },
+    {
+      "id": "fact-02",
+      "title": "P/N 12345-01 is installed on Boeing 737-800 PR-VBC (S/N 498112)",
+      "factType": "COMPONENT_INSTALLED",
+      "subjectType": "AIRCRAFT",
+      "subjectId": "ac-02",
+      "subjectLabel": "PR-VBC (MSN 41200)",
+      "predicate": "has_installed_component",
+      "objectValue": "P/N 12345-01 (S/N 498112)",
+      "details": {
+        "partNumber": "12345-01",
+        "serialNumber": "498112",
+        "position": "Empennage - Left Elevator Tab Pushrod"
+      },
+      "source": "MRO Delivery Inspection & Component Tag EASA Form 1",
+      "evidenceSummary": "EASA Form 1 Tracking tag #EASA-498112 verified at C-Check.",
+      "confidence": 100,
+      "createdDate": "2024-02-10T14:30:00.000Z",
+      "createdBy": "Eng. Fábio Teraoka",
+      "lastVerified": "2026-08-16T12:00:00.000Z",
+      "verifiedBy": "Eng. Fábio Teraoka",
+      "usageCount": 1
+    }
+  ],
+  "auditTrail": [
+    {
+      "id": "aud-1788867643278-xsl73",
+      "timestamp": "2026-09-08T11:40:43.279Z",
+      "user": "Review-Test",
+      "role": "CAMO_SYSTEM",
+      "action": "OBLIGATION_CREATED",
+      "entityType": "ComplianceObligation",
+      "entityId": "obl-cr-2026-09-01-ac-test-737-01-act-act-2026-09-01-1",
+      "details": "Created Compliance Obligation for AD FAA AD 2026-09-01 on aircraft PR-TESTA with status OPEN."
+    },
+    {
+      "id": "aud-01",
+      "timestamp": "2026-08-16T14:00:00.000Z",
+      "user": "Eng. Fábio Teraoka",
+      "role": "CHIEF_CAMO_ENGINEER",
+      "action": "CREATE",
+      "entityType": "ComplianceRequirement",
+      "entityId": "req-ad-2024-12-05",
+      "details": "Registered FAA AD 2024-12-05 in CAMO system."
+    },
+    {
+      "id": "aud-02",
+      "timestamp": "2026-08-16T14:05:00.000Z",
+      "user": "Gemini 3.7 Flash AI Extractor",
+      "role": "AIRWORTHINESS_INSPECTOR",
+      "action": "EXTRACT",
+      "entityType": "ApplicabilityRule",
+      "entityId": "rule-01",
+      "details": "Extracted structured applicability: Boeing 737-700/800/900 with P/N 12345-01/02 S/N 400000-500000."
+    },
+    {
+      "id": "aud-03",
+      "timestamp": "2026-08-16T14:10:00.000Z",
+      "user": "Rule Engine v1.0",
+      "role": "AIRWORTHINESS_INSPECTOR",
+      "action": "RULE_EVALUATION",
+      "entityType": "ComplianceAssessment",
+      "entityId": "req-ad-2024-12-05",
+      "details": "Evaluated 3 fleet aircraft: 2 APPLICABLE (PR-GUO, PR-VBC), 1 NOT APPLICABLE (PR-AIA)."
+    },
+    {
+      "id": "aud-04",
+      "timestamp": "2026-08-16T14:15:00.000Z",
+      "user": "FAPT Automation Engine",
+      "role": "CHIEF_CAMO_ENGINEER",
+      "action": "CREATE",
+      "entityType": "FAPTDocument",
+      "entityId": "fapt-01",
+      "details": "Generated preliminary AD Review Sheet FAPT-2024-AD-12-05."
+    }
+  ],
+  "fapts": [
+    {
+      "id": "fapt-01",
+      "complianceRequirementId": "req-ad-2024-12-05",
+      "documentNumber": "FAPT-2024-AD-12-05",
+      "revision": "Rev 0 (Draft)",
+      "dateCreated": "2026-08-16T14:15:00.000Z",
+      "adNumber": "FAA AD 2024-12-05",
+      "adRevision": "Original",
+      "authority": "FAA",
+      "issueDate": "2024-06-10",
+      "effectiveDate": "2024-07-15",
+      "title": "Boeing 737-800/900 Series: Elevator Tab Pushrod and Bushing Repetitive Inspection",
+      "emergency": false,
+      "affectedFleetCount": 2,
+      "notApplicableCount": 1,
+      "reviewRequiredCount": 0,
+      "applicabilityMatrix": [
+        {
+          "aircraftRegistration": "PR-GUO",
+          "msn": "38124",
+          "model": "737-800",
+          "installedEngine": "CFM56-7B26",
+          "affectedComponentsFound": [
+            "P/N 12345-01 (S/N 456789)"
+          ],
+          "result": "APPLICABLE",
+          "applicabilityStatus": "APPLICABLE",
+          "complianceStatus": "OPEN",
+          "reasoningSummary": "B737-800 with affected P/N 12345-01 S/N 456789 installed in Left Elevator Tab."
+        },
+        {
+          "aircraftRegistration": "PR-VBC",
+          "msn": "41200",
+          "model": "737-800",
+          "installedEngine": "CFM56-7B26",
+          "affectedComponentsFound": [
+            "P/N 12345-01 (S/N 498112)"
+          ],
+          "result": "APPLICABLE",
+          "applicabilityStatus": "APPLICABLE",
+          "complianceStatus": "OPEN",
+          "reasoningSummary": "B737-800 with affected P/N 12345-01 S/N 498112 installed in Left Elevator Tab."
+        },
+        {
+          "aircraftRegistration": "PR-AIA",
+          "msn": "5490",
+          "model": "A320-214",
+          "installedEngine": "CFM56-5B4/P",
+          "affectedComponentsFound": [],
+          "result": "NOT_APPLICABLE",
+          "applicabilityStatus": "NOT_APPLICABLE",
+          "complianceStatus": "NOT_REQUIRED",
+          "reasoningSummary": "Airbus A320 is not within Boeing 737 effectivity."
+        }
+      ],
+      "initialThreshold": "Within 500 FH or 6 months from 15-JUL-2024, whichever occurs first.",
+      "complianceTime": "500 FH / 6 Months threshold",
+      "repetitiveInterval": "Every 500 flight hours or 12 calendar months.",
+      "requiredInspection": "Detailed visual and ultrasonic inspection of elevator tab pushrod.",
+      "modification": "Replace with terminating P/N 98765-02 if excessive wear/crack detected.",
+      "replacement": "Prior to next flight if wear exceeds tolerance.",
+      "terminatingAction": "Accomplishment of SB 737-27A1305 (New P/N 98765-02 installation).",
+      "requiredParts": [
+        "P/N 98765-02",
+        "P/N MS21244-4"
+      ],
+      "requiredDocumentation": "Log in Tech Log; return findings to Seattle ACO Branch within 10 days.",
+      "evidenceReferences": [
+        "ARC-456789-2020",
+        "WO-2021-0805-ET",
+        "FAA 8130-3 Form"
+      ],
+      "knowledgeFactsApplied": [
+        "fact-01",
+        "fact-02"
+      ],
+      "preparedBy": "Eng. Fábio Teraoka",
+      "preparedDate": "2026-08-16",
+      "status": "DRAFT"
+    }
+  ],
+  "acquiredDocuments": [],
+  "discoveryRecords": [],
+  "screeningAssessments": [],
+  "pipelineExecutions": [],
+  "deliveryAssessments": [],
+  "complianceObligations": [
+    {
+      "id": "obl-cr-2026-09-01-ac-test-737-01-act-act-2026-09-01-1",
+      "complianceRequirementId": "cr-2026-09-01",
+      "adNumber": "FAA AD 2026-09-01",
+      "adRevision": "Original Issue",
+      "adTitle": "Boeing 737-800 Series: Fuselage High Pressure Duct Skin NDT Ultrasonic Inspection",
+      "issuingAuthority": "FAA",
+      "aircraftId": "ac-test-737-01",
+      "targetEntity": {
+        "entityType": "AIRCRAFT",
+        "entityId": "ac-test-737-01",
+        "aircraftId": "ac-test-737-01",
+        "aircraftRegistration": "PR-TESTA",
+        "aircraftMsn": "10001",
+        "aircraftModel": "737-800"
+      },
+      "applicabilityStatus": "APPLICABLE",
+      "applicabilityReasoning": [
+        "Model match Boeing 737-800"
+      ],
+      "mandatedActionId": "act-2026-09-01-1",
+      "mandatedActionParagraph": "Paragraph (g)(1)",
+      "actionDescription": "Perform ultrasonic inspection of the fuselage high pressure duct skins in accordance with Boeing Alert SB 737-53A1420.",
+      "status": "REVIEW_REQUIRED",
+      "previousStatus": "IDENTIFIED",
+      "statusReason": "Obrigação de aeronavegabilidade ativa e em vigor aguardando cumprimento.",
+      "threshold": {
+        "thresholdType": "CALENDAR_DAYS",
+        "thresholdValue": 365,
+        "description": "Within 365 days after the effective date of this AD"
+      },
+      "temporalCounters": {
+        "effectiveDate": "2026-02-01",
+        "currentAirframeFH": 8000,
+        "currentAirframeFC": 4000,
+        "cycleCount": 0,
+        "isOverdue": false,
+        "isDueSoon": false,
+        "alertWindow": {
+          "alertWindowDays": 30,
+          "alertWindowFH": 100,
+          "alertWindowFC": 50
+        },
+        "calculationInputHash": "d4c4100e786c7100",
+        "lastCalculatedAt": "2026-09-08T11:40:43.278Z",
+        "complianceDueDate": "2027-02-01",
+        "nextDueDate": "2027-02-01",
+        "remainingDays": 146,
+        "earliestDue": {
+          "parameter": "CALENDAR_DAYS",
+          "value": "2027-02-01"
+        },
+        "latestDue": {
+          "parameter": "CALENDAR_DAYS",
+          "value": "2027-02-01"
+        },
+        "controllingLimit": "CALENDAR_DAYS",
+        "controllingReason": "Single constraint: 2027-02-01",
+        "calculationExplanation": {
+          "referenceDescription": "Effective Date of AD (2026-02-01)",
+          "requirementDescription": "Threshold: Within 365 days after the effective date of this AD.",
+          "currentStatusDescription": "Airframe as of 2026-09-08: 8000 FH, 4000 FC",
+          "calculatedDueDescription": "Date Due: 2027-02-01.",
+          "remainingDescription": "Remaining: 146 days.",
+          "controllingRule": "Single constraint: 2027-02-01",
+          "summary": "Controlling Limit: CALENDAR_DAYS (Single constraint: 2027-02-01). Overdue: NO, Due Soon: NO."
+        }
+      },
+      "evidence": [],
+      "reviewState": {
+        "requiresHumanReview": true,
+        "reviewReasons": [
+          "Data ambiguity in manual paragraph"
+        ],
+        "originalAutoStatus": "OPEN"
+      },
+      "stateTransitions": [
+        {
+          "id": "trans-1788867643278-y44d6",
+          "fromStatus": "IDENTIFIED",
+          "toStatus": "OPEN",
+          "reason": "Obrigação de aeronavegabilidade ativa e em vigor aguardando cumprimento.",
+          "timestamp": "2026-09-08T11:40:43.278Z",
+          "ruleResponsible": "RULE_OBLIGATION_OPEN_ACTIVE",
+          "actor": "Review-Test"
+        }
+      ],
+      "engineVersion": "6.3.0",
+      "createdAt": "2026-09-08T11:40:43.278Z",
+      "createdBy": "Review-Test",
+      "updatedAt": "2026-09-08T11:40:43.278Z",
+      "updatedBy": "Review-Test",
+      "version": 1
+    }
+  ]
+}

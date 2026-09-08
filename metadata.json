@@ -1,0 +1,6 @@
+{
+  "name": "Airworthiness Compliance Intelligence",
+  "description": "Aeronautical Continuing Airworthiness & AD Management Platform with Fleet Configuration, Rule Engine, Gemini Document Extraction, Interactive Knowledge Base, Automated FAPT generation, and Federal Register Regulatory Discovery Engine.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

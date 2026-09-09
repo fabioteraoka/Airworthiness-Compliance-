@@ -121,7 +121,8 @@ export class AircraftDeliveryAssessmentEngine {
 
     // Check if aircraft already exists in database
     const existingAc = db.aircraft.find(
-      a => a.id === targetAircraftId || (a.msn === config.msn && a.manufacturer.toLowerCase() === config.manufacturer.toLowerCase())
+      a => (targetAircraftId && a.id === targetAircraftId) || 
+           (!input.isPreDeliveryAircraft && a.registration.toUpperCase() === config.registration.toUpperCase() && a.msn === config.msn)
     );
 
     let isPreDelivery = Boolean(input.isPreDeliveryAircraft);
@@ -586,7 +587,7 @@ export class AircraftDeliveryAssessmentEngine {
     }
 
     if (lessorStatus === 'COMPLIED') {
-      if (camoStatus === 'COMPLIED') {
+      if (camoStatus === 'COMPLIED' || camoStatus === 'NEXT_CYCLE_OPEN') {
         return { status: 'MATCH', notes: 'Lessor declaration of COMPLIED matches verified CAMO compliance and documentation.' };
       }
       if (camoStatus === 'OVERDUE') {
@@ -611,7 +612,7 @@ export class AircraftDeliveryAssessmentEngine {
       if (item.applicabilityStatus === 'NOT_APPLICABLE' || camoStatus === 'NOT_APPLICABLE') {
         return { status: 'MATCH', notes: 'Lessor claims NOT APPLICABLE, consistent with CAMO Engine applicability evaluation.' };
       }
-      if (item.applicabilityStatus === 'APPLICABILITY_CONFIRMED' || camoStatus === 'OPEN' || camoStatus === 'COMPLIED') {
+      if (item.applicabilityStatus === 'APPLICABILITY_CONFIRMED' || camoStatus === 'OPEN' || camoStatus === 'COMPLIED' || camoStatus === 'NEXT_CYCLE_OPEN') {
         return { 
           status: 'DISCREPANCY', 
           notes: 'DISCREPANCY: Lessor claims NOT APPLICABLE, but CAMO Engine confirmed applicable configuration on this aircraft.' 
@@ -626,7 +627,7 @@ export class AircraftDeliveryAssessmentEngine {
     }
 
     if (lessorStatus === 'OPEN') {
-      if (camoStatus === 'OPEN') {
+      if (camoStatus === 'OPEN' || camoStatus === 'NEXT_CYCLE_OPEN') {
         return { status: 'MATCH', notes: 'Lessor and CAMO Engine agree that AD compliance action is OPEN/PENDING.' };
       }
       if (camoStatus === 'COMPLIED') {

@@ -627,10 +627,10 @@
           "alertWindowFC": 50
         },
         "calculationInputHash": "d4c4100e786c7100",
-        "lastCalculatedAt": "2026-09-08T11:40:43.278Z",
+        "lastCalculatedAt": "2026-09-09T08:46:07.335Z",
         "complianceDueDate": "2027-02-01",
         "nextDueDate": "2027-02-01",
-        "remainingDays": 146,
+        "remainingDays": 145,
         "earliestDue": {
           "parameter": "CALENDAR_DAYS",
           "value": "2027-02-01"
@@ -644,9 +644,9 @@
         "calculationExplanation": {
           "referenceDescription": "Effective Date of AD (2026-02-01)",
           "requirementDescription": "Threshold: Within 365 days after the effective date of this AD.",
-          "currentStatusDescription": "Airframe as of 2026-09-08: 8000 FH, 4000 FC",
+          "currentStatusDescription": "Airframe as of 2026-09-09: 8000 FH, 4000 FC",
           "calculatedDueDescription": "Date Due: 2027-02-01.",
-          "remainingDescription": "Remaining: 146 days.",
+          "remainingDescription": "Remaining: 145 days.",
           "controllingRule": "Single constraint: 2027-02-01",
           "summary": "Controlling Limit: CALENDAR_DAYS (Single constraint: 2027-02-01). Overdue: NO, Due Soon: NO."
         }
@@ -661,19 +661,19 @@
       },
       "stateTransitions": [
         {
-          "id": "trans-1788867643278-y44d6",
+          "id": "trans-1788943567335-p95u6",
           "fromStatus": "IDENTIFIED",
           "toStatus": "OPEN",
           "reason": "Obrigação de aeronavegabilidade ativa e em vigor aguardando cumprimento.",
-          "timestamp": "2026-09-08T11:40:43.278Z",
+          "timestamp": "2026-09-09T08:46:07.335Z",
           "ruleResponsible": "RULE_OBLIGATION_OPEN_ACTIVE",
           "actor": "Review-Test"
         }
       ],
       "engineVersion": "6.3.0",
-      "createdAt": "2026-09-08T11:40:43.278Z",
+      "createdAt": "2026-09-09T08:46:07.335Z",
       "createdBy": "Review-Test",
-      "updatedAt": "2026-09-08T11:40:43.278Z",
+      "updatedAt": "2026-09-09T08:46:07.335Z",
       "updatedBy": "Review-Test",
       "version": 1
     }
@@ -730,8 +730,8 @@
   ],
   "auditTrail": [
     {
-      "id": "aud-1788867643278-xsl73",
-      "timestamp": "2026-09-08T11:40:43.279Z",
+      "id": "aud-1788943567336-4j1iv",
+      "timestamp": "2026-09-09T08:46:07.336Z",
       "user": "Review-Test",
       "role": "CAMO_SYSTEM",
       "action": "OBLIGATION_CREATED",
@@ -912,10 +912,10 @@
           "alertWindowFC": 50
         },
         "calculationInputHash": "d4c4100e786c7100",
-        "lastCalculatedAt": "2026-09-08T11:40:43.278Z",
+        "lastCalculatedAt": "2026-09-09T08:46:07.335Z",
         "complianceDueDate": "2027-02-01",
         "nextDueDate": "2027-02-01",
-        "remainingDays": 146,
+        "remainingDays": 145,
         "earliestDue": {
           "parameter": "CALENDAR_DAYS",
           "value": "2027-02-01"
@@ -929,9 +929,9 @@
         "calculationExplanation": {
           "referenceDescription": "Effective Date of AD (2026-02-01)",
           "requirementDescription": "Threshold: Within 365 days after the effective date of this AD.",
-          "currentStatusDescription": "Airframe as of 2026-09-08: 8000 FH, 4000 FC",
+          "currentStatusDescription": "Airframe as of 2026-09-09: 8000 FH, 4000 FC",
           "calculatedDueDescription": "Date Due: 2027-02-01.",
-          "remainingDescription": "Remaining: 146 days.",
+          "remainingDescription": "Remaining: 145 days.",
           "controllingRule": "Single constraint: 2027-02-01",
           "summary": "Controlling Limit: CALENDAR_DAYS (Single constraint: 2027-02-01). Overdue: NO, Due Soon: NO."
         }
@@ -946,19 +946,19 @@
       },
       "stateTransitions": [
         {
-          "id": "trans-1788867643278-y44d6",
+          "id": "trans-1788943567335-p95u6",
           "fromStatus": "IDENTIFIED",
           "toStatus": "OPEN",
           "reason": "Obrigação de aeronavegabilidade ativa e em vigor aguardando cumprimento.",
-          "timestamp": "2026-09-08T11:40:43.278Z",
+          "timestamp": "2026-09-09T08:46:07.335Z",
           "ruleResponsible": "RULE_OBLIGATION_OPEN_ACTIVE",
           "actor": "Review-Test"
         }
       ],
       "engineVersion": "6.3.0",
-      "createdAt": "2026-09-08T11:40:43.278Z",
+      "createdAt": "2026-09-09T08:46:07.335Z",
       "createdBy": "Review-Test",
-      "updatedAt": "2026-09-08T11:40:43.278Z",
+      "updatedAt": "2026-09-09T08:46:07.335Z",
       "updatedBy": "Review-Test",
       "version": 1
     }

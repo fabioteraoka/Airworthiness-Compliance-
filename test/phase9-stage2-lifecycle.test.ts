@@ -91,13 +91,15 @@ describe('CAMO Phase 9 — Etapa 2: Ciclo de Vida Regulatório', () => {
   // =========================================================================
   const repetitiveRequirement: ComplianceRequirement = {
     id: 'cr-stage2-rep-01',
-    source: 'FAA',
+    sourceType: 'AD',
     sourceNumber: '2026-11-01',
+    revision: 'Original',
     title: 'Repetitive NDT Inspection of High Pressure Duct Welds with Terminating SB Modification',
     issuingAuthority: 'FAA',
-    documentType: 'AIRWORTHINESS_DIRECTIVE',
+    issueDate: '2025-12-15',
     effectiveDate: '2026-01-01',
-    status: 'ACTIVE',
+    emergencyAd: false,
+    status: 'APPROVED',
     applicabilityRule: {
       id: 'app-rep-01',
       complianceRequirementId: 'cr-stage2-rep-01',
@@ -114,9 +116,8 @@ describe('CAMO Phase 9 — Etapa 2: Ciclo de Vida Regulatório', () => {
     mandatedActions: [
       {
         id: 'act-rep-insp-01',
-        complianceRequirementId: 'cr-stage2-rep-01',
         paragraphReference: 'Paragraph (g)',
-        actionType: 'INSPECTION',
+        actionType: 'REPETITIVE_INSPECTION',
         description: 'Repetitive ultrasonic NDT inspection of duct skin welds every 500 FH.',
         complianceThreshold: {
           thresholdType: 'FLIGHT_HOURS',
@@ -128,26 +129,16 @@ describe('CAMO Phase 9 — Etapa 2: Ciclo de Vida Regulatório', () => {
           intervalValue: 500,
           rawDescription: 'Repetitive inspection every 500 flight hours'
         },
-        terminatingAction: 'Installation of SB 737-53A1420 terminates repetitive inspections.',
         isTerminatingAction: false,
-        requiresSignoff: true,
-        orderIndex: 1
-      }
-    ],
-    technicalReferences: [
-      {
-        id: 'ref-sb-1420',
-        documentNumber: 'SB 737-53A1420',
-        title: 'Fuselage Duct Weld Reinforcement Modification',
-        revision: 'Original',
-        documentType: 'SERVICE_BULLETIN',
-        mandatory: false
+        sequence: 1
       }
     ],
     documentProcessingStatus: 'EXTRACTED',
     extractionStatus: 'SUCCESS',
     createdAt: '2026-01-01T00:00:00.000Z',
-    updatedAt: '2026-01-01T00:00:00.000Z'
+    updatedAt: '2026-01-01T00:00:00.000Z',
+    createdBy: 'SYSTEM',
+    updatedBy: 'SYSTEM'
   };
 
   // =========================================================================
@@ -155,13 +146,15 @@ describe('CAMO Phase 9 — Etapa 2: Ciclo de Vida Regulatório', () => {
   // =========================================================================
   const oldRequirement: ComplianceRequirement = {
     id: 'cr-stage2-old-01',
-    source: 'FAA',
+    sourceType: 'AD',
     sourceNumber: '2024-10-05',
+    revision: 'Original',
     title: 'Elevator Tab Control Rod Repetitive Inspection',
     issuingAuthority: 'FAA',
-    documentType: 'AIRWORTHINESS_DIRECTIVE',
+    issueDate: '2024-10-15',
     effectiveDate: '2024-11-01',
-    status: 'ACTIVE',
+    emergencyAd: false,
+    status: 'APPROVED',
     applicabilityRule: {
       id: 'app-old-01',
       complianceRequirementId: 'cr-stage2-old-01',
@@ -173,33 +166,36 @@ describe('CAMO Phase 9 — Etapa 2: Ciclo de Vida Regulatório', () => {
     mandatedActions: [
       {
         id: 'act-old-01',
-        complianceRequirementId: 'cr-stage2-old-01',
         paragraphReference: 'Paragraph (e)',
-        actionType: 'INSPECTION',
+        actionType: 'REPETITIVE_INSPECTION',
         description: 'Detailed inspection of elevator tab control rod ends for play.',
         complianceThreshold: {
           thresholdType: 'FLIGHT_HOURS',
           thresholdValue: 12000,
           rawDescription: '12,000 total flight hours'
         },
-        orderIndex: 1
+        sequence: 1
       }
     ],
     documentProcessingStatus: 'EXTRACTED',
     extractionStatus: 'SUCCESS',
     createdAt: '2024-10-05T00:00:00.000Z',
-    updatedAt: '2024-10-05T00:00:00.000Z'
+    updatedAt: '2024-10-05T00:00:00.000Z',
+    createdBy: 'SYSTEM',
+    updatedBy: 'SYSTEM'
   };
 
   const newRequirement: ComplianceRequirement = {
     id: 'cr-stage2-new-02',
-    source: 'FAA',
+    sourceType: 'AD',
     sourceNumber: '2026-02-10',
+    revision: 'Original',
     title: 'Elevator Tab Control Rod Replacement (Supersedes AD 2024-10-05)',
     issuingAuthority: 'FAA',
-    documentType: 'AIRWORTHINESS_DIRECTIVE',
+    issueDate: '2026-02-15',
     effectiveDate: '2026-09-01',
-    status: 'ACTIVE',
+    emergencyAd: false,
+    status: 'APPROVED',
     supersedes: '2024-10-05',
     applicabilityRule: {
       id: 'app-new-02',
@@ -212,22 +208,23 @@ describe('CAMO Phase 9 — Etapa 2: Ciclo de Vida Regulatório', () => {
     mandatedActions: [
       {
         id: 'act-new-02',
-        complianceRequirementId: 'cr-stage2-new-02',
         paragraphReference: 'Paragraph (g)',
-        actionType: 'MODIFICATION',
+        actionType: 'HARDWARE_MODIFICATION',
         description: 'Replace elevator tab control rods with redesigned corrosion-resistant rods.',
         complianceThreshold: {
           thresholdType: 'CALENDAR_DAYS',
           thresholdValue: 180,
           rawDescription: 'Within 180 days after effective date'
         },
-        orderIndex: 1
+        sequence: 1
       }
     ],
     documentProcessingStatus: 'EXTRACTED',
     extractionStatus: 'SUCCESS',
     createdAt: '2026-02-10T00:00:00.000Z',
-    updatedAt: '2026-02-10T00:00:00.000Z'
+    updatedAt: '2026-02-10T00:00:00.000Z',
+    createdBy: 'SYSTEM',
+    updatedBy: 'SYSTEM'
   };
 
   beforeEach(() => {
@@ -493,9 +490,9 @@ describe('CAMO Phase 9 — Etapa 2: Ciclo de Vida Regulatório', () => {
 
       // Calculations 1 and 2 must produce 100% identical deterministic output
       expect(detailedCalc1.counters.nextDueFH).toBe(detailedCalc2.counters.nextDueFH);
-      expect(detailedCalc1.counters.complianceDueFH).toBe(detailedCalc2.counters.complianceDueFH);
+      expect(detailedCalc1.counters.dueFH).toBe(detailedCalc2.counters.dueFH);
       expect(detailedCalc1.counters.cycleCount).toBe(detailedCalc2.counters.cycleCount);
-      expect(detailedCalc1.calculationHash).toBe(detailedCalc2.calculationHash);
+      expect((detailedCalc1 as any).calculationHash).toBe((detailedCalc2 as any).calculationHash);
     });
   });
 
@@ -819,6 +816,7 @@ describe('CAMO Phase 9 — Etapa 2: Ciclo de Vida Regulatório', () => {
         submittedAt: '2026-02-15T10:00:00.000Z',
         submittedBy: 'Auditor',
         verificationStatus: 'PENDING_VALIDATION' as const,
+        source: 'CAMO_EVIDENCE_ATTACHMENT' as const,
         version: 1
       };
 
@@ -859,7 +857,7 @@ describe('CAMO Phase 9 — Etapa 2: Ciclo de Vida Regulatório', () => {
       expect(result.calculationStatus).toBe('INSUFFICIENT_DATA');
       expect(result.reviewRequired).toBe(true);
       expect(result.reviewReason).toBe('Missing reference flight hours for repetitive FH interval calculation (last compliance FH not recorded).');
-      expect(result.counters.complianceDueFH).toBeUndefined();
+      expect(result.counters.dueFH).toBeUndefined();
       expect(result.counters.nextDueFH).toBeUndefined();
     });
 

@@ -180,6 +180,114 @@ export function matchesModel(aircraftModel: string, targetModels: string[]): boo
 }
 
 /**
+ * Resolves an engine model to its canonical engine family.
+ * Ensures strict physical isolation between engine families (e.g. CFM56-7B vs LEAP-1B).
+ */
+export function getCanonicalEngineFamily(engineStr: string): { family: string; variant: string; raw: string } {
+  const raw = engineStr ? engineStr.trim() : '';
+  const lower = raw.toLowerCase().replace(/[-_/\s.]/g, '');
+
+  // 1. LEAP Family (LEAP-1B for 737 MAX, LEAP-1A for A320neo, LEAP-1C for C919)
+  if (lower.includes('leap1b')) {
+    return { family: 'LEAP_1B', variant: 'LEAP-1B', raw };
+  }
+  if (lower.includes('leap1a')) {
+    return { family: 'LEAP_1A', variant: 'LEAP-1A', raw };
+  }
+  if (lower.includes('leap1c')) {
+    return { family: 'LEAP_1C', variant: 'LEAP-1C', raw };
+  }
+  if (lower.startsWith('leap')) {
+    return { family: 'LEAP_ALL', variant: 'LEAP', raw };
+  }
+
+  // 2. CFM56 Family (CFM56-7B for 737NG, CFM56-5B for A320ceo, CFM56-5A, CFM56-5C, CFM56-3)
+  if (lower.includes('cfm567b') || lower.includes('567b')) {
+    return { family: 'CFM56_7B', variant: 'CFM56-7B', raw };
+  }
+  if (lower.includes('cfm565b') || lower.includes('565b')) {
+    return { family: 'CFM56_5B', variant: 'CFM56-5B', raw };
+  }
+  if (lower.includes('cfm565a') || lower.includes('565a')) {
+    return { family: 'CFM56_5A', variant: 'CFM56-5A', raw };
+  }
+  if (lower.includes('cfm565c') || lower.includes('565c')) {
+    return { family: 'CFM56_5C', variant: 'CFM56-5C', raw };
+  }
+  if (lower.includes('cfm563') || lower.includes('563b') || lower.includes('563c')) {
+    return { family: 'CFM56_3', variant: 'CFM56-3', raw };
+  }
+  if (lower.includes('cfm56')) {
+    return { family: 'CFM56_ALL', variant: 'CFM56', raw };
+  }
+
+  // 3. Pratt & Whitney GTF & PW1000G
+  if (lower.includes('pw1100') || lower.includes('pw1127') || lower.includes('pw1133')) {
+    return { family: 'PW1100G', variant: 'PW1100G', raw };
+  }
+  if (lower.includes('pw1500') || lower.includes('pw1900')) {
+    return { family: 'PW1500G', variant: 'PW1500G', raw };
+  }
+
+  // 4. IAE V2500
+  if (lower.includes('v2500') || lower.includes('v2527') || lower.includes('v2533')) {
+    return { family: 'V2500', variant: 'V2500', raw };
+  }
+
+  // 5. GE90 / GEnx
+  if (lower.includes('genx1b')) return { family: 'GENX_1B', variant: 'GEnx-1B', raw };
+  if (lower.includes('genx2b')) return { family: 'GENX_2B', variant: 'GEnx-2B', raw };
+  if (lower.includes('genx')) return { family: 'GENX_ALL', variant: 'GEnx', raw };
+  if (lower.includes('ge90')) return { family: 'GE90', variant: 'GE90', raw };
+
+  // 6. Rolls-Royce Trent
+  if (lower.includes('trent7000')) return { family: 'TRENT_7000', variant: 'Trent 7000', raw };
+  if (lower.includes('trent1000')) return { family: 'TRENT_1000', variant: 'Trent 1000', raw };
+  if (lower.includes('trent700')) return { family: 'TRENT_700', variant: 'Trent 700', raw };
+  if (lower.includes('trentxwb')) return { family: 'TRENT_XWB', variant: 'Trent XWB', raw };
+
+  return { family: 'CUSTOM', variant: normalizeText(raw), raw };
+}
+
+/**
+ * Checks if an engine model matches target effectivity engine models with strict canonical rules.
+ * Guarantees that CFM56-7B (NG) NEVER matches LEAP-1B (MAX).
+ */
+export function matchesEngineModel(
+  installedEngineStr: string, 
+  targetModels: string[], 
+  explicitFamily?: string
+): boolean {
+  if (!targetModels || targetModels.length === 0) return true;
+
+  const engCanon = explicitFamily 
+    ? getCanonicalEngineFamily(explicitFamily) 
+    : getCanonicalEngineFamily(installedEngineStr);
+
+  return targetModels.some(target => {
+    if (!target || target.trim().length === 0) return false;
+    const targetCanon = getCanonicalEngineFamily(target);
+
+    // If both belong to distinct known families that do NOT overlap (e.g. CFM56_7B vs LEAP_1B), return FALSE
+    if (engCanon.family !== 'CUSTOM' && targetCanon.family !== 'CUSTOM') {
+      if (engCanon.family !== targetCanon.family) {
+        // Special case: CFM56_ALL matches any CFM56, LEAP_ALL matches any LEAP
+        if (targetCanon.family === 'CFM56_ALL' && engCanon.family.startsWith('CFM56_')) return true;
+        if (targetCanon.family === 'LEAP_ALL' && engCanon.family.startsWith('LEAP_')) return true;
+        return false;
+      }
+      return true;
+    }
+
+    // Custom fallback string check
+    const normInst = normalizeText(installedEngineStr);
+    const normTg = normalizeText(target);
+    if (normInst === normTg) return true;
+    return normInst.includes(normTg) && normTg.length > 4;
+  });
+}
+
+/**
  * Check serial number against range (e.g., 400000 - 500000)
  * Safely guards against garbage input like ".", "N/A", "Todos", etc.
  */

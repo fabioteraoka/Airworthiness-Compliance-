@@ -30,6 +30,7 @@ export interface EvidenceValidationRequest {
   requirement?: ComplianceRequirement;
   mandatedAction?: MandatedAction;
   aircraft?: Aircraft;
+  componentInstallation?: any;
   evaluator?: string;
   evaluatorRole?: string;
 }
@@ -299,6 +300,67 @@ export class EvidenceVerificationEngine {
           structuredReasons.push('COUNTER_REGRESSION');
           structuredReasons.push('TEMPORAL_INCONSISTENCY');
         }
+      }
+    }
+
+    // Rollback against prior compliance event (lastComplianceFH / lastComplianceFC)
+    const priorCompFH = obligation.temporalCounters?.lastComplianceFH;
+    if (priorCompFH !== undefined && eventFH !== undefined && eventFH < priorCompFH) {
+      temporalMatch = false;
+      reasons.push(`Rollback temporal detectado: horímetro da evidência (${eventFH} FH) inferior ao cumprimento anterior (${priorCompFH} FH).`);
+      structuredReasons.push('FH_COUNTER_ROLLBACK');
+      structuredReasons.push('COUNTER_REGRESSION');
+      structuredReasons.push('TEMPORAL_INCONSISTENCY');
+    }
+    const priorCompFC = obligation.temporalCounters?.lastComplianceFC;
+    if (priorCompFC !== undefined && eventFC !== undefined && eventFC < priorCompFC) {
+      temporalMatch = false;
+      reasons.push(`Rollback temporal detectado: ciclos da evidência (${eventFC} FC) inferiores ao cumprimento anterior (${priorCompFC} FC).`);
+      structuredReasons.push('FC_COUNTER_ROLLBACK');
+      structuredReasons.push('COUNTER_REGRESSION');
+      structuredReasons.push('TEMPORAL_INCONSISTENCY');
+    }
+
+    // Component installation temporal verification
+    const targetCompId = obligation.targetEntity?.entityType === 'COMPONENT' ? obligation.targetEntity.entityId : undefined;
+    const targetCompPn = obligation.targetEntity?.entityType === 'COMPONENT' ? obligation.targetEntity.partNumber : undefined;
+    const targetCompSn = obligation.targetEntity?.entityType === 'COMPONENT' ? obligation.targetEntity.serialNumber : undefined;
+
+    let compInst = request.componentInstallation;
+    if (!compInst && (targetCompId || targetCompPn || targetCompSn)) {
+      const dbState = camoDb.getState();
+      compInst = dbState.installations.find(inst => 
+        (targetCompId && inst.componentId === targetCompId) ||
+        (inst.aircraftId === obligation.aircraftId && (
+          (targetCompSn && inst.component?.serialNumber === targetCompSn) ||
+          (targetCompPn && inst.component?.partNumber === targetCompPn)
+        ))
+      );
+    }
+
+    if (compInst && eventDate) {
+      // 1. Corrupted installation dates (removal before installation)
+      if (compInst.installationDate && compInst.removalDate && compInst.removalDate < compInst.installationDate) {
+        temporalMatch = false;
+        reasons.push(`Inconsistência física: histórico de instalação corrompido com data de remoção (${compInst.removalDate}) anterior à instalação (${compInst.installationDate}).`);
+        structuredReasons.push('TEMPORAL_INCONSISTENCY');
+        structuredReasons.push('DATA_INTEGRITY_REVIEW');
+      }
+
+      // 2. Execution date prior to component installation
+      if (compInst.installationDate && eventDate < compInst.installationDate) {
+        temporalMatch = false;
+        reasons.push(`Data do cumprimento (${eventDate}) é anterior à data de instalação do componente na aeronave (${compInst.installationDate}). Inconsistência física.`);
+        structuredReasons.push('TEMPORAL_INCONSISTENCY');
+        structuredReasons.push('EXECUTION_PRIOR_TO_INSTALLATION');
+      }
+
+      // 3. Execution date posterior to component removal
+      if (compInst.removalDate && eventDate > compInst.removalDate) {
+        temporalMatch = false;
+        reasons.push(`Data do cumprimento (${eventDate}) é posterior à data de remoção do componente da aeronave (${compInst.removalDate}). Inconsistência física.`);
+        structuredReasons.push('TEMPORAL_INCONSISTENCY');
+        structuredReasons.push('EXECUTION_AFTER_REMOVAL');
       }
     }
 

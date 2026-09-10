@@ -286,7 +286,7 @@ export default function HelpCenterView({
           }`}
         >
           <Layers className="w-4 h-4" />
-          <span>Capability Registry (Fases 1–8)</span>
+          <span>Capability Registry (Fases 1–9)</span>
         </button>
 
         <button
@@ -868,7 +868,7 @@ export default function HelpCenterView({
           <div className="bg-slate-900/90 border border-white/10 rounded-xl p-6 shadow-xl space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-lg font-bold text-white">Capability Registry Oficial (Fases 1 a 8)</h2>
+                <h2 className="text-lg font-bold text-white">Capability Registry Oficial (Fases 1 a 9)</h2>
                 <p className="text-xs text-slate-400">
                   Todas as capacidades implementadas e homologadas no código do CAMO Engine.
                 </p>
@@ -888,6 +888,32 @@ export default function HelpCenterView({
             {/* Matrix of capabilities */}
             <div className="space-y-3">
               {[
+                {
+                  id: 'CAP-009-3',
+                  phase: 'FASE 9 — ETAPA 3',
+                  name: 'Aircraft Real Configuration & Fleet AD Search Engine',
+                  module: 'ApplicabilityEvaluator / ComplianceObligationService / FleetAdSearchView',
+                  status: 'HOMOLOGATED / OPERATIONAL',
+                  version: '9.3.0',
+                  purpose: 'Avaliação dinâmica de configuração real da aeronave (troca de componentes P/N e S/N, segregação canônica de famílias de motor CFM56-7B vs LEAP-1B), recálculo de compliance drift-free e busca de ADs por frota com isolamento físico.',
+                  inputs: 'Componentes instalados/removidos, inventário de motores, regras de aplicabilidade, registros de frota.',
+                  outputs: 'Status de aplicabilidade atualizado (APPLICABLE/NOT_APPLICABLE/REVIEW_REQUIRED), recálculo determinístico com hash invariante, agregações de busca por frota.',
+                  security: 'Isolamento estrito multi-aeronave no camoDb, rejeição de execuções com datas futuras ou horômetros regressivos, validação de integridade física.',
+                  auditability: 'Log de cálculo com hash imutável e transições de estado rastreáveis por operador/engenheiro.'
+                },
+                {
+                  id: 'CAP-009-2',
+                  phase: 'FASE 9 — ETAPA 2',
+                  name: 'Regulatory Lifecycle State Machine & Evidence Engine',
+                  module: 'ComplianceObligationService / LifecycleEvaluator',
+                  status: 'HOMOLOGATED / OPERATIONAL',
+                  version: '9.2.0',
+                  purpose: 'Máquina de estados regulatória de 13 estados, cálculo de recorrência e próximo ciclo, terminating action definitiva e supersedence de ADs com preservação probatória.',
+                  inputs: 'Obrigações de compliance, evidências de cumprimento, declarações de supersedence e ações terminatórias.',
+                  outputs: 'Transições de estado auditadas, novas obrigações de ciclo subsequente, encerramento de recorrências e vínculo de sucessão.',
+                  security: 'Invariante estrita: transição para COMPLIED exige evidência verificada; terminating action encerra definitivamente ciclos futuros.',
+                  auditability: 'Histórico probatório e trilha de auditoria preservados mesmo após supersedence ou cumprimento.'
+                },
                 {
                   id: 'CAP-008',
                   phase: 'FASE 8',

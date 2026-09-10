@@ -16,6 +16,7 @@ import RegulatorySourcesView from './components/RegulatorySourcesView';
 import ComplianceObligationsView from './components/ComplianceObligationsView';
 import AircraftDeliveryView from './components/AircraftDeliveryView';
 import HelpCenterView from './components/HelpCenterView';
+import FleetAdSearchView from './components/FleetAdSearchView';
 import ContextualHelpDrawer from './components/ContextualHelpDrawer';
 import { Loader2, AlertCircle, HelpCircle, Compass } from 'lucide-react';
 import { ComplianceRequirement } from './types';
@@ -164,6 +165,15 @@ export default function App() {
                 state={state}
                 onSelectView={setCurrentView}
                 onSelectAd={handleSelectAd}
+              />
+            )}
+
+            {currentView === 'fleet-ad-search' && state && (
+              <FleetAdSearchView
+                state={state}
+                onSelectAd={handleSelectAd}
+                onSelectView={setCurrentView}
+                onRefreshState={setState}
               />
             )}
 

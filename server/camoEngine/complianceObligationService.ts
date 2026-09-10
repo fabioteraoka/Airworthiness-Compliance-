@@ -670,7 +670,7 @@ export class ComplianceObligationService {
 
     // Handle repetitive cycle transition: COMPLIED -> NEXT_CYCLE_OPEN
     if (toStatus === 'NEXT_CYCLE_OPEN') {
-      const aircraft = state.aircraft.find(a => a.id === obligation.targetEntity.aircraftId);
+      const aircraft = state.aircraft.find(a => a.id === (obligation.targetEntity?.aircraftId || obligation.aircraftId));
       const verifiedLinks = obligation.evidence.filter(e => e.verified || e.verificationStatus === 'VALID');
       verifiedLinks.sort((a, b) => {
         const fhDiff = (b.accomplishmentFH || 0) - (a.accomplishmentFH || 0);
@@ -771,7 +771,7 @@ export class ComplianceObligationService {
     }
 
     const nowIso = new Date().toISOString();
-    const aircraft = state.aircraft.find(a => a.id === obligation.targetEntity.aircraftId);
+    const aircraft = state.aircraft.find(a => a.id === (obligation.targetEntity?.aircraftId || obligation.aircraftId));
     const requirement = state.requirements.find(r => r.id === obligation.complianceRequirementId);
     const mandatedAction = requirement?.mandatedActions?.find(a => a.id === obligation.mandatedActionId);
 

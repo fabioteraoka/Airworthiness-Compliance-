@@ -8,9 +8,9 @@
 * **Nome do Sistema:** Airworthiness Compliance Intelligence (CAMO Intelligence)
 * **Operador de Demonstração:** Blue-Sky Logistics (Certificado CAMO-PT.042)
 * **Regulamentações Alvo:** FAA 14 CFR Part 39 / EASA Part-M (Subpart G/CAMO) / ANAC RBAC 121 & RBAC 39
-* **Versão da Arquitetura:** Release 6.2.0 (Due Date & Threshold Engine — Deterministic Compliance Limits)
-* **Data do Dossiê / Encerramento:** 03 de Setembro de 2026
-* **Status Formal de Encerramento:** **GREEN — 100% AUDITADO** (Due Date & Threshold Engine Operacional & Integrado)
+* **Versão da Arquitetura:** Release 9.3.0 (Configuration, Recalculation, Fleet AD Search & Consistency)
+* **Data do Dossiê / Encerramento:** 10 de Setembro de 2026
+* **Status Formal de Encerramento:** **GREEN — 100% AUDITADO** (Fase 9 Etapas 1, 2 e 3 Homologadas — 86/86 Testes Vitest Green)
 
 ---
 
@@ -104,10 +104,39 @@ A plataforma é rigidamente alicerçada sobre uma diretriz de segurança não ne
 │  ├─ Parser Sintático de Requisitos Regulamentares em Linguagem Natural (FAA/EASA)                 │
 │  └─ Bateria de 48 Testes Determinísticos & Adversariais (100% GREEN)                             │
 │                                                                                                  │
-│  [FASE 6.3+ ROADMAP] EXPANSÕES FUTURAS                                                           │
-│  ├─ Conectores EASA (Safety Publications Tool) e ANAC (Brasil)                                   │
-│  ├─ Gestão de Boletins de Serviço (SBs) e Ordens de Engenharia (EOs)                             │
-│  └─ Programa de Manutenção de Aeronaves (AMP/MPD) e Peças de Vida Limite (LLP/Hard Time)         │
+│  [FASE 6.4.1] FLEET AIRWORTHINESS CONTROL ENGINE (Release 6.4.1)                           │
+│  ├─ Desacoplamento Formal: Status Regulatório vs Determinação Operacional de Voo              │
+│  ├─ Fail-Safe Padrão: NOT_DETERMINED em Inconsistências de Regras                             │
+│  └─ Catálogo de Regras Autorizadas com Trilha de Auditoria Tamper-Evident SHA-256             │
+│                                                                                                  │
+│  [FASE 7] AIRCRAFT ACQUISITION & DELIVERY ASSESSMENT (Release 7.1.0)                             │
+│  ├─ Reconciliação Técnica Lessor vs Operador Pré-Entrega                                      │
+│  ├─ Cálculo de Compliance de Candidatas em Sandbox Isolado                                    │
+│  └─ Emissão de Certificados e Snapshots Criptográficos SHA-256                               │
+│                                                                                                  │
+│  [FASE 8] HELP CENTER, GUIDED WORKFLOW & MANUAL OPERACIONAL (Release 8.0.0)                     │
+│  ├─ Central de Ajuda e Base de Conhecimento Regulatório Integrada                             │
+│  ├─ Guided CAMO Workflow em 6 Etapas Críticas                                                 │
+│  └─ Capability Registry Oficial e Controle Estrito de Revisões                                │
+│                                                                                                  │
+│  [FASE 9 — ETAPA 2] REGULATORY LIFECYCLE & STATE MACHINE CORE (Release 9.2.0)                   │
+│  ├─ Ciclo de Vida Regulatório de 13 Estados com Verificação Probatória                        │
+│  ├─ Gestão de Recorrência e Cálculo Determinístico do Próximo Ciclo                           │
+│  ├─ Terminating Action com Encerramento Definitivo de Recorrências                            │
+│  └─ Supersedence Integral com Preservação Histórica Inviolável                                │
+│                                                                                                  │
+│  [FASE 9 — ETAPA 3] CONFIGURAÇÃO REAL DA AERONAVE & BUSCA DE ADS (Release 9.3.0)                │
+│  ├─ Avaliação Dinâmica sob Troca de Componentes P/N e S/N (Instalação e Remoção)              │
+│  ├─ Segregação Canônica de Famílias de Motor (CFM56-7B vs LEAP-1B) sem Diluição de Escopo     │
+│  ├─ Recálculo Determinístico Drift-Free de Obrigações de Frota com Hash Invariante            │
+│  ├─ Motor de Busca Cruzada de ADs por Frota (FleetAdSearchView) com Isolamento Físico         │
+│  └─ Tratamento de Cenários Adversariais (Horômetro Regressivo, Execução Futura, Corrupção)   │
+│                                                                                                  │
+│  [ROADMAP TECNOLÓGICO FUTURO]                                                                   │
+│  ├─ Terminating Actions Condicionais Multietapas                                              │
+│  ├─ Supersedence Parcial Parametrizada por Configuração/MSN/SN                                 │
+│  ├─ Conectores Diretos EASA SPT e ANAC SISAC                                                  │
+│  └─ Módulo de Service Bulletins (SBs) e Ordens de Engenharia (EOs)                            │
 └──────────────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -577,27 +606,83 @@ O registro formal de capacidades operacionais do sistema CAMO reflete a arquitet
         "ZERO_DILUTION_FLEET_CONSOLIDATION",
         "TAMPER_EVIDENT_SHA256_INTEGRITY_AUDIT"
       ]
+    },
+    "AIRCRAFT_DELIVERY_ASSESSMENT_ENGINE": {
+      "version": "7.1.0",
+      "status": "OPERATIONAL",
+      "features": [
+        "LESSOR_RECONCILIATION",
+        "SANDBOXED_CANDIDATE_EVALUATION",
+        "IMMUTABLE_SNAPSHOT_SHA256"
+      ]
+    },
+    "HELP_CENTER_GUIDED_WORKFLOW_ENGINE": {
+      "version": "8.0.0",
+      "status": "OPERATIONAL",
+      "features": [
+        "SIX_STAGE_GUIDED_CAMO_WORKFLOW",
+        "DETERMINISTIC_SEARCH",
+        "CAPABILITY_REGISTRY_GOVERNANCE"
+      ]
+    },
+    "REGULATORY_LIFECYCLE_STATE_MACHINE": {
+      "version": "9.2.0",
+      "status": "OPERATIONAL",
+      "features": [
+        "THIRTEEN_STATE_DETERMINISTIC_LIFECYCLE",
+        "RECURRENCE_CALCULATION_AND_IDEMPOTENCY",
+        "TERMINATING_ACTION_DEFINITIVE_CLOSURE",
+        "SUPERSEDENCE_IMMUTABLE_HISTORY_PRESERVATION"
+      ]
+    },
+    "AIRCRAFT_REAL_CONFIGURATION_ENGINE": {
+      "version": "9.3.0",
+      "status": "OPERATIONAL",
+      "features": [
+        "DYNAMIC_COMPONENT_PN_SN_EVALUATION",
+        "CANONICAL_ENGINE_FAMILY_ISOLATION_CFM56_LEAP",
+        "DRIFT_FREE_RECALCULATION_WITH_INVARIANT_HASH",
+        "FLEET_WIDE_AD_SEARCH_WITH_PHYSICAL_ISOLATION",
+        "ADVERSARIAL_ROLLBACK_AND_FUTURE_DATE_REJECTION"
+      ]
     }
   },
   "complianceTestMatrix": {
-    "phase531HardeningSuite": "10/10 PASSED (100%)",
-    "phase62DueDateEngineSuite": "48/48 PASSED (100%)",
-    "phase63EvidenceEngineSuite": "45/45 PASSED (100%)",
-    "phase64AirworthinessEngineSuite": "66/66 PASSED (100%)",
-    "totalDeterministicTests": "169/169 PASSED (100% GREEN)"
-  }
+    "phase7DeliveryAssessmentSuite": "23/23 PASSED (100%)",
+    "phase8HelpCenterSuite": "22/22 PASSED (100%)",
+    "phase9Stage2LifecycleSuite": "14/14 PASSED (100%)",
+    "phase9Stage3ConfigurationSuite": "16/16 PASSED (100%)",
+    "phase9E2eIntegrationSuite": "11/11 PASSED (100%)",
+    "totalVitestSuite": "86/86 PASSED (100% GREEN)"
+  },
+  "knownLimitations": [
+    {
+      "id": "LIMITATION-001",
+      "scope": "Terminating Actions Condicionais Multietapas",
+      "description": "Ações terminatórias condicionadas a múltiplas etapas cumulativas futuras ou modificações pós-inspeção exigem modelagem futura específica.",
+      "status": "RECORDED_NOT_MASKED"
+    },
+    {
+      "id": "LIMITATION-002",
+      "scope": "Supersedence Parcial por Configuração / MSN / S/N",
+      "description": "Supersedence parcial onde uma AD superadora substitui a anterior apenas para determinados números de série ou configurações ainda não é parametrizada; a implementação atual atua em escopo integral.",
+      "status": "RECORDED_NOT_MASKED"
+    }
+  ]
 }
 ```
 
 ---
 
-## 10. PRÓXIMAS ETAPAS (ROADMAP TECNOLÓGICO FASE 7+)
+## 10. PRÓXIMAS ETAPAS (ROADMAP TECNOLÓGICO FUTURO)
 
-1. **Fase 7 — Módulo de Boletins de Serviço (SBs) & Ordens de Engenharia (EOs):**
+1. **Terminating Actions Condicionais Multietapas:**
+   - Modelagem de grafos de tarefas interdependentes para ações mandatórias em múltiplos passos condicionais.
+2. **Supersedence Parcial Parametrizada por Configuração/MSN/SN:**
+   - Parametrização fina de matriz de substituição de diretrizes por critério de número de série ou part number específico.
+3. **Módulo de Boletins de Serviço (SBs) & Ordens de Engenharia (EOs):**
    - Gestão de boletins de fabricantes (Boeing MOM, CFM SBs, Airbus OIT/AOT) e emissão de Ordens de Engenharia internas vinculadas às obrigações de ADs.
-2. **Fase 8 — Programa de Manutenção da Aeronave (AMP / MPD) & Peças com Vida Limite (LLP/Hard Time):**
-   - Controle preditivo de componentes com limite de descarte (*Life Limited Parts*) e tarefas periódicas de manutenção de linha/base.
-3. **Fase 9 — Conectores Diretos de Autoridades (EASA SPT & ANAC SISAC):**
+4. **Conectores Diretos de Autoridades (EASA SPT & ANAC SISAC):**
    - Ingestão contínua de PADs/EADs da EASA e Diretrizes ANAC em tempo real.
 
 ---

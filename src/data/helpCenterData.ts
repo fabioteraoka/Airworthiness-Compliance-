@@ -77,6 +77,18 @@ export const DOCUMENTATION_METADATA: DocumentationMetadata = {
   ],
   revisionHistory: [
     {
+      version: '9.3.0',
+      date: '2026-09-10',
+      summary: 'Fase 9 (Etapa 3): Configuração Real da Aeronave (troca de P/N e S/N de rotáveis, segregação de famílias de motor CFM56-7B vs LEAP-1B), Recálculo de Compliance Drift-Free e Busca Cruzada de ADs por Frota com isolamento físico no camoDb.',
+      author: 'Equipe CAMO Intelligence'
+    },
+    {
+      version: '9.2.0',
+      date: '2026-09-09',
+      summary: 'Fase 9 (Etapa 2): Máquina de estados regulatória de 13 estados, cálculo de recorrência de próximo ciclo, terminating action definitiva e supersedence de ADs com preservação probatória.',
+      author: 'Equipe CAMO Intelligence'
+    },
+    {
       version: '8.0.0',
       date: '2026-09-06',
       summary: 'Fase 8: Lançamento oficial da Central de Ajuda, Manual de Operação e Guided CAMO Workflow integrado.',

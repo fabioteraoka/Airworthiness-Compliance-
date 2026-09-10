@@ -9,7 +9,13 @@ import {
   FleetInventoryInput 
 } from './types';
 import { evaluateExternalEffectivity } from './externalEffectivityEvaluator';
-import { matchesModel, getCanonicalAircraftModel, buildDynamicApplicabilityCriteria, isSerialInRange } from '../ruleEngine';
+import { 
+  matchesModel, 
+  matchesEngineModel, 
+  getCanonicalAircraftModel, 
+  buildDynamicApplicabilityCriteria, 
+  isSerialInRange 
+} from '../ruleEngine';
 
 /**
  * Phase I — Avaliador de Aplicabilidade Primária (Célula / Aeronave / Dynamic Criteria)
@@ -224,7 +230,7 @@ export function evaluateApplicability(
 
   // 5. Avaliar Engine Model & Serial Number (se REQUIRED)
   if (criteria.engineModel.status === 'REQUIRED') {
-    const installedEngines = inventory.engines.filter(e => e.aircraftId === aircraft.id && e.status === 'INSTALLED');
+    const installedEngines = (inventory.engines || []).filter(e => e.aircraftId === aircraft.id && e.status === 'INSTALLED');
     if (installedEngines.length === 0) {
       const msg = `Nenhum registro de motor instalado encontrado para a aeronave ${aircraft.registration}.`;
       reasoning.push(msg);
@@ -251,10 +257,12 @@ export function evaluateApplicability(
     }
 
     const targetEngModels = criteria.engineModel.values || [];
-    const matchingEngines = installedEngines.filter(e => matchesModel(`${e.manufacturer} ${e.model}`, targetEngModels));
+    const matchingEngines = installedEngines.filter(e => 
+      matchesEngineModel(`${e.manufacturer} ${e.model}`, targetEngModels, e.engineFamily)
+    );
 
     if (matchingEngines.length === 0) {
-      const msg = `Motores instalados [${installedEngines.map(e => e.model).join(', ')}] não coincidem com os motores afetados pela AD [${targetEngModels.join(', ')}].`;
+      const msg = `Motores instalados [${installedEngines.map(e => `${e.model}${e.engineFamily ? ` (${e.engineFamily})` : ''}`).join(', ')}] não coincidem com a família de motores afetada pela AD [${targetEngModels.join(', ')}]. Isolamento de família de motor preservado.`;
       reasoning.push(msg);
       decisionBasis.push({
         category: 'APPLICABILITY',
@@ -281,29 +289,39 @@ export function evaluateApplicability(
 
   // 6. Avaliar Component Part Number (se REQUIRED)
   if (criteria.componentPartNumber.status === 'REQUIRED') {
-    const targetPartNumbers = criteria.componentPartNumber.values || [];
+    const targetPartNumbers = (criteria.componentPartNumber.values || []).map(p => p.trim());
     const installations = inventory.installations || [];
-    const installedComps = installations.filter(inst => 
-      inst.aircraftId === aircraft.id && 
-      targetPartNumbers.some(tpn => inst.component?.partNumber && inst.component.partNumber.toLowerCase().replace(/[-_/\s.]/g, '') === tpn.toLowerCase().replace(/[-_/\s.]/g, ''))
-    );
+    const components = inventory.components || [];
 
-    if (installedComps.length === 0) {
-      const msg = `Nenhum registro de componente com P/N [${targetPartNumbers.join(', ')}] localizado para a aeronave ${aircraft.registration}.`;
+    // Filter installations for this specific aircraft
+    const acInstallations = installations.filter(inst => inst.aircraftId === aircraft.id);
+
+    // Helper to resolve component P/N
+    const resolveCompPn = (inst: any): string | undefined => {
+      if (inst.component?.partNumber) return inst.component.partNumber;
+      const comp = components.find(c => c.id === inst.componentId);
+      return comp?.partNumber;
+    };
+
+    // Check for temporal/data integrity corruption in installations (removal before installation)
+    const corruptedInst = acInstallations.find(inst => 
+      inst.removalDate && inst.installationDate && inst.removalDate < inst.installationDate
+    );
+    if (corruptedInst) {
+      const msg = `Inconsistência física nos dados de configuração: componente (instalação ${corruptedInst.id}) possui data de remoção (${corruptedInst.removalDate}) anterior à data de instalação (${corruptedInst.installationDate}).`;
       reasoning.push(msg);
-      missingInformation.push(`Status de instalação do componente P/N ${targetPartNumbers.join(', ')}`);
+      missingInformation.push('Dados físicos de histórico de instalação corrompidos (remoção anterior à instalação)');
       decisionBasis.push({
         category: 'APPLICABILITY',
         source: 'FLEET_INVENTORY',
-        analyzedField: 'components.partNumber',
-        foundValue: 'None',
-        expectedValue: targetPartNumbers,
+        analyzedField: 'installations.dates',
+        foundValue: `inst: ${corruptedInst.installationDate}, rem: ${corruptedInst.removalDate}`,
         reason: msg,
         status: 'REVIEW_REQUIRED'
       });
       return {
         status: 'REVIEW_REQUIRED',
-        confidence: 'MEDIUM',
+        confidence: 'LOW',
         reasoning,
         decisionBasis,
         missingInformation,
@@ -312,6 +330,123 @@ export function evaluateApplicability(
         externalEffectivityRequired: extEval.isExternalEffectivityRequired,
         externalEffectivityVerified: extEval.isVerified
       };
+    }
+
+    const normTargetPns = targetPartNumbers.map(tpn => tpn.toLowerCase().replace(/[-_/\s.]/g, ''));
+
+    // Check CURRENT installations (currentStatus === 'INSTALLED' and not removed)
+    const currentInsts = acInstallations.filter(inst => 
+      inst.currentStatus === 'INSTALLED' && !inst.removalDate
+    );
+
+    const matchingCurrentInsts = currentInsts.filter(inst => {
+      const pn = resolveCompPn(inst);
+      if (!pn) return false;
+      const normPn = pn.toLowerCase().replace(/[-_/\s.]/g, '');
+      return normTargetPns.includes(normPn);
+    });
+
+    if (matchingCurrentInsts.length > 0) {
+      // Satisfeito: componente aplicável está atualmente instalado
+      const foundPns = matchingCurrentInsts.map(inst => resolveCompPn(inst)).filter(Boolean);
+      decisionBasis.push({
+        category: 'APPLICABILITY',
+        source: 'FLEET_INVENTORY',
+        analyzedField: 'components.partNumber',
+        foundValue: foundPns,
+        expectedValue: targetPartNumbers,
+        reason: `Componente aplicável P/N [${foundPns.join(', ')}] atualmente instalado na aeronave ${aircraft.registration}.`,
+        status: 'SATISFIED'
+      });
+    } else {
+      // Not installed in current configuration. Check historical installations:
+      const historicalMatching = acInstallations.filter(inst => {
+        const pn = resolveCompPn(inst);
+        if (!pn) return false;
+        const normPn = pn.toLowerCase().replace(/[-_/\s.]/g, '');
+        return normTargetPns.includes(normPn) && (inst.currentStatus === 'REMOVED' || Boolean(inst.removalDate));
+      });
+
+      // Also check if other components are currently installed (incompatible configuration)
+      const otherCurrentPns = currentInsts.map(inst => resolveCompPn(inst)).filter(Boolean) as string[];
+
+      if (historicalMatching.length > 0 && currentInsts.length > 0) {
+        // Component was previously installed but was removed and replaced by a different component!
+        const histInfo = historicalMatching.map(h => 
+          `P/N ${resolveCompPn(h)} (removido em ${h.removalDate || 'data não informada'})`
+        ).join('; ');
+        const msg = `Componente com P/N aplicável [${targetPartNumbers.join(', ')}] constava no histórico [${histInfo}], mas foi REMOVIDO da aeronave ${aircraft.registration}. Configuração atual possui P/N [${otherCurrentPns.join(', ')}]. Diretriz não aplicável à configuração física atual.`;
+        reasoning.push(msg);
+        decisionBasis.push({
+          category: 'APPLICABILITY',
+          source: 'FLEET_INVENTORY',
+          analyzedField: 'components.partNumber',
+          foundValue: otherCurrentPns,
+          expectedValue: targetPartNumbers,
+          reason: msg,
+          status: 'NOT_SATISFIED'
+        });
+        return {
+          status: 'NOT_APPLICABLE',
+          confidence: 'HIGH',
+          reasoning,
+          decisionBasis,
+          missingInformation: [],
+          matchedModel: matchingModelName,
+          matchedMsn: aircraft.msn,
+          externalEffectivityRequired: extEval.isExternalEffectivityRequired,
+          externalEffectivityVerified: extEval.isVerified
+        };
+      } else if (currentInsts.length > 0) {
+        // Current configuration has a known component, but it is NOT the target P/N (incompatible component P/N)
+        const msg = `Componentes instalados atualmente possuem P/N [${otherCurrentPns.join(', ')}], incompatíveis com o P/N requerido pela AD [${targetPartNumbers.join(', ')}].`;
+        reasoning.push(msg);
+        decisionBasis.push({
+          category: 'APPLICABILITY',
+          source: 'FLEET_INVENTORY',
+          analyzedField: 'components.partNumber',
+          foundValue: otherCurrentPns,
+          expectedValue: targetPartNumbers,
+          reason: msg,
+          status: 'NOT_SATISFIED'
+        });
+        return {
+          status: 'NOT_APPLICABLE',
+          confidence: 'HIGH',
+          reasoning,
+          decisionBasis,
+          missingInformation: [],
+          matchedModel: matchingModelName,
+          matchedMsn: aircraft.msn,
+          externalEffectivityRequired: extEval.isExternalEffectivityRequired,
+          externalEffectivityVerified: extEval.isVerified
+        };
+      } else {
+        // No component installation records at all for this aircraft
+        const msg = `Nenhum registro de componente com P/N [${targetPartNumbers.join(', ')}] ou equivalente localizado para a aeronave ${aircraft.registration}.`;
+        reasoning.push(msg);
+        missingInformation.push(`Status de instalação do componente P/N ${targetPartNumbers.join(', ')}`);
+        decisionBasis.push({
+          category: 'APPLICABILITY',
+          source: 'FLEET_INVENTORY',
+          analyzedField: 'components.partNumber',
+          foundValue: 'None',
+          expectedValue: targetPartNumbers,
+          reason: msg,
+          status: 'REVIEW_REQUIRED'
+        });
+        return {
+          status: 'REVIEW_REQUIRED',
+          confidence: 'MEDIUM',
+          reasoning,
+          decisionBasis,
+          missingInformation,
+          matchedModel: matchingModelName,
+          matchedMsn: aircraft.msn,
+          externalEffectivityRequired: extEval.isExternalEffectivityRequired,
+          externalEffectivityVerified: extEval.isVerified
+        };
+      }
     }
   }
 

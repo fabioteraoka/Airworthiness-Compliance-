@@ -348,6 +348,7 @@ export interface Engine {
   aircraftId?: string; // null if spare in shop
   manufacturer: string; // "CFM International"
   model: string; // "CFM56-7B26"
+  engineFamily?: string; // e.g. "CFM56-7B", "LEAP-1B", "CFM56-5B", "V2500"
   serialNumber: string; // "894120"
   position: string; // "Pos 1 - Left" | "Pos 2 - Right" | "Spare"
   totalHours: number;
@@ -902,6 +903,11 @@ export type EvidenceReviewReasonCode =
   | 'TEMPORAL_INCONSISTENCY'
   | 'FUTURE_DATE'
   | 'COUNTER_REGRESSION'
+  | 'FH_COUNTER_ROLLBACK'
+  | 'FC_COUNTER_ROLLBACK'
+  | 'EXECUTION_PRIOR_TO_INSTALLATION'
+  | 'EXECUTION_AFTER_REMOVAL'
+  | 'DATA_INTEGRITY_REVIEW'
   | 'UNKNOWN_EVIDENCE_TYPE'
   | 'INSUFFICIENT_EVIDENCE'
   | 'OVERDUE_COMPLIANCE'

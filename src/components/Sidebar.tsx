@@ -13,7 +13,8 @@ import {
   Globe2,
   Calculator,
   ShieldCheck,
-  BookOpen
+  BookOpen,
+  Search
 } from 'lucide-react';
 import { DatabaseState } from '../../server/dataStore';
 
@@ -42,21 +43,27 @@ export default function Sidebar({ currentView, onSelectView, state }: SidebarPro
       badge: null
     },
     {
+      id: 'fleet-ad-search',
+      label: 'Busca de AD por Frota',
+      icon: Search,
+      badge: 'NOVO'
+    },
+    {
       id: 'regulatory',
-      label: 'Regulatory Connectors',
+      label: 'Conectores Regulatórios',
       icon: Globe2,
       badge: 'FAA / FR'
     },
     {
       id: 'obligations',
-      label: 'Due Dates & Limits',
+      label: 'Prazos & Limites (Due Dates)',
       icon: Calculator,
       count: obligationsCount,
       alertCount: overdueObligationsCount > 0 ? overdueObligationsCount : null
     },
     {
       id: 'delivery',
-      label: 'Acquisition & Delivery',
+      label: 'Aquisição & Redelivery',
       icon: ShieldCheck,
       badge: 'FASE 7'
     },
@@ -68,46 +75,46 @@ export default function Sidebar({ currentView, onSelectView, state }: SidebarPro
     },
     {
       id: 'upload',
-      label: 'Upload & Analyze AD',
+      label: 'Upload & Análise de AD',
       icon: UploadCloud,
-      badge: 'AI + Rule'
+      badge: 'AI + Regras'
     },
     {
       id: 'ads',
-      label: 'AD Management',
+      label: 'Gestão de Diretrizes (ADs)',
       icon: FileSpreadsheet,
       count: adCount
     },
     {
       id: 'fleet',
-      label: 'Fleet Inventory',
+      label: 'Inventário da Frota',
       icon: Plane,
       count: fleetCount
     },
     {
       id: 'knowledge',
-      label: 'Knowledge Base',
+      label: 'Base de Conhecimento',
       icon: BrainCircuit,
       count: factsCount,
       alertCount: pendingQuestionsCount > 0 ? pendingQuestionsCount : null
     },
     {
       id: 'fapt',
-      label: 'Compliance Reports (FAPT)',
+      label: 'Relatórios de Conformidade',
       icon: FileCheck2,
       count: faptCount
     },
     {
       id: 'audit',
-      label: 'Audit Trail & Logs',
+      label: 'Trilha de Auditoria & Logs',
       icon: History,
       badge: null
     },
     {
       id: 'architecture',
-      label: 'System Architecture',
+      label: 'Arquitetura do Sistema',
       icon: Layers,
-      badge: 'PDF / Dossiê'
+      badge: 'Dossiê'
     }
   ];
 

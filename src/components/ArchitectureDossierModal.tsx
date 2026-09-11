@@ -249,6 +249,30 @@ export default function ArchitectureDossierModal({ state, onClose }: Architectur
                 </div>
               </div>
 
+              {/* Diagrama Arquitetural Fase 9 — Etapa 4 */}
+              <div className="bg-slate-900/60 p-5 rounded-xl border border-indigo-500/30 space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-bold text-white uppercase tracking-wider font-mono flex items-center space-x-2">
+                    <Layers className="w-4 h-4 text-indigo-400" />
+                    <span>Diagrama Arquitetural Integrado — Fase 9 Etapa 4</span>
+                  </h3>
+                  <span className="text-[10px] px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-mono">
+                    REGULATORY INTELLIGENCE ARCHITECTURE
+                  </span>
+                </div>
+                <div className="rounded-xl overflow-hidden border border-white/10 shadow-2xl bg-slate-950">
+                  <img
+                    src="/src/assets/images/camo_phase9_architecture_1789125961301.jpg"
+                    alt="CAMO Phase 9 Architectural Diagram"
+                    referrerPolicy="no-referrer"
+                    className="w-full h-auto object-cover max-h-[500px]"
+                  />
+                </div>
+                <p className="text-xs text-slate-400 font-mono">
+                  Fluxo canônico: Fontes Regulatórias (FAA/EASA/ANAC) → Lista de Candidatas → Extração Determinística de Parâmetros de Configuração → Base de Conhecimento Reutilizável → Aferição de Completude Individual da Aeronave → Matriz de Aplicabilidade Progressiva (5 Estados) → Controle de Aeronavegabilidade.
+                </p>
+              </div>
+
               {/* Fluxo de Dados End-to-End */}
               <div className="bg-slate-900/50 p-5 rounded-xl border border-white/10 space-y-4">
                 <h3 className="text-sm font-bold text-white uppercase tracking-wider font-mono flex items-center space-x-2">

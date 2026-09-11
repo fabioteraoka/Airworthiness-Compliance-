@@ -19,6 +19,7 @@ import { dueDateThresholdEngine } from './server/camoEngine/dueDateThresholdEngi
 import { evidenceVerificationEngine } from './server/camoEngine/evidenceVerificationEngine';
 import { fleetAirworthinessControlEngine, FleetAirworthinessControlEngine } from './server/camoEngine/fleetAirworthinessControlEngine';
 import { aircraftDeliveryAssessmentEngine } from './server/camoEngine/aircraftDeliveryAssessmentEngine';
+import { regulatoryIntelligenceEngine } from './server/camoEngine/regulatoryIntelligenceEngine';
 import { helpCenterService } from './server/helpCenterService';
 import { generateArchitecturePdf } from './server/pdfGenerator';
 import { 
@@ -3084,6 +3085,146 @@ async function startServer() {
       });
     } catch (err: any) {
       res.status(500).json({ error: err.message });
+    }
+  });
+
+  // ==========================================
+  // PHASE 9 — ETAPA 4: REGULATORY INTELLIGENCE & AIRCRAFT ASSESSMENT ROUTES
+  // ==========================================
+
+  // 13. Search Regulatory Candidate ADs by Family/Model across FAA, EASA, ANAC
+  app.get('/api/intel/candidates', async (req, res) => {
+    try {
+      const { family = 'A320', model, make, authority, query } = req.query;
+      const result = await regulatoryIntelligenceEngine.searchCandidatesByFamilyOrModel({
+        family: String(family),
+        model: model ? String(model) : undefined,
+        make: make ? String(make) : undefined,
+        authority: authority ? (String(authority) as any) : 'ALL',
+        query: query ? String(query) : undefined
+      });
+      res.json({
+        success: true,
+        ...result,
+        state: camoDb.getState()
+      });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // 14. Trigger candidate search (POST)
+  app.post('/api/intel/candidates/search', async (req, res) => {
+    try {
+      const { family = 'A320', model, make, authority = 'ALL', query } = req.body;
+      const result = await regulatoryIntelligenceEngine.searchCandidatesByFamilyOrModel({
+        family,
+        model,
+        make,
+        authority,
+        query
+      });
+      res.json({
+        success: true,
+        ...result,
+        state: camoDb.getState()
+      });
+    } catch (err: any) {
+      res.status(400).json({ error: err.message });
+    }
+  });
+
+  // 15. Analyze Candidate AD -> Extracts Knowledge, Required Configuration Data & Stores in KB
+  app.post('/api/intel/candidates/analyze', async (req, res) => {
+    try {
+      const { candidateId, actor } = req.body;
+      if (!candidateId) {
+        return res.status(400).json({ error: 'candidateId is required' });
+      }
+      const result = await regulatoryIntelligenceEngine.analyzeCandidateAd(candidateId, actor);
+      res.json({
+        success: true,
+        ...result,
+        state: camoDb.getState()
+      });
+    } catch (err: any) {
+      res.status(400).json({ error: err.message });
+    }
+  });
+
+  // 16. Get Accumulated Regulatory Knowledge Base
+  app.get('/api/intel/knowledge-base', (req, res) => {
+    try {
+      const state = camoDb.getState();
+      const { family, model } = req.query;
+      let kb = state.regulatoryKnowledgeBase || [];
+      if (family) {
+        const fClean = String(family).toUpperCase();
+        kb = kb.filter(k => k.family.toUpperCase() === fClean);
+      }
+      if (model) {
+        const mClean = String(model).toUpperCase();
+        kb = kb.filter(k => k.modelScope.some(m => m.toUpperCase().includes(mClean)));
+      }
+      res.json({
+        success: true,
+        count: kb.length,
+        items: kb
+      });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // 17. Assess Individual Aircraft Configuration Completeness & Progressive Applicability
+  app.post('/api/intel/assess-configuration', (req, res) => {
+    try {
+      const { aircraftId, candidateAircraft, targetFamily } = req.body;
+      const state = camoDb.getState();
+
+      let acData: any;
+      if (aircraftId) {
+        acData = state.aircraft.find(a => a.id === aircraftId);
+        if (!acData) {
+          return res.status(404).json({ error: `Fleet aircraft '${aircraftId}' not found.` });
+        }
+      } else if (candidateAircraft) {
+        acData = candidateAircraft;
+      } else {
+        return res.status(400).json({ error: 'Either aircraftId or candidateAircraft is required.' });
+      }
+
+      const assessment = regulatoryIntelligenceEngine.assessAircraftConfigurationCompleteness(acData, targetFamily);
+      res.json({
+        success: true,
+        assessment,
+        state: camoDb.getState()
+      });
+    } catch (err: any) {
+      res.status(400).json({ error: err.message });
+    }
+  });
+
+  // 18. Resolve Operational Missing Parameter
+  app.post('/api/intel/resolve-missing', (req, res) => {
+    try {
+      const { assessmentId, parameterKey, resolvedValue, actor } = req.body;
+      if (!assessmentId || !parameterKey || !resolvedValue) {
+        return res.status(400).json({ error: 'assessmentId, parameterKey, and resolvedValue are required.' });
+      }
+      const updatedAssessment = regulatoryIntelligenceEngine.resolveOperationalMissingData(
+        assessmentId,
+        parameterKey,
+        resolvedValue,
+        actor
+      );
+      res.json({
+        success: true,
+        assessment: updatedAssessment,
+        state: camoDb.getState()
+      });
+    } catch (err: any) {
+      res.status(400).json({ error: err.message });
     }
   });
 

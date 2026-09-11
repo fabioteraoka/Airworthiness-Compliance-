@@ -14,7 +14,8 @@ import {
   Calculator,
   ShieldCheck,
   BookOpen,
-  Search
+  Search,
+  Sparkles
 } from 'lucide-react';
 import { DatabaseState } from '../../server/dataStore';
 
@@ -22,6 +23,18 @@ interface SidebarProps {
   currentView: string;
   onSelectView: (view: string) => void;
   state: DatabaseState | null;
+}
+
+interface NavSection {
+  title: string;
+  items: Array<{
+    id: string;
+    label: string;
+    icon: any;
+    count?: number | null;
+    alertCount?: number | null;
+    badge?: string | null;
+  }>;
 }
 
 export default function Sidebar({ currentView, onSelectView, state }: SidebarProps) {
@@ -34,138 +47,174 @@ export default function Sidebar({ currentView, onSelectView, state }: SidebarPro
   const faptCount = state?.fapts.length || 0;
   const obligationsCount = state?.complianceObligations?.length || 0;
   const overdueObligationsCount = state?.complianceObligations?.filter(o => o.status === 'OVERDUE' || o.temporalCounters?.isOverdue).length || 0;
+  const candidateCount = state?.adCandidates?.length || 0;
+  const kbCount = state?.regulatoryKnowledgeBase?.length || 0;
 
-  const navItems = [
+  const navSections: NavSection[] = [
     {
-      id: 'dashboard',
-      label: 'Dashboard',
-      icon: LayoutDashboard,
-      badge: null
+      title: 'Frota & Operações',
+      items: [
+        {
+          id: 'dashboard',
+          label: 'Dashboard Operacional',
+          icon: LayoutDashboard,
+          badge: null
+        },
+        {
+          id: 'fleet',
+          label: 'Inventário da Frota',
+          icon: Plane,
+          count: fleetCount
+        }
+      ]
     },
     {
-      id: 'fleet-ad-search',
-      label: 'Busca de AD por Frota',
-      icon: Search,
-      badge: 'NOVO'
+      title: 'Inteligência Regulatória',
+      items: [
+        {
+          id: 'regulatory-intel',
+          label: 'Inteligência & Lacunas',
+          icon: Sparkles,
+          badge: 'FASE 9.4'
+        },
+        {
+          id: 'fleet-ad-search',
+          label: 'Screening por Frota',
+          icon: Search,
+          badge: null
+        },
+        {
+          id: 'regulatory',
+          label: 'Fontes & Conectores',
+          icon: Globe2,
+          badge: 'FAA/EASA'
+        },
+        {
+          id: 'knowledge',
+          label: 'Base de Conhecimento',
+          icon: BrainCircuit,
+          count: kbCount > 0 ? kbCount : factsCount,
+          alertCount: pendingQuestionsCount > 0 ? pendingQuestionsCount : null
+        }
+      ]
     },
     {
-      id: 'regulatory',
-      label: 'Conectores Regulatórios',
-      icon: Globe2,
-      badge: 'FAA / FR'
+      title: 'Conformidade & Diretrizes',
+      items: [
+        {
+          id: 'ads',
+          label: 'Diretrizes (ADs)',
+          icon: FileSpreadsheet,
+          count: adCount
+        },
+        {
+          id: 'upload',
+          label: 'Upload & Extração de AD',
+          icon: UploadCloud,
+          badge: 'AI Engine'
+        },
+        {
+          id: 'fapt',
+          label: 'Relatórios FAPT',
+          icon: FileCheck2,
+          count: faptCount
+        }
+      ]
     },
     {
-      id: 'obligations',
-      label: 'Prazos & Limites (Due Dates)',
-      icon: Calculator,
-      count: obligationsCount,
-      alertCount: overdueObligationsCount > 0 ? overdueObligationsCount : null
+      title: 'Aeronavegabilidade & Prazos',
+      items: [
+        {
+          id: 'obligations',
+          label: 'Prazos & Limites (Due Dates)',
+          icon: Calculator,
+          count: obligationsCount,
+          alertCount: overdueObligationsCount > 0 ? overdueObligationsCount : null
+        },
+        {
+          id: 'delivery',
+          label: 'Aquisição & Delivery',
+          icon: ShieldCheck,
+          badge: null
+        }
+      ]
     },
     {
-      id: 'delivery',
-      label: 'Aquisição & Redelivery',
-      icon: ShieldCheck,
-      badge: 'FASE 7'
-    },
-    {
-      id: 'help',
-      label: 'Central de Ajuda & Manual',
-      icon: BookOpen,
-      badge: 'FASE 8'
-    },
-    {
-      id: 'upload',
-      label: 'Upload & Análise de AD',
-      icon: UploadCloud,
-      badge: 'AI + Regras'
-    },
-    {
-      id: 'ads',
-      label: 'Gestão de Diretrizes (ADs)',
-      icon: FileSpreadsheet,
-      count: adCount
-    },
-    {
-      id: 'fleet',
-      label: 'Inventário da Frota',
-      icon: Plane,
-      count: fleetCount
-    },
-    {
-      id: 'knowledge',
-      label: 'Base de Conhecimento',
-      icon: BrainCircuit,
-      count: factsCount,
-      alertCount: pendingQuestionsCount > 0 ? pendingQuestionsCount : null
-    },
-    {
-      id: 'fapt',
-      label: 'Relatórios de Conformidade',
-      icon: FileCheck2,
-      count: faptCount
-    },
-    {
-      id: 'audit',
-      label: 'Trilha de Auditoria & Logs',
-      icon: History,
-      badge: null
-    },
-    {
-      id: 'architecture',
-      label: 'Arquitetura do Sistema',
-      icon: Layers,
-      badge: 'Dossiê'
+      title: 'Governança & Suporte',
+      items: [
+        {
+          id: 'audit',
+          label: 'Auditoria & Logs',
+          icon: History,
+          badge: 'SHA-256'
+        },
+        {
+          id: 'architecture',
+          label: 'Arquitetura & Dossiê',
+          icon: Layers,
+          badge: 'Dossiê'
+        },
+        {
+          id: 'help',
+          label: 'Central de Ajuda CAMO',
+          icon: BookOpen,
+          badge: null
+        }
+      ]
     }
   ];
 
   return (
-    <aside className="w-64 glass-panel border-r border-white/10 text-slate-300 flex flex-col justify-between shrink-0 min-h-[calc(100vh-4rem)] select-none">
+    <aside className="w-64 glass-panel border-r border-white/10 text-slate-300 flex flex-col justify-between shrink-0 min-h-[calc(100vh-4rem)] select-none overflow-y-auto">
       {/* Navigation list */}
-      <div className="p-3 space-y-1.5">
-        <div className="px-3 py-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-          CAMO Navigation
-        </div>
-        
-        {navItems.map((item) => {
-          const Icon = item.icon;
-          const isActive = currentView === item.id;
-          return (
-            <button
-              key={item.id}
-              onClick={() => onSelectView(item.id)}
-              className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-lg text-xs transition-all ${
-                isActive
-                  ? 'bg-indigo-600/20 border border-indigo-500/30 text-indigo-300 font-semibold shadow-sm'
-                  : 'hover:bg-white/5 border border-transparent text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              <div className="flex items-center space-x-2.5">
-                <Icon className={`w-4 h-4 ${isActive ? 'text-indigo-400' : 'text-slate-400'}`} />
-                <span>{item.label}</span>
-              </div>
+      <div className="p-3 space-y-4">
+        {navSections.map((section, sIdx) => (
+          <div key={sIdx} className="space-y-1">
+            <div className="px-3 py-1 text-[9px] font-bold text-slate-400 uppercase tracking-wider">
+              {section.title}
+            </div>
+            {section.items.map((item) => {
+              const Icon = item.icon;
+              const isActive = currentView === item.id;
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => onSelectView(item.id)}
+                  className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs transition-all ${
+                    isActive
+                      ? 'bg-indigo-600/20 border border-indigo-500/30 text-indigo-300 font-semibold shadow-sm'
+                      : 'hover:bg-white/5 border border-transparent text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  <div className="flex items-center space-x-2.5 min-w-0">
+                    <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-indigo-400' : 'text-slate-400'}`} />
+                    <span className="truncate">{item.label}</span>
+                  </div>
 
-              <div className="flex items-center space-x-1.5">
-                {item.alertCount && (
-                  <span className="px-1.5 py-0.5 text-[9px] font-bold rounded bg-indigo-600 text-white animate-pulse">
-                    {item.alertCount}
-                  </span>
-                )}
-                {item.count !== undefined && item.count !== null && (
-                  <span className={`text-[10px] px-1.5 py-0.5 rounded font-mono ${
-                    isActive ? 'bg-indigo-500/30 text-indigo-200' : 'bg-slate-800 text-slate-400'
-                  }`}>
-                    {item.count}
-                  </span>
-                )}
-                {item.badge && (
-                  <span className="text-[9px] px-1.5 py-0.5 rounded bg-slate-800 text-indigo-300 border border-white/10 uppercase font-semibold">
-                    {item.badge}
-                  </span>
-                )}
-              </div>
-            </button>
-          );
-        })}
+                  <div className="flex items-center space-x-1.5 shrink-0">
+                    {item.alertCount && (
+                      <span className="px-1.5 py-0.5 text-[9px] font-bold rounded bg-rose-600 text-white animate-pulse">
+                        {item.alertCount}
+                      </span>
+                    )}
+                    {item.count !== undefined && item.count !== null && (
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded font-mono ${
+                        isActive ? 'bg-indigo-500/30 text-indigo-200' : 'bg-slate-800 text-slate-400'
+                      }`}>
+                        {item.count}
+                      </span>
+                    )}
+                    {item.badge && (
+                      <span className="text-[8px] px-1.5 py-0.5 rounded bg-slate-800 text-indigo-300 border border-white/10 uppercase font-semibold">
+                        {item.badge}
+                      </span>
+                    )}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        ))}
       </div>
 
       {/* Footer Metrics Card & System Status */}

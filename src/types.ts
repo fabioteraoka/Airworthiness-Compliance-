@@ -1076,6 +1076,8 @@ export interface AuditTrailEntry {
     | 'EVIDENCE_VALIDATED'
     | 'AIRWORTHINESS_EVALUATION'
     | 'COMPLIANCE_STATUS_CONSOLIDATION'
+    | 'REGULATORY_KNOWLEDGE_COMPILED'
+    | 'CONFIGURATION_DATA_RESOLVED'
     | 'UPDATE'
     | 'DELETE'
     | 'SYSTEM_DELETE'
@@ -1164,7 +1166,9 @@ export type RegulatorySourceType =
   | 'FAA_DRS'
   | 'EASA_PORTAL'
   | 'ANAC_PORTAL'
-  | 'INTERNAL_PDF';
+  | 'INTERNAL_PDF'
+  | 'OFFICIAL_REPO'
+  | 'ANAC_SISAC';
 
 export type RegulatorySourceCapability = 
   | 'SEARCH'
@@ -2525,6 +2529,168 @@ export interface HelpCenterArticle {
   version: string;
   lastUpdated: string;
   relatedFields?: string[];
+}
+
+// =============================================================================
+// PHASE 9 — ETAPA 4: REGULATORY INTELLIGENCE, KNOWLEDGE BASE & CONFIGURATION COMPLETENESS
+// =============================================================================
+
+export type ProgressiveApplicabilityState = 
+  | 'POTENTIALLY_APPLICABLE' 
+  | 'INSUFFICIENT_DATA' 
+  | 'REVIEW_REQUIRED' 
+  | 'APPLICABLE' 
+  | 'NOT_APPLICABLE';
+
+export type ConfigurationParameterCategory = 
+  | 'AIRFRAME' 
+  | 'ENGINE' 
+  | 'COMPONENT' 
+  | 'SOFTWARE' 
+  | 'MODIFICATION';
+
+export type ConfigurationEvaluationStatus = 
+  | 'AVAILABLE' 
+  | 'MISSING' 
+  | 'INCONSISTENT';
+
+export interface RequiredConfigurationParameter {
+  id: string;
+  parameterKey: 
+    | 'AIRCRAFT_MODEL'
+    | 'AIRCRAFT_MSN'
+    | 'AIRCRAFT_VARIABLE_NUMBER'
+    | 'AIRCRAFT_LINE_NUMBER'
+    | 'ENGINE_FAMILY'
+    | 'ENGINE_MODEL'
+    | 'ENGINE_SERIAL_NUMBER'
+    | 'COMPONENT_PART_NUMBER'
+    | 'COMPONENT_SERIAL_NUMBER'
+    | 'COMPONENT_INSTALLATION_STATUS'
+    | 'SOFTWARE_PART_NUMBER'
+    | 'SOFTWARE_VERSION'
+    | 'MODIFICATION_STC_STATUS'
+    | 'SERVICE_BULLETIN_STATUS';
+  label: string;
+  category: ConfigurationParameterCategory;
+  statusInAd: 'EXPLICITLY_REQUIRED' | 'CONDITIONAL';
+  targetValues?: string[];
+  targetRanges?: string;
+  description?: string;
+  traceability: {
+    adNumber: string;
+    requirementId?: string;
+    authority: IssuingAuthority;
+    ruleCitation?: string;
+    sourceExcerpt?: string;
+  };
+}
+
+export interface RegulatoryAdCandidate {
+  id: string;
+  adNumber: string;
+  authority: IssuingAuthority;
+  title: string;
+  issueDate: string;
+  effectiveDate: string;
+  manufacturer: string;
+  family: string;
+  modelScope: string[];
+  rawApplicabilityText: string;
+  sourceUrl?: string;
+  docketNumber?: string;
+  source: RegulatorySourceType;
+  status: 'DISCOVERED' | 'SCREENED' | 'ARCHIVED';
+  analysisStatus: 'PENDING_ANALYSIS' | 'ANALYZED' | 'FAILED';
+  analyzedRequirementId?: string;
+  discoveryTimestamp: string;
+  searchQuery?: string;
+  operationalPriority?: 'CRITICAL_URGENT' | 'HIGH' | 'NORMAL';
+}
+
+export interface RegulatoryKnowledgeItem {
+  id: string;
+  requirementId: string;
+  adNumber: string;
+  authority: IssuingAuthority;
+  title: string;
+  effectiveDate: string;
+  manufacturer: string;
+  family: string;
+  modelScope: string[];
+  engineScope?: string[];
+  componentScope?: string[];
+  softwareScope?: string[];
+  modificationScope?: string[];
+  requiredConfigurationData: RequiredConfigurationParameter[];
+  complianceThresholdSummary: string;
+  isRepetitive: boolean;
+  hasTerminatingAction: boolean;
+  applicabilityRuleSummary: string;
+  analyzedAt: string;
+  documentSha256?: string;
+  provenance: {
+    source: string;
+    citation?: string;
+    documentNumber?: string;
+  };
+}
+
+export interface ParameterEvaluationItem {
+  parameterKey: string;
+  label: string;
+  category: ConfigurationParameterCategory;
+  evaluationStatus: ConfigurationEvaluationStatus;
+  currentValue?: any;
+  expectedConstraint?: string;
+  detail: string;
+  requiredByAdCount: number;
+  requiredByAds: Array<{
+    adNumber: string;
+    requirementId: string;
+    authority: IssuingAuthority;
+    title: string;
+  }>;
+}
+
+export interface OperationalMissingItem {
+  id: string;
+  label: string;
+  category: ConfigurationParameterCategory;
+  parameterKey: string;
+  severity: 'CRITICAL_BLOCKER' | 'RECOMMENDED';
+  adImpactCount: number;
+  adReferences: string[];
+  traceabilityPath: string; // e.g. "Required Data -> Applicability Rule -> AD 2024-15-08 -> FAA"
+  resolved: boolean;
+  resolvedValue?: string;
+}
+
+export interface AircraftConfigurationAssessment {
+  id: string;
+  aircraftId?: string;
+  registration?: string;
+  manufacturer: string;
+  family: string;
+  model: string;
+  msn: string;
+  isCandidateAircraft: boolean;
+  assessedAt: string;
+  completionPercentage: number;
+  totalParametersRequired: number;
+  satisfiedParametersCount: number;
+  missingParametersCount: number;
+  inconsistentParametersCount: number;
+  parameterEvaluations: ParameterEvaluationItem[];
+  operationalMissingList: OperationalMissingItem[];
+  applicabilityBreakdown: {
+    totalEvaluatedAds: number;
+    potentiallyApplicable: number;
+    insufficientData: number;
+    reviewRequired: number;
+    applicable: number;
+    notApplicable: number;
+  };
 }
 
 

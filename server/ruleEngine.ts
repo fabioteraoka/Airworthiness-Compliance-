@@ -41,7 +41,10 @@ export interface CanonicalModel {
  * Strictly distinguishes between A320ceo (A320-214) and A320neo (A320-271N).
  */
 export function getCanonicalAircraftModel(modelStr: string): CanonicalModel {
-  const raw = modelStr.trim();
+  const raw = (modelStr || '').trim();
+  if (!raw) {
+    return { family: 'UNKNOWN', variant: 'UNKNOWN', raw: '' };
+  }
   const lower = raw.toLowerCase().replace(/boeing|airbus|embraer|the\s+boeing\s+company/gi, '').trim();
 
   // 1. Boeing 737 MAX Family (737-7, 737-8, 737-8200, 737-9, 737-10)

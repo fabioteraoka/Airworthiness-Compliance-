@@ -18,6 +18,7 @@ import AircraftDeliveryView from './components/AircraftDeliveryView';
 import HelpCenterView from './components/HelpCenterView';
 import FleetAdSearchView from './components/FleetAdSearchView';
 import ContextualHelpDrawer from './components/ContextualHelpDrawer';
+import RegulatoryIntelligenceView from './components/RegulatoryIntelligenceView';
 import { Loader2, AlertCircle, HelpCircle, Compass } from 'lucide-react';
 import { ComplianceRequirement } from './types';
 
@@ -165,6 +166,15 @@ export default function App() {
                 state={state}
                 onSelectView={setCurrentView}
                 onSelectAd={handleSelectAd}
+              />
+            )}
+
+            {currentView === 'regulatory-intel' && (
+              <RegulatoryIntelligenceView
+                state={state}
+                onRefreshState={setState}
+                onSelectAd={handleSelectAd}
+                onSelectView={setCurrentView}
               />
             )}
 

@@ -56,11 +56,18 @@ export default function DashboardView({ state, onSelectView, onSelectAd }: Dashb
 
           <div className="flex flex-wrap gap-3">
             <button
+              onClick={() => onSelectView('regulatory-intel')}
+              className="flex items-center space-x-2 bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-400 text-white px-4 py-2.5 rounded-lg text-xs font-bold shadow-md shadow-indigo-600/20 transition"
+            >
+              <Sparkles className="w-4 h-4" />
+              <span>Fase 9.4: Inteligência Regulatória</span>
+            </button>
+            <button
               onClick={() => onSelectView('delivery')}
               className="flex items-center space-x-2 bg-indigo-600/30 hover:bg-indigo-600/50 text-indigo-200 border border-indigo-500/40 px-4 py-2.5 rounded-lg text-xs font-semibold transition"
             >
               <Plane className="w-4 h-4 text-indigo-400" />
-              <span>Phase 7: Acquisition & Delivery</span>
+              <span>Delivery & Pré-Compra</span>
             </button>
             <button
               onClick={() => onSelectView('upload')}

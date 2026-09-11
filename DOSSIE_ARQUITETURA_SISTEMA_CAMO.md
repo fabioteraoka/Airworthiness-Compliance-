@@ -8,9 +8,9 @@
 * **Nome do Sistema:** Airworthiness Compliance Intelligence (CAMO Intelligence)
 * **Operador de Demonstração:** Blue-Sky Logistics (Certificado CAMO-PT.042)
 * **Regulamentações Alvo:** FAA 14 CFR Part 39 / EASA Part-M (Subpart G/CAMO) / ANAC RBAC 121 & RBAC 39
-* **Versão da Arquitetura:** Release 9.3.0 (Configuration, Recalculation, Fleet AD Search & Consistency)
-* **Data do Dossiê / Encerramento:** 10 de Setembro de 2026
-* **Status Formal de Encerramento:** **GREEN — 100% AUDITADO** (Fase 9 Etapas 1, 2 e 3 Homologadas — 86/86 Testes Vitest Green)
+* **Versão da Arquitetura:** Release 9.4.0 (Integrated Regulatory Intelligence, Progressive Applicability & UX Refactoring)
+* **Data do Dossiê / Encerramento:** 11 de Setembro de 2026
+* **Status Formal de Encerramento:** **GREEN — 100% AUDITADO & HOMOLOGADO** (Fase 9 Etapas 1, 2, 3 e 4 Homologadas)
 
 ---
 
@@ -520,6 +520,30 @@ A conformidade da frota obedece à regra de não-diluição:
 ### 8.6 Blindagem Criptográfica SHA-256 com Proveniência Decisória
 Todas as saídas do motor geram um hash criptográfico SHA-256 que contempla não apenas contadores e status de compliance, mas também os campos de explicabilidade e proveniência decisória (`decisionSource`, `decisionRule`). Qualquer alteração não autorizada no laudo ou supressão de motivo de interdição é instantaneamente acusada pelo método de verificação de integridade `verifyAssessmentIntegrity`.
 
+### 8.7 Fase 9 — Etapa 4: Plataforma de Inteligência Regulatória, Avaliação Progressiva & Completude de Configuração
+
+A Etapa 4 da Fase 9 consolidou a transição da plataforma de um conjunto de motores isolados para um ecossistema operacional unificado de **Inteligência Regulatória e Gestão Individual de Aeronaves**.
+
+#### 1. Princípio Fundamental de Não-Contaminação entre Conhecimento e Entidade
+* **O conhecimento regulatório pode ser reutilizado:** Regras de aplicabilidade, thresholds de cumprimento, métodos de inspeção e ações mandatórias extraídas de ADs publicadas por FAA, EASA e ANAC são agregadas à `regulatoryKnowledgeBase` e associadas a famílias e modelos de aeronaves.
+* **A aplicabilidade, obrigação, evidência, cumprimento e condição de aeronavegabilidade pertencem estritamente à entidade individual:** Cada aeronave, motor (ESN) ou componente (P/N e S/N) mantém seu histórico probatório inviolável, nunca herdando cegamente o status de outra aeronave da mesma família ou frota.
+
+#### 2. Matriz dos 5 Estados Estritos de Aplicabilidade Progressiva
+Durante a entrada de uma nova aeronave, entrega (delivery) ou pré-compra, a aplicabilidade de uma diretriz evolui progressivamente à medida que a configuração física é levantada e saneada:
+1. **`POTENTIALLY_APPLICABLE`**: O modelo ou família da aeronave coincide com o escopo da diretriz, mas os parâmetros específicos de configuração ainda não foram avaliados.
+2. **`INSUFFICIENT_DATA`**: Um ou mais parâmetros obrigatórios exigidos pela AD (ex: número de série do motor ou part number do atuador) não estão registrados no dossiê da aeronave. **Regra inviolável de segurança CAMO: Falta de informação NUNCA é tratada como `NOT_APPLICABLE`**.
+3. **`REVIEW_REQUIRED`**: Há discrepâncias de configuração, conflitos entre documentos do lessor e inspeção física, ou necessidade de disposição humana formal.
+4. **`APPLICABLE`**: Todos os parâmetros requeridos foram atestados e confirmam que a aeronave, motor ou componente se enquadra nas condições de aplicabilidade da AD.
+5. **`NOT_APPLICABLE`**: A configuração física atestada comprova cabalmente que a aeronave está fora do escopo (ex: motor de outro modelo, MSN fora da faixa, ou modificação de terminação já incorporada com evidência probatória).
+
+#### 3. Motor de Completude de Configuração & Checklist Operacional de Lacunas
+O `RegulatoryIntelligenceEngine` (`server/camoEngine/regulatoryIntelligenceEngine.ts`) realiza o cálculo determinístico de completude:
+* Derivação automática de `RequiredConfigurationParameter` a partir das regras de aplicabilidade da AD sem invenção de dados.
+* Avaliação de cada parâmetro na aeronave (`AVAILABLE`, `MISSING`, `INCONSISTENT`).
+* Geração do `operationalMissingList`: Checklist acionável pelo Engenheiro CAMO com contagem de ADs impactadas e trilha de rastreabilidade completa (`TraceabilityPath: Required Data -> Applicability Rule -> AD Number -> Authority`).
+* Resolução operacional in-loco (`/api/intel/resolve-missing`) permitindo atualizar imediatamente o percentual de completude e recalcular a aplicabilidade progressiva com zero drift.
+* Reorganização integral da interface do usuário (`Sidebar.tsx`) estruturada segundo os fluxos reais de engenharia CAMO: Frota, Inteligência Regulatória, Conformidade, Aeronavegabilidade, Delivery, Governança e Suporte.
+
 ---
 
 ## 9. CAPABILITY REGISTRY & AUDIT MATURITY REPORT (RELEASE 6.4.1)
@@ -644,6 +668,20 @@ O registro formal de capacidades operacionais do sistema CAMO reflete a arquitet
         "DRIFT_FREE_RECALCULATION_WITH_INVARIANT_HASH",
         "FLEET_WIDE_AD_SEARCH_WITH_PHYSICAL_ISOLATION",
         "ADVERSARIAL_ROLLBACK_AND_FUTURE_DATE_REJECTION"
+      ]
+    },
+    "REGULATORY_INTELLIGENCE_ENGINE": {
+      "version": "9.4.0",
+      "status": "OPERATIONAL",
+      "features": [
+        "FAMILY_MODEL_REGULATORY_CANDIDATE_DISCOVERY",
+        "DETERMINISTIC_REQUIRED_CONFIGURATION_EXTRACTION",
+        "REUSABLE_KNOWLEDGE_BASE_ACCUMULATION",
+        "AIRCRAFT_CONFIGURATION_COMPLETENESS_ASSESSMENT",
+        "PROGRESSIVE_APPLICABILITY_FIVE_STATE_MATRIX",
+        "INSUFFICIENT_DATA_FAIL_SAFE_ENFORCEMENT",
+        "OPERATIONAL_MISSING_DATA_CHECKLIST_RESOLUTION",
+        "NON_CONTAMINATION_BETWEEN_KB_AND_PHYSICAL_ENTITIES"
       ]
     }
   },

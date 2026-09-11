@@ -21,7 +21,10 @@ import {
   RegulatoryScreeningAssessment,
   CompliancePipelineExecution,
   ComplianceObligation,
-  AircraftDeliveryAssessment
+  AircraftDeliveryAssessment,
+  RegulatoryAdCandidate,
+  RegulatoryKnowledgeItem,
+  AircraftConfigurationAssessment
 } from '../src/types';
 
 export interface DatabaseState {
@@ -38,6 +41,9 @@ export interface DatabaseState {
   obligations: ComplianceObligation[];
   complianceObligations?: ComplianceObligation[];
   deliveryAssessments?: AircraftDeliveryAssessment[];
+  adCandidates?: RegulatoryAdCandidate[];
+  regulatoryKnowledgeBase?: RegulatoryKnowledgeItem[];
+  configurationAssessments?: AircraftConfigurationAssessment[];
   evidence: Evidence[];
   questions: UserQuestion[];
   knowledgeFacts: KnowledgeFact[];
@@ -656,7 +662,10 @@ export function getInitialSeedData(): DatabaseState {
     discoveryRecords: [],
     screeningAssessments: [],
     pipelineExecutions: [],
-    deliveryAssessments: []
+    deliveryAssessments: [],
+    adCandidates: [],
+    regulatoryKnowledgeBase: [],
+    configurationAssessments: []
   };
 }
 
@@ -698,6 +707,15 @@ class DataStore {
         }
         if (!Array.isArray(parsed.deliveryAssessments)) {
           parsed.deliveryAssessments = [];
+        }
+        if (!Array.isArray(parsed.adCandidates)) {
+          parsed.adCandidates = [];
+        }
+        if (!Array.isArray(parsed.regulatoryKnowledgeBase)) {
+          parsed.regulatoryKnowledgeBase = [];
+        }
+        if (!Array.isArray(parsed.configurationAssessments)) {
+          parsed.configurationAssessments = [];
         }
         parsed.complianceObligations = parsed.obligations;
         if (Array.isArray(parsed.requirements)) {
@@ -820,6 +838,15 @@ class DataStore {
     }
     if (!this.state.deliveryAssessments) {
       this.state.deliveryAssessments = [];
+    }
+    if (!this.state.adCandidates || this.state.adCandidates.length === 0) {
+      this.state.adCandidates = getInitialSeedData().adCandidates || [];
+    }
+    if (!this.state.regulatoryKnowledgeBase || this.state.regulatoryKnowledgeBase.length === 0) {
+      this.state.regulatoryKnowledgeBase = getInitialSeedData().regulatoryKnowledgeBase || [];
+    }
+    if (!this.state.configurationAssessments) {
+      this.state.configurationAssessments = [];
     }
     return this.state;
   }

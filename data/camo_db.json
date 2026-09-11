@@ -650,5 +650,8 @@
   "discoveryRecords": [],
   "screeningAssessments": [],
   "pipelineExecutions": [],
-  "deliveryAssessments": []
+  "deliveryAssessments": [],
+  "adCandidates": [],
+  "regulatoryKnowledgeBase": [],
+  "configurationAssessments": []
 }

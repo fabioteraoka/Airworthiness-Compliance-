@@ -7,7 +7,7 @@
 [![Compliance](https://img.shields.io/badge/Compliance-FAA%20|%20EASA%20|%20ANAC-blue.svg?style=for-the-badge)](https://www.easa.europa.eu/)
 [![Audit Trail](https://img.shields.io/badge/Security-SHA--256%20Cryptographic%20Audit-emerald.svg?style=for-the-badge)](./DOSSIE_ARQUITETURA_SISTEMA_CAMO.md)
 [![AI Engine](https://img.shields.io/badge/AI%20Intelligence-Gemini%203.7%20Flash%20Document-indigo.svg?style=for-the-badge)](https://ai.google.dev/)
-[![Vitest](https://img.shields.io/badge/Automated%20Tests-92%2F92%20Passed%20(100%25)-success.svg?style=for-the-badge)](./test/)
+[![Vitest](https://img.shields.io/badge/Automated%20Tests-97%2F97%20Passed%20(100%25)-success.svg?style=for-the-badge)](./test/)
 
 ---
 

@@ -7,7 +7,9 @@ import {
   ParameterEvaluationItem,
   OperationalMissingItem,
   ProgressiveApplicabilityState,
-  Aircraft
+  Aircraft,
+  RegulatoryDiscoveryDiagnostic,
+  AuthorityDiscoveryDiagnostic
 } from '../types';
 import { 
   Search, 
@@ -31,7 +33,11 @@ import {
   ArrowRight,
   Database,
   Lock,
-  ChevronRight
+  ChevronRight,
+  ChevronLeft,
+  Terminal,
+  Copy,
+  Globe
 } from 'lucide-react';
 
 interface RegulatoryIntelligenceViewProps {
@@ -49,7 +55,8 @@ export default function RegulatoryIntelligenceView({
 }: RegulatoryIntelligenceViewProps) {
   const [activeTab, setActiveTab] = useState<'candidates' | 'assessment' | 'knowledge'>('candidates');
 
-  // Candidate Search State
+  // Candidate Search State (Open Model Architecture - Phase 9 Stage 4.1)
+  const [aircraftQuery, setAircraftQuery] = useState<string>('Airbus A320');
   const [selectedFamily, setSelectedFamily] = useState<string>('A320');
   const [selectedModel, setSelectedModel] = useState<string>('');
   const [selectedAuthority, setSelectedAuthority] = useState<string>('ALL');
@@ -57,6 +64,31 @@ export default function RegulatoryIntelligenceView({
   const [candidates, setCandidates] = useState<RegulatoryAdCandidate[]>([]);
   const [isLoadingCandidates, setIsLoadingCandidates] = useState<boolean>(false);
   const [analyzingCandidateId, setAnalyzingCandidateId] = useState<string | null>(null);
+
+  // Diagnostic Report State (Phase 9 — Stage 4.1)
+  const [diagnostic, setDiagnostic] = useState<RegulatoryDiscoveryDiagnostic | null>(null);
+  const [showDiagnosticModal, setShowDiagnosticModal] = useState<boolean>(false);
+  const [copiedDiagnostic, setCopiedDiagnostic] = useState<boolean>(false);
+
+  // Pagination & Discovery Controls
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [perPage, setPerPage] = useState<number>(25);
+  const [totalPages, setTotalPages] = useState<number>(1);
+  const [totalDiscovered, setTotalDiscovered] = useState<number>(0);
+  const [autoPaginate, setAutoPaginate] = useState<boolean>(false);
+
+  // Suggested Quick Queries for Operators
+  const QUICK_SUGGESTIONS = [
+    { label: 'Airbus A320', query: 'Airbus A320', family: 'A320', make: 'Airbus' },
+    { label: 'Boeing 737', query: 'Boeing 737', family: '737', make: 'Boeing' },
+    { label: 'Embraer E-Jets', query: 'Embraer E-Jets', family: 'E-Jets', make: 'Embraer' },
+    { label: 'ATR 42/72', query: 'ATR 72', family: 'ATR', make: 'ATR' },
+    { label: 'Airbus A330', query: 'Airbus A330', family: 'A330', make: 'Airbus' },
+    { label: 'Boeing 777', query: 'Boeing 777', family: '777', make: 'Boeing' },
+    { label: 'Bombardier CRJ', query: 'Bombardier CRJ', family: 'CRJ', make: 'Bombardier' },
+    { label: 'Pilatus PC-12', query: 'Pilatus PC-12', family: 'PC-12', make: 'Pilatus' },
+    { label: 'Cessna Citation', query: 'Cessna Citation', family: 'Citation', make: 'Cessna' }
+  ];
 
   // Configuration Assessment State
   const [selectedAircraftMode, setSelectedAircraftMode] = useState<'fleet' | 'candidate'>('fleet');
@@ -85,15 +117,45 @@ export default function RegulatoryIntelligenceView({
   // Candidate Details Drawer
   const [viewingCandidate, setViewingCandidate] = useState<RegulatoryAdCandidate | null>(null);
 
-  // Load initial candidates & assessments
-  const fetchCandidates = async (family: string, auth: string, query?: string) => {
+  // Load initial candidates & assessments with Open Discovery & Diagnostic
+  const fetchCandidates = async (
+    targetQuery?: string, 
+    auth?: string, 
+    filterText?: string,
+    page: number = currentPage,
+    pageSize: number = perPage,
+    autoPag: boolean = autoPaginate
+  ) => {
     setIsLoadingCandidates(true);
     try {
-      const url = `/api/intel/candidates?family=${encodeURIComponent(family)}&authority=${auth}&query=${encodeURIComponent(query || '')}`;
+      const q = targetQuery !== undefined ? targetQuery : aircraftQuery;
+      const authority = auth !== undefined ? auth : selectedAuthority;
+      const text = filterText !== undefined ? filterText : searchQuery;
+
+      const params = new URLSearchParams();
+      if (q) params.set('query', q);
+      if (authority && authority !== 'ALL') params.set('authority', authority);
+      if (text) params.set('query', text);
+      params.set('page', String(page));
+      params.set('perPage', String(pageSize));
+      if (autoPag) params.set('autoPaginate', 'true');
+
+      const url = `/api/intel/candidates?${params.toString()}`;
       const res = await fetch(url);
       if (res.ok) {
         const data = await res.json();
         setCandidates(data.candidates || []);
+        if (data.diagnostic) {
+          setDiagnostic(data.diagnostic);
+        }
+        if (data.pagination) {
+          setCurrentPage(data.pagination.page);
+          setTotalPages(data.pagination.totalPages);
+          setTotalDiscovered(data.pagination.totalDiscovered);
+        }
+        if (data.family) {
+          setSelectedFamily(data.family);
+        }
         if (data.state) onRefreshState(data.state);
       }
     } catch (err) {
@@ -104,8 +166,8 @@ export default function RegulatoryIntelligenceView({
   };
 
   useEffect(() => {
-    fetchCandidates(selectedFamily, selectedAuthority, searchQuery);
-  }, [selectedFamily, selectedAuthority]);
+    fetchCandidates(aircraftQuery, selectedAuthority, searchQuery, 1, perPage, autoPaginate);
+  }, [selectedAuthority]);
 
   // Set default fleet aircraft if available
   useEffect(() => {
@@ -304,73 +366,168 @@ export default function RegulatoryIntelligenceView({
       {/* TAB 1: REGULATORY CANDIDATES LIST */}
       {activeTab === 'candidates' && (
         <div className="space-y-5">
-          {/* Filter Toolbar */}
-          <div className="p-4 bg-slate-900/70 rounded-xl border border-white/10 space-y-3">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-              {/* Family Selector */}
-              <div>
-                <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-1 block">
-                  Família da Aeronave
-                </label>
-                <select
-                  value={selectedFamily}
-                  onChange={(e) => setSelectedFamily(e.target.value)}
-                  className="w-full bg-slate-800 border border-white/10 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500 font-medium"
-                >
-                  <option value="A320">Airbus A320 Family (A318 / A319 / A320 / A321)</option>
-                  <option value="737">Boeing 737 Family (NG & MAX: 737-700/800/8/9)</option>
-                  <option value="E-Jets">Embraer E-Jets Family (E170 / E175 / E190 / E195)</option>
-                  <option value="ATR">ATR 42 / 72 Series</option>
-                </select>
-              </div>
-
-              {/* Authority Filter */}
-              <div>
-                <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-1 block">
-                  Autoridade Emissora
-                </label>
-                <select
-                  value={selectedAuthority}
-                  onChange={(e) => setSelectedAuthority(e.target.value)}
-                  className="w-full bg-slate-800 border border-white/10 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500 font-medium"
-                >
-                  <option value="ALL">Todas (FAA + EASA + ANAC)</option>
-                  <option value="FAA">FAA (Federal Aviation Administration)</option>
-                  <option value="EASA">EASA (European Union Aviation Safety)</option>
-                  <option value="ANAC">ANAC (Agência Nacional de Aviação Civil)</option>
-                </select>
-              </div>
-
-              {/* Search Query */}
-              <div className="md:col-span-2">
-                <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-1 block">
-                  Filtro por Palavra-Chave / P/N / Sistema
+          {/* Main Open Query Panel (Section 4 — What aircraft are you assessing?) */}
+          <div className="bg-slate-900/90 border border-white/10 rounded-2xl p-5 space-y-4 shadow-lg">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+              <div className="space-y-1 flex-1">
+                <label className="text-xs uppercase font-bold text-indigo-400 tracking-wider flex items-center gap-2">
+                  <Plane className="w-4 h-4" />
+                  <span>Qual aeronave você deseja avaliar? (Pesquisa Aberta por Fabricante, Família ou Modelo)</span>
                 </label>
                 <div className="relative">
                   <input
                     type="text"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && fetchCandidates(selectedFamily, selectedAuthority, searchQuery)}
-                    placeholder="Ex: CFM56, actuator, ELAC, pushrod, P/N 762300..."
-                    className="w-full bg-slate-800 border border-white/10 rounded-lg pl-9 pr-24 py-2 text-xs text-white focus:outline-none focus:border-indigo-500"
+                    value={aircraftQuery}
+                    onChange={(e) => setAircraftQuery(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && fetchCandidates(aircraftQuery, selectedAuthority, searchQuery, 1, perPage, autoPaginate)}
+                    placeholder="Ex: Airbus A320, Boeing 777-300ER, Embraer E195-E2, Pilatus PC-12, Cessna Citation 525, ATR 72..."
+                    className="w-full bg-slate-950 border border-indigo-500/30 rounded-xl pl-10 pr-28 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-400 font-medium placeholder:text-slate-500 shadow-inner"
                   />
-                  <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+                  <Search className="w-4 h-4 text-indigo-400 absolute left-3.5 top-3" />
                   <button
-                    onClick={() => fetchCandidates(selectedFamily, selectedAuthority, searchQuery)}
-                    className="absolute right-1.5 top-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-bold px-2.5 py-1 rounded transition"
+                    onClick={() => fetchCandidates(aircraftQuery, selectedAuthority, searchQuery, 1, perPage, autoPaginate)}
+                    disabled={isLoadingCandidates}
+                    className="absolute right-2 top-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition flex items-center gap-1.5 disabled:opacity-50 shadow-sm"
                   >
-                    Filtrar
+                    {isLoadingCandidates ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Search className="w-3.5 h-3.5" />}
+                    <span>Pesquisar</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Authority Filter & Action Buttons */}
+              <div className="flex items-center gap-3">
+                <div>
+                  <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-1 block">
+                    Autoridade
+                  </label>
+                  <select
+                    value={selectedAuthority}
+                    onChange={(e) => {
+                      setSelectedAuthority(e.target.value);
+                      fetchCandidates(aircraftQuery, e.target.value, searchQuery, 1, perPage, autoPaginate);
+                    }}
+                    className="bg-slate-800 border border-white/10 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500 font-medium"
+                  >
+                    <option value="ALL">Todas (FAA + EASA + ANAC)</option>
+                    <option value="FAA">FAA (Federal Register)</option>
+                    <option value="EASA">EASA (Portal & Curated)</option>
+                    <option value="ANAC">ANAC (Agência Nacional)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-1 block">
+                    Diagnóstico
+                  </label>
+                  <button
+                    onClick={() => setShowDiagnosticModal(true)}
+                    className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-indigo-300 hover:text-white border border-indigo-500/30 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 shadow-sm"
+                  >
+                    <Terminal className="w-3.5 h-3.5 text-indigo-400" />
+                    <span>Auditoria do Pipeline</span>
+                    {diagnostic && (
+                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                    )}
                   </button>
                 </div>
               </div>
             </div>
 
-            <div className="flex items-center justify-between text-xs text-slate-400 pt-1 border-t border-white/5 font-mono">
-              <span>Candidatas Encontradas: <strong className="text-white">{candidates.length}</strong></span>
-              <span className="text-[11px] text-slate-400">
-                Fontes: Federal Register API (FAA), EASA Portal, ANAC SISAC
+            {/* Quick Suggestions Chips */}
+            <div className="flex flex-wrap items-center gap-1.5 pt-1">
+              <span className="text-[10px] font-bold uppercase text-slate-400 tracking-wider mr-1">
+                Aeronaves Frequentes:
               </span>
+              {QUICK_SUGGESTIONS.map((item) => (
+                <button
+                  key={item.label}
+                  onClick={() => {
+                    setAircraftQuery(item.query);
+                    setSelectedFamily(item.family);
+                    fetchCandidates(item.query, selectedAuthority, searchQuery, 1, perPage, autoPaginate);
+                  }}
+                  className={`text-[11px] px-2.5 py-1 rounded-lg border transition font-medium ${
+                    aircraftQuery.toLowerCase().includes(item.family.toLowerCase()) || aircraftQuery.toLowerCase().includes(item.query.toLowerCase())
+                      ? 'bg-indigo-600/30 text-indigo-200 border-indigo-500/50 font-bold'
+                      : 'bg-slate-800/60 text-slate-300 border-white/5 hover:border-white/20 hover:text-white'
+                  }`}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Keyword / System Filter Bar */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-2 border-t border-white/5">
+              <div className="md:col-span-2 relative">
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && fetchCandidates(aircraftQuery, selectedAuthority, searchQuery, 1, perPage, autoPaginate)}
+                  placeholder="Filtro específico: ex.: CFM56, actuator, ELAC, RAT, pushrod, flap, P/N 762300..."
+                  className="w-full bg-slate-800/80 border border-white/10 rounded-lg pl-8 pr-20 py-1.5 text-xs text-white focus:outline-none focus:border-indigo-500"
+                />
+                <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5" />
+                <button
+                  onClick={() => fetchCandidates(aircraftQuery, selectedAuthority, searchQuery, 1, perPage, autoPaginate)}
+                  className="absolute right-1 top-1 bg-slate-700 hover:bg-slate-600 text-white text-[10px] font-bold px-2 py-1 rounded"
+                >
+                  Filtrar
+                </button>
+              </div>
+
+              <div className="flex items-center justify-end gap-3 text-xs text-slate-400">
+                <label className="flex items-center gap-1.5 text-[11px] cursor-pointer hover:text-slate-200">
+                  <input
+                    type="checkbox"
+                    checked={autoPaginate}
+                    onChange={(e) => {
+                      setAutoPaginate(e.target.checked);
+                      fetchCandidates(aircraftQuery, selectedAuthority, searchQuery, 1, perPage, e.target.checked);
+                    }}
+                    className="rounded bg-slate-800 border-white/20 text-indigo-600 focus:ring-0"
+                  />
+                  <span>Auto-paginar API Federal Register</span>
+                </label>
+
+                <select
+                  value={perPage}
+                  onChange={(e) => {
+                    const newPerPage = Number(e.target.value);
+                    setPerPage(newPerPage);
+                    fetchCandidates(aircraftQuery, selectedAuthority, searchQuery, 1, newPerPage, autoPaginate);
+                  }}
+                  className="bg-slate-800 border border-white/10 rounded px-2 py-1 text-[11px] text-white"
+                >
+                  <option value="10">10 por pág</option>
+                  <option value="25">25 por pág</option>
+                  <option value="50">50 por pág</option>
+                  <option value="100">100 por pág</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Discovery Status Bar */}
+            <div className="flex flex-wrap items-center justify-between text-xs text-slate-400 pt-2 border-t border-white/5 font-mono">
+              <div className="flex items-center gap-3">
+                <span>Candidatas Retornadas: <strong className="text-emerald-400">{candidates.length}</strong></span>
+                {diagnostic && (
+                  <span className="text-slate-400">
+                    (FAA: <strong className="text-sky-300">{diagnostic.authorities.FAA.finalCandidates}</strong> | 
+                    EASA: <strong className="text-amber-300">{diagnostic.authorities.EASA.finalCandidates}</strong> | 
+                    ANAC: <strong className="text-emerald-300">{diagnostic.authorities.ANAC.finalCandidates}</strong>)
+                  </span>
+                )}
+              </div>
+
+              <div className="flex items-center gap-2 text-[11px]">
+                <span className="flex items-center gap-1 text-slate-400">
+                  <Globe className="w-3 h-3 text-indigo-400" />
+                  Fontes: Federal Register Public API (FAA), EASA Portal, ANAC SISAC
+                </span>
+              </div>
             </div>
           </div>
 
@@ -378,15 +535,28 @@ export default function RegulatoryIntelligenceView({
           {isLoadingCandidates ? (
             <div className="p-12 text-center text-slate-400 flex flex-col items-center space-y-3 bg-slate-900/40 rounded-xl border border-white/10">
               <RefreshCw className="w-8 h-8 text-indigo-400 animate-spin" />
-              <p className="text-sm">Consultando repositórios regulatórios para a família {selectedFamily}...</p>
+              <p className="text-sm">Consultando repositórios regulatórios para "{aircraftQuery}"...</p>
+              <p className="text-xs text-slate-400">Executando normalização aeronáutica e pipeline de auditoria multi-fonte...</p>
             </div>
           ) : candidates.length === 0 ? (
-            <div className="p-12 text-center text-slate-400 bg-slate-900/40 rounded-xl border border-white/10">
+            <div className="p-12 text-center text-slate-400 bg-slate-900/40 rounded-xl border border-white/10 space-y-3">
               <p className="text-sm font-semibold text-white">Nenhuma diretriz candidata encontrada para este filtro.</p>
-              <p className="text-xs text-slate-400 mt-1">Tente remover os termos de busca ou selecionar outra autoridade.</p>
+              <p className="text-xs text-slate-400 max-w-md mx-auto">
+                Tente ajustar os termos de pesquisa para a família da aeronave (ex.: "Airbus A320", "Boeing 737", "ATR 72", "Embraer 190") ou remover palavras-chave restritivas.
+              </p>
+              <button
+                onClick={() => {
+                  setSearchQuery('');
+                  fetchCandidates(aircraftQuery, 'ALL', '', 1, perPage, autoPaginate);
+                }}
+                className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-lg transition"
+              >
+                Limpar Filtros e Reavaliar
+              </button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 gap-3">
+            <div className="space-y-3">
+              <div className="grid grid-cols-1 gap-3">
               {candidates.map((cand) => {
                 const isAnalyzed = cand.analysisStatus === 'ANALYZED';
                 const isAnalyzing = analyzingCandidateId === cand.id;
@@ -496,6 +666,46 @@ export default function RegulatoryIntelligenceView({
                   </div>
                 );
               })}
+            </div>
+
+            {/* Pagination Controls */}
+            <div className="flex items-center justify-between p-4 bg-slate-900/60 rounded-xl border border-white/10 text-xs text-slate-400 font-mono">
+              <div>
+                Mostrando <strong className="text-white">{candidates.length}</strong> diretrizes de <strong className="text-indigo-300">{totalDiscovered || candidates.length}</strong> descobertas
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    const prev = Math.max(1, currentPage - 1);
+                    setCurrentPage(prev);
+                    fetchCandidates(aircraftQuery, selectedAuthority, searchQuery, prev, perPage, autoPaginate);
+                  }}
+                  disabled={currentPage <= 1 || isLoadingCandidates}
+                  className="p-1.5 rounded bg-slate-800 hover:bg-slate-700 text-white disabled:opacity-30 border border-white/10"
+                  title="Página Anterior"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+
+                <span className="px-2 text-slate-300">
+                  Página {currentPage} de {totalPages}
+                </span>
+
+                <button
+                  onClick={() => {
+                    const next = currentPage + 1;
+                    setCurrentPage(next);
+                    fetchCandidates(aircraftQuery, selectedAuthority, searchQuery, next, perPage, autoPaginate);
+                  }}
+                  disabled={currentPage >= totalPages || isLoadingCandidates}
+                  className="p-1.5 rounded bg-slate-800 hover:bg-slate-700 text-white disabled:opacity-30 border border-white/10"
+                  title="Próxima Página"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
             </div>
           )}
         </div>
@@ -1095,6 +1305,215 @@ export default function RegulatoryIntelligenceView({
                 className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold rounded-lg"
               >
                 Fechar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: REGULATORY DISCOVERY DIAGNOSTIC REPORT (Section 6 Audit Report) */}
+      {showDiagnosticModal && diagnostic && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-white/20 rounded-2xl max-w-3xl w-full p-6 space-y-5 shadow-2xl max-h-[90vh] overflow-y-auto font-mono">
+            <div className="flex items-center justify-between border-b border-white/10 pb-3">
+              <div className="flex items-center gap-2">
+                <Terminal className="w-5 h-5 text-indigo-400" />
+                <h3 className="text-sm font-bold text-white tracking-wider">
+                  REGULATORY DISCOVERY DIAGNOSTIC & AUDIT
+                </h3>
+              </div>
+              <button
+                onClick={() => setShowDiagnosticModal(false)}
+                className="text-slate-400 hover:text-white"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Pipeline Stage Cards */}
+            <div className="space-y-4 text-xs">
+              <div className="p-3 bg-slate-950 rounded-xl border border-white/10 flex flex-col md:flex-row md:items-center justify-between gap-2">
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-slate-400 block">Query Avaliada:</span>
+                  <span className="text-sm font-bold text-indigo-300">{diagnostic.query}</span>
+                </div>
+                <div className="text-right text-[11px] text-slate-400">
+                  Timestamp: <strong className="text-slate-200">{new Date(diagnostic.timestamp).toLocaleString()}</strong>
+                </div>
+              </div>
+
+              {/* Authorities Breakdown */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                {/* FAA */}
+                <div className="p-3.5 bg-slate-950/80 rounded-xl border border-sky-500/30 space-y-2">
+                  <div className="flex items-center justify-between border-b border-white/10 pb-1.5">
+                    <span className="text-xs font-bold text-sky-400">FAA (Federal Register)</span>
+                    <span className="text-[10px] px-1.5 py-0.2 rounded bg-sky-500/20 text-sky-300">
+                      {diagnostic.authorities.FAA.sourceStatus}
+                    </span>
+                  </div>
+                  <div className="space-y-1 text-[11px] text-slate-300">
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Raw retrieved:</span>
+                      <strong className="text-white">{diagnostic.authorities.FAA.rawRetrieved}</strong>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Normalized:</span>
+                      <strong className="text-white">{diagnostic.authorities.FAA.normalized}</strong>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Before filter:</span>
+                      <strong className="text-white">{diagnostic.authorities.FAA.candidatesBeforeFilter}</strong>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">After filter:</span>
+                      <strong className="text-white">{diagnostic.authorities.FAA.candidatesAfterFilter}</strong>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Duplicates removed:</span>
+                      <strong className="text-amber-400">{diagnostic.authorities.FAA.duplicatesRemoved}</strong>
+                    </div>
+                    <div className="flex justify-between pt-1 border-t border-white/10">
+                      <span className="text-sky-300 font-bold">Final candidates:</span>
+                      <strong className="text-sky-300 text-sm font-bold">{diagnostic.authorities.FAA.finalCandidates}</strong>
+                    </div>
+                  </div>
+                </div>
+
+                {/* EASA */}
+                <div className="p-3.5 bg-slate-950/80 rounded-xl border border-amber-500/30 space-y-2">
+                  <div className="flex items-center justify-between border-b border-white/10 pb-1.5">
+                    <span className="text-xs font-bold text-amber-400">EASA</span>
+                    <span className="text-[10px] px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300">
+                      {diagnostic.authorities.EASA.sourceStatus}
+                    </span>
+                  </div>
+                  <div className="space-y-1 text-[11px] text-slate-300">
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Raw retrieved:</span>
+                      <strong className="text-white">{diagnostic.authorities.EASA.rawRetrieved}</strong>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Normalized:</span>
+                      <strong className="text-white">{diagnostic.authorities.EASA.normalized}</strong>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Before filter:</span>
+                      <strong className="text-white">{diagnostic.authorities.EASA.candidatesBeforeFilter}</strong>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">After filter:</span>
+                      <strong className="text-white">{diagnostic.authorities.EASA.candidatesAfterFilter}</strong>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Duplicates removed:</span>
+                      <strong className="text-amber-400">{diagnostic.authorities.EASA.duplicatesRemoved}</strong>
+                    </div>
+                    <div className="flex justify-between pt-1 border-t border-white/10">
+                      <span className="text-amber-300 font-bold">Final candidates:</span>
+                      <strong className="text-amber-300 text-sm font-bold">{diagnostic.authorities.EASA.finalCandidates}</strong>
+                    </div>
+                  </div>
+                </div>
+
+                {/* ANAC */}
+                <div className="p-3.5 bg-slate-950/80 rounded-xl border border-emerald-500/30 space-y-2">
+                  <div className="flex items-center justify-between border-b border-white/10 pb-1.5">
+                    <span className="text-xs font-bold text-emerald-400">ANAC (SISAC)</span>
+                    <span className="text-[10px] px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300">
+                      {diagnostic.authorities.ANAC.sourceStatus}
+                    </span>
+                  </div>
+                  <div className="space-y-1 text-[11px] text-slate-300">
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Raw retrieved:</span>
+                      <strong className="text-white">{diagnostic.authorities.ANAC.rawRetrieved}</strong>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Normalized:</span>
+                      <strong className="text-white">{diagnostic.authorities.ANAC.normalized}</strong>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Before filter:</span>
+                      <strong className="text-white">{diagnostic.authorities.ANAC.candidatesBeforeFilter}</strong>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">After filter:</span>
+                      <strong className="text-white">{diagnostic.authorities.ANAC.candidatesAfterFilter}</strong>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Duplicates removed:</span>
+                      <strong className="text-amber-400">{diagnostic.authorities.ANAC.duplicatesRemoved}</strong>
+                    </div>
+                    <div className="flex justify-between pt-1 border-t border-white/10">
+                      <span className="text-emerald-300 font-bold">Final candidates:</span>
+                      <strong className="text-emerald-300 text-sm font-bold">{diagnostic.authorities.ANAC.finalCandidates}</strong>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* TOTAL PIPELINE FUNNEL */}
+              <div className="p-4 bg-slate-950 rounded-xl border border-indigo-500/30 space-y-2">
+                <span className="text-xs uppercase font-bold text-indigo-400 block">
+                  Pipeline Funnel Total
+                </span>
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-3 text-center">
+                  <div className="p-2 bg-slate-900 rounded border border-white/5">
+                    <span className="text-[10px] text-slate-400 block">Raw Retrieved</span>
+                    <span className="text-base font-bold text-white">{diagnostic.totals.rawRetrieved}</span>
+                  </div>
+                  <div className="p-2 bg-slate-900 rounded border border-white/5">
+                    <span className="text-[10px] text-slate-400 block">Normalized</span>
+                    <span className="text-base font-bold text-white">{diagnostic.totals.normalized}</span>
+                  </div>
+                  <div className="p-2 bg-slate-900 rounded border border-white/5">
+                    <span className="text-[10px] text-slate-400 block">Candidates</span>
+                    <span className="text-base font-bold text-white">{diagnostic.totals.candidatesBeforeFilter}</span>
+                  </div>
+                  <div className="p-2 bg-slate-900 rounded border border-white/5">
+                    <span className="text-[10px] text-slate-400 block">Deduplicated</span>
+                    <span className="text-base font-bold text-amber-400">-{diagnostic.totals.duplicatesRemoved}</span>
+                  </div>
+                  <div className="p-2 bg-indigo-950/60 rounded border border-indigo-500/40">
+                    <span className="text-[10px] text-indigo-300 block font-bold">Final Candidates</span>
+                    <span className="text-base font-bold text-emerald-400">{diagnostic.totals.finalCandidates}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Section 6 Plain Text Output Container */}
+              <div className="space-y-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] uppercase font-bold text-slate-400">
+                    Relatório Diagnóstico Formatado (Seção 6 — Plain Text):
+                  </span>
+                  <button
+                    onClick={() => {
+                      if (diagnostic?.diagnosticReportText) {
+                        navigator.clipboard.writeText(diagnostic.diagnosticReportText);
+                        setCopiedDiagnostic(true);
+                        setTimeout(() => setCopiedDiagnostic(false), 2000);
+                      }
+                    }}
+                    className="text-[11px] text-indigo-400 hover:text-indigo-300 flex items-center gap-1 bg-slate-800 px-2 py-1 rounded"
+                  >
+                    {copiedDiagnostic ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                    <span>{copiedDiagnostic ? 'Copiado!' : 'Copiar Texto'}</span>
+                  </button>
+                </div>
+                <pre className="p-3 bg-slate-950 rounded-xl border border-white/10 text-[11px] text-emerald-300 leading-relaxed overflow-x-auto max-h-48">
+                  {diagnostic.diagnosticReportText}
+                </pre>
+              </div>
+            </div>
+
+            <div className="flex justify-end pt-2 border-t border-white/10">
+              <button
+                onClick={() => setShowDiagnosticModal(false)}
+                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold rounded-lg"
+              >
+                Fechar Diagnóstico
               </button>
             </div>
           </div>

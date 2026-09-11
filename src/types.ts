@@ -2693,5 +2693,43 @@ export interface AircraftConfigurationAssessment {
   };
 }
 
+export type RegulatorySourceConnectionStatus = 'CONNECTED' | 'OFFICIAL_REPO' | 'UNAVAILABLE' | 'NOT_CONFIRMED';
+
+export interface AuthorityDiscoveryDiagnostic {
+  authority: IssuingAuthority;
+  sourceName: string;
+  sourceStatus: RegulatorySourceConnectionStatus;
+  rawRetrieved: number;
+  normalized: number;
+  candidatesBeforeFilter: number;
+  candidatesAfterFilter: number;
+  duplicatesRemoved: number;
+  finalCandidates: number;
+  pagesScanned?: number;
+  notes?: string;
+}
+
+export interface RegulatoryDiscoveryDiagnostic {
+  query: string;
+  family?: string;
+  model?: string;
+  manufacturer?: string;
+  timestamp: string;
+  authorities: {
+    FAA: AuthorityDiscoveryDiagnostic;
+    EASA: AuthorityDiscoveryDiagnostic;
+    ANAC: AuthorityDiscoveryDiagnostic;
+  };
+  totals: {
+    rawRetrieved: number;
+    normalized: number;
+    candidatesBeforeFilter: number;
+    candidatesAfterFilter: number;
+    duplicatesRemoved: number;
+    finalCandidates: number;
+  };
+  diagnosticReportText: string;
+}
+
 
 

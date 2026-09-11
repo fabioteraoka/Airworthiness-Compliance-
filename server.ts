@@ -3089,20 +3089,40 @@ async function startServer() {
   });
 
   // ==========================================
-  // PHASE 9 — ETAPA 4: REGULATORY INTELLIGENCE & AIRCRAFT ASSESSMENT ROUTES
+  // PHASE 9 — ETAPA 4.1: REGULATORY INTELLIGENCE & OPEN DISCOVERY ROUTES
   // ==========================================
 
-  // 13. Search Regulatory Candidate ADs by Family/Model across FAA, EASA, ANAC
+  // 13. Search Regulatory Candidate ADs with Open Aircraft Family/Model across FAA, EASA, ANAC
   app.get('/api/intel/candidates', async (req, res) => {
     try {
-      const { family = 'A320', model, make, authority, query } = req.query;
+      const { 
+        family, 
+        model, 
+        make, 
+        manufacturer, 
+        variant, 
+        authority, 
+        query, 
+        page, 
+        perPage, 
+        maxPages, 
+        autoPaginate 
+      } = req.query;
+
       const result = await regulatoryIntelligenceEngine.searchCandidatesByFamilyOrModel({
-        family: String(family),
+        family: family !== undefined ? String(family) : undefined,
         model: model ? String(model) : undefined,
         make: make ? String(make) : undefined,
+        manufacturer: manufacturer ? String(manufacturer) : undefined,
+        variant: variant ? String(variant) : undefined,
         authority: authority ? (String(authority) as any) : 'ALL',
-        query: query ? String(query) : undefined
+        query: query ? String(query) : undefined,
+        page: page ? Number(page) : undefined,
+        perPage: perPage ? Number(perPage) : undefined,
+        maxPages: maxPages ? Number(maxPages) : undefined,
+        autoPaginate: autoPaginate === 'true' || autoPaginate === '1'
       });
+
       res.json({
         success: true,
         ...result,
@@ -3113,17 +3133,37 @@ async function startServer() {
     }
   });
 
-  // 14. Trigger candidate search (POST)
+  // 14. Trigger candidate search with Open Aeronautical Parameters (POST)
   app.post('/api/intel/candidates/search', async (req, res) => {
     try {
-      const { family = 'A320', model, make, authority = 'ALL', query } = req.body;
+      const { 
+        family, 
+        model, 
+        make, 
+        manufacturer, 
+        variant, 
+        authority = 'ALL', 
+        query, 
+        page, 
+        perPage, 
+        maxPages, 
+        autoPaginate 
+      } = req.body;
+
       const result = await regulatoryIntelligenceEngine.searchCandidatesByFamilyOrModel({
         family,
         model,
         make,
+        manufacturer,
+        variant,
         authority,
-        query
+        query,
+        page: page ? Number(page) : undefined,
+        perPage: perPage ? Number(perPage) : undefined,
+        maxPages: maxPages ? Number(maxPages) : undefined,
+        autoPaginate: Boolean(autoPaginate)
       });
+
       res.json({
         success: true,
         ...result,
@@ -3131,6 +3171,49 @@ async function startServer() {
       });
     } catch (err: any) {
       res.status(400).json({ error: err.message });
+    }
+  });
+
+  // 14.1. Regulatory Discovery Diagnostic Endpoint (Phase 9 — Stage 4.1)
+  app.get('/api/intel/discovery-diagnostic', async (req, res) => {
+    try {
+      const { 
+        family, 
+        model, 
+        manufacturer, 
+        variant, 
+        authority, 
+        query, 
+        page, 
+        perPage, 
+        maxPages, 
+        autoPaginate 
+      } = req.query;
+
+      const result = await regulatoryIntelligenceEngine.searchCandidatesByFamilyOrModel({
+        family: family !== undefined ? String(family) : undefined,
+        model: model ? String(model) : undefined,
+        manufacturer: manufacturer ? String(manufacturer) : undefined,
+        variant: variant ? String(variant) : undefined,
+        authority: authority ? (String(authority) as any) : 'ALL',
+        query: query ? String(query) : undefined,
+        page: page ? Number(page) : undefined,
+        perPage: perPage ? Number(perPage) : undefined,
+        maxPages: maxPages ? Number(maxPages) : undefined,
+        autoPaginate: autoPaginate === 'true' || autoPaginate === '1'
+      });
+
+      res.json({
+        success: true,
+        query: result.diagnostic.query,
+        diagnostic: result.diagnostic,
+        diagnosticReportText: result.diagnosticReportText,
+        authorities: result.diagnostic.authorities,
+        totals: result.diagnostic.totals,
+        sourcesConsulted: result.sourcesConsulted
+      });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
     }
   });
 

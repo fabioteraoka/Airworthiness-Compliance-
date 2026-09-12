@@ -43,8 +43,24 @@ O **CAMO Airworthiness Compliance Intelligence Platform** foi concebido por enge
 
 ## 🖥️ Telas do Sistema & Módulos Estratégicos
 
-### 1. Descoberta Regulatória & Matriz de Aplicabilidade Progressiva (Fase 9)
-O sistema consulta continuamente fontes oficiais (**FAA Dynamic Regulatory System**, **EASA Safety Publications Tool** e **ANAC SISAC**), organizando as diretrizes por Família aeronáutica (Airbus A320, Boeing 737, Embraer E-Jets) antes de confrontá-las com dados físicos.
+### 1. Descoberta Regulatória Aberta & Diagnóstico Multi-Fonte (Fase 9 — Etapa 4.1)
+O CAMO Engine **rompe a barreira de listas fechadas de frotas**. Através da experiência *"What aircraft are you assessing?"*, engenheiros podem consultar qualquer fabricante, família, modelo ou variante (Airbus A320/A330/A350, Boeing 737/777/787, Embraer E-Jets/E2, ATR 42/72, Pilatus PC-12, Cessna Citation, Gulfstream, etc.) com conexão direta à **API pública do Federal Register (FAA 14 CFR Part 39)**, **EASA Safety Publications Tool** e **ANAC SISAC**.
+
+<div align="center">
+  <img src="./assets/images/camo_discovery_audit_1789145627018.jpg" alt="CAMO Regulatory Discovery & Multi-Source Audit" width="100%" style="border-radius: 10px; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 20px 50px rgba(0,0,0,0.5);" />
+  <p><i>Motor de Descoberta Aberta com Pipeline de Auditoria em Tempo Real, Contadores Multi-Fonte (FAA/EASA/ANAC) e Paginação Dinâmica.</i></p>
+</div>
+
+* **Funcionalidades Estratégicas de Descoberta:**
+  - **Pesquisa Aberta Universal:** Normalização aeronáutica avançada capaz de identificar fabricante, família e escopo de modelos a partir de texto livre.
+  - **Pipeline de Auditoria Transparente:** Painel diagnóstico rastreando o ciclo completo (*Raw retrieved → Normalized → Candidates before filter → After filter → Duplicates removed → Final candidates*).
+  - **Relatório Diagnóstico Exportável:** Auditoria em texto plano (*Section 6 Plain-Text Diagnostic*) pronta para auditorias de conformidade com cópia em um clique.
+  - **Paginação e Filtros de Alta Precisão:** Controle de escopo de páginas da API do Federal Register com busca combinada por autoridade emissora e palavras-chave técnicas (ex.: *CFM56, actuator, ELAC, RAT, P/N*).
+
+---
+
+### 2. Matriz de Aplicabilidade Progressiva & Base de Conhecimento
+Antes de confrontar dados físicos da aeronave, as diretrizes analisadas são compiladas em uma Base de Conhecimento Reutilizável por Família/Modelo, eliminando riscos de contaminação de frota.
 
 <div align="center">
   <img src="./assets/images/camo_regulatory_matrix_1789127150063.jpg" alt="CAMO Regulatory Matrix" width="100%" style="border-radius: 10px; border: 1px solid rgba(255,255,255,0.1);" />
@@ -61,7 +77,7 @@ O sistema consulta continuamente fontes oficiais (**FAA Dynamic Regulatory Syste
 
 ---
 
-### 2. Emissão de Folha de Análise e Parecer Técnico (FAPT)
+### 3. Emissão de Folha de Análise e Parecer Técnico (FAPT)
 O CAMO Engine automatiza a geração das **FAPTs**, o documento formal exigido pelas autoridades homologadoras para comprovar a estratégia e o cumprimento de cada diretriz mandatória.
 
 <div align="center">
@@ -78,7 +94,7 @@ O CAMO Engine automatiza a geração das **FAPTs**, o documento formal exigido p
 
 ---
 
-### 3. Analytics Preditivo & Gráficos Estratégicos de Frota
+### 4. Analytics Preditivo & Gráficos Estratégicos de Frota
 Painéis avançados para diretores de operações e gerentes de engenharia anteciparem gargalos de manutenção com semanas de antecedência.
 
 <div align="center">
@@ -93,7 +109,7 @@ Painéis avançados para diretores de operações e gerentes de engenharia antec
 
 ---
 
-### 4. Arquitetura de Engenharia de Missão Crítica (Release 9.4)
+### 5. Arquitetura de Engenharia de Missão Crítica (Release 9.4)
 Desenvolvido sob padrões rigorosos de engenharia de software para garantir escalabilidade, resiliência e independência total entre bases de conhecimento e dados físicos operacionais.
 
 <div align="center">
@@ -159,7 +175,7 @@ Desenvolvido sob padrões rigorosos de engenharia de software para garantir esca
    ```bash
    npm test
    ```
-   *Verificação de conformidade em 92 testes automatizados cobrindo lógica determinística, ciclo de vida, entrega de aeronaves e inteligência regulatória.*
+   *Verificação de conformidade em 97 testes automatizados cobrindo lógica determinística, ciclo de vida, entrega de aeronaves, inteligência regulatória e motor aberto de descoberta multi-fonte.*
 
 ---
 

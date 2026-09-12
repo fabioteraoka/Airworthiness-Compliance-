@@ -237,12 +237,12 @@ export default function AdListView({ state, onSelectAd, onSelectView, onRefreshS
 
                       <td className="py-4 px-4 font-mono text-[11px]">
                         <span className="text-indigo-300 block">
-                          {req.applicabilityRule?.componentPartNumbers.length 
+                          {req.applicabilityRule?.componentPartNumbers?.length 
                             ? `P/N: ${req.applicabilityRule.componentPartNumbers.join(', ')}`
                             : 'Airframe Level'}
                         </span>
                         <span className="text-slate-400 text-[10px]">
-                          {req.applicabilityRule?.aircraftModels.join(', ') || 'All'}
+                          {req.applicabilityRule?.aircraftModels?.join(', ') || 'All'}
                         </span>
                       </td>
 

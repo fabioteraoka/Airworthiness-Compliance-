@@ -1285,6 +1285,7 @@ export interface OfficialDocumentRecord {
   isOfficialSource: boolean;
   storagePath?: string;
   fileData?: string; // base64 representation of PDF bytes
+  rawExtractedText?: string;
   documentProvenance?: OfficialDocumentProvenance;
   pipelineIntegrationStatus?: 'NOT_SUBMITTED' | 'PROCESSING' | 'ANALYZED' | 'FAILED';
   linkedRequirementId?: string;
@@ -2605,6 +2606,7 @@ export interface RegulatoryAdCandidate {
   analyzedRequirementId?: string;
   discoveryTimestamp: string;
   searchQuery?: string;
+  summary?: string;
   operationalPriority?: 'CRITICAL_URGENT' | 'HIGH' | 'NORMAL';
 }
 

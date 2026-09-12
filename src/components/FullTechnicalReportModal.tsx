@@ -512,13 +512,13 @@ export default function FullTechnicalReportModal({ requirementId, state, onClose
 
     // 2. EFFECTIVITY COMPLETA
     lines.push(`## 2. EFFECTIVITY COMPLETA`);
-    lines.push(`- **Fabricantes:** ${requirement.applicabilityRule?.aircraftManufacturers.join(', ') || NOT_REPORTED}`);
-    lines.push(`- **Modelos Afetados:** ${requirement.applicabilityRule?.aircraftModels.join(', ') || NOT_REPORTED}`);
-    lines.push(`- **Séries / Modelos Específicos:** ${requirement.applicabilityRule?.aircraftModels.join(', ') || NOT_REPORTED}`);
+    lines.push(`- **Fabricantes:** ${requirement.applicabilityRule?.aircraftManufacturers?.join(', ') || NOT_REPORTED}`);
+    lines.push(`- **Modelos Afetados:** ${requirement.applicabilityRule?.aircraftModels?.join(', ') || NOT_REPORTED}`);
+    lines.push(`- **Séries / Modelos Específicos:** ${requirement.applicabilityRule?.aircraftModels?.join(', ') || NOT_REPORTED}`);
     lines.push(`- **Faixas de MSN:** ${requirement.applicabilityRule?.aircraftSerialRanges?.description || NOT_REPORTED}`);
     lines.push(`- **Exclusões Explícitas:** ${NOT_REPORTED}`);
     lines.push(`- **Modelos de Motores:** ${requirement.applicabilityRule?.engineModels?.join(', ') || NOT_REPORTED}`);
-    lines.push(`- **Componentes e Part Numbers (P/N):** ${requirement.applicabilityRule?.componentPartNumbers.join(', ') || NOT_REPORTED}`);
+    lines.push(`- **Componentes e Part Numbers (P/N):** ${requirement.applicabilityRule?.componentPartNumbers?.join(', ') || NOT_REPORTED}`);
     lines.push(`- **Faixas de Serial Numbers de Componentes:** ${requirement.applicabilityRule?.componentSerialRanges?.description || NOT_REPORTED}`);
     lines.push(`- **Requisitos de Configuração:** ${requirement.applicabilityRule?.affectedConfiguration || NOT_REPORTED}`);
     lines.push(`- **Texto Integral da Aplicabilidade (Raw Text):**\n> ${requirement.applicabilityRule?.rawText || NOT_REPORTED}`);
@@ -542,8 +542,8 @@ export default function FullTechnicalReportModal({ requirementId, state, onClose
       lines.push(`- **Modificação Requerida:** ${cp.modification}`);
       lines.push(`- **Substituição:** ${cp.replacement}`);
       lines.push(`- **Inspeção:** ${cp.inspection}`);
-      lines.push(`- **Peças Requeridas (Parts):** ${cp.requiredParts.join(', ')}`);
-      lines.push(`- **Ferramentas Especiais (Tools):** ${cp.requiredTools.join(', ')}`);
+      lines.push(`- **Peças Requeridas (Parts):** ${cp.requiredParts?.join(', ') || 'Nenhuma'}`);
+      lines.push(`- **Ferramentas Especiais (Tools):** ${cp.requiredTools?.join(', ') || 'Nenhuma'}`);
       lines.push(`- **Documentação Obrigatória:** ${cp.requiredDocs}`);
       lines.push(`- **Exceções:** ${cp.exceptions}`);
       lines.push(`- **AMOC (Métodos Alternativos):** ${cp.amoc}`);
@@ -569,7 +569,7 @@ export default function FullTechnicalReportModal({ requirementId, state, onClose
     lines.push(`O Motor de Regras CAMO executa a seguinte cadeia de inferência booleana determinística:`);
     lines.push(`\`\`\`
 1. [CONDIÇÃO DE ENTRADA NA CÉLULA]:
-   SE Aircraft.Model IN [${requirement.applicabilityRule?.aircraftModels.join(', ') || 'Modelos Alvo'}]
+   SE Aircraft.Model IN [${requirement.applicabilityRule?.aircraftModels?.join(', ') || 'Modelos Alvo'}]
    ENTÃO Célula_no_Escopo = TRUE
    SENÃO -> [NOT APPLICABLE] (Excluído por Modelo)
 
@@ -1045,13 +1045,13 @@ export default function FullTechnicalReportModal({ requirementId, state, onClose
   <h2 class="section-heading"><span class="sec-badge">2</span> Effectivity Completa (Sem Sumarização)</h2>
   <div class="card">
     <div class="meta-grid">
-      <div class="meta-item"><span class="meta-label">Fabricante</span><span class="meta-val">${requirement.applicabilityRule?.aircraftManufacturers.join(', ') || NOT_REPORTED}</span></div>
-      <div class="meta-item"><span class="meta-label">Modelos de Aeronave</span><span class="meta-val">${requirement.applicabilityRule?.aircraftModels.join(', ') || NOT_REPORTED}</span></div>
+      <div class="meta-item"><span class="meta-label">Fabricante</span><span class="meta-val">${requirement.applicabilityRule?.aircraftManufacturers?.join(', ') || NOT_REPORTED}</span></div>
+      <div class="meta-item"><span class="meta-label">Modelos de Aeronave</span><span class="meta-val">${requirement.applicabilityRule?.aircraftModels?.join(', ') || NOT_REPORTED}</span></div>
       <div class="meta-item"><span class="meta-label">Faixa de MSN</span><span class="meta-val">${requirement.applicabilityRule?.aircraftSerialRanges?.description || NOT_REPORTED}</span></div>
       <div class="meta-item"><span class="meta-label">Motores Afetados</span><span class="meta-val">${requirement.applicabilityRule?.engineModels?.length ? requirement.applicabilityRule.engineModels.join(', ') : NOT_REPORTED}</span></div>
     </div>
     <div style="margin-top: 8px;">
-      <strong>Part Numbers de Componentes:</strong> ${requirement.applicabilityRule?.componentPartNumbers.length ? requirement.applicabilityRule.componentPartNumbers.join(', ') : NOT_REPORTED}
+      <strong>Part Numbers de Componentes:</strong> ${requirement.applicabilityRule?.componentPartNumbers?.length ? requirement.applicabilityRule.componentPartNumbers.join(', ') : NOT_REPORTED}
     </div>
     <div style="margin-top: 6px;">
       <strong>Texto Original Extraído da Diretriz:</strong>
@@ -1072,7 +1072,7 @@ export default function FullTechnicalReportModal({ requirementId, state, onClose
         <div class="meta-item"><span class="meta-label">Referência Técnica</span><span class="meta-val">${cp.techRef}</span></div>
       </div>
       <div style="margin-top: 6px; font-size: 8pt; color: #475569;">
-        <strong>Ferramental / Partes:</strong> ${cp.requiredParts.join(', ')} | <strong>AMOC:</strong> ${cp.amoc}
+        <strong>Ferramental / Partes:</strong> ${cp.requiredParts?.join(', ') || 'Nenhum'} | <strong>AMOC:</strong> ${cp.amoc}
       </div>
     </div>
   `).join('')}
@@ -1914,7 +1914,7 @@ ELSE:
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
                       <div className="p-2.5 bg-slate-950/60 print:bg-white print:border print:border-black rounded-lg border border-slate-800/60">
                         <span className="text-[10px] text-slate-400 print:text-black block uppercase font-bold">Peças Requeridas (Parts)</span>
-                        <span className="text-slate-300 print:text-black">{cp.requiredParts.join(', ')}</span>
+                        <span className="text-slate-300 print:text-black">{cp.requiredParts?.join(', ') || 'Nenhuma'}</span>
                       </div>
 
                       <div className="p-2.5 bg-slate-950/60 print:bg-white print:border print:border-black rounded-lg border border-slate-800/60">
@@ -2005,7 +2005,7 @@ ELSE:
                   <div className="p-3 bg-slate-950 print:bg-gray-50 print:border print:border-black rounded-lg text-slate-200 print:text-black space-y-2 leading-relaxed">
                     <div>
                       <strong className="text-emerald-400 print:text-black">[1] CONDIÇÃO DE ENTRADA NA CÉLULA:</strong>
-                      <p className="pl-4">IF Aircraft.Model MATCHES [{requirement.applicabilityRule?.aircraftModels.join(', ') || 'Modelos Alvo'}] THEN Proceed to MSN Check ELSE NOT_APPLICABLE.</p>
+                      <p className="pl-4">IF Aircraft.Model MATCHES [{requirement.applicabilityRule?.aircraftModels?.join(', ') || 'Modelos Alvo'}] THEN Proceed to MSN Check ELSE NOT_APPLICABLE.</p>
                     </div>
                     <div>
                       <strong className="text-emerald-400 print:text-black">[2] CONDIÇÃO DE NÚMERO DE SÉRIE (MSN):</strong>

@@ -337,13 +337,13 @@ export default function AdDetailView({ requirementId, state, onBack, onRefreshSt
         <div>
           <span className="text-slate-400 block text-[10px] uppercase font-sans font-bold tracking-wider">Affected Models</span>
           <span className="text-slate-200 font-bold">
-            {requirement.applicabilityRule?.aircraftModels.join(', ') || 'Fleet General'}
+            {requirement.applicabilityRule?.aircraftModels?.join(', ') || 'Fleet General'}
           </span>
         </div>
         <div>
           <span className="text-slate-400 block text-[10px] uppercase font-sans font-bold tracking-wider">Target Part Numbers</span>
           <span className="text-indigo-300 font-bold">
-            {requirement.applicabilityRule?.componentPartNumbers.length 
+            {requirement.applicabilityRule?.componentPartNumbers?.length 
               ? requirement.applicabilityRule.componentPartNumbers.join(', ') 
               : 'Airframe / Engine Level'}
           </span>
@@ -848,14 +848,14 @@ export default function AdDetailView({ requirementId, state, onBack, onRefreshSt
               <div className="p-3 bg-slate-950/60 rounded-lg border border-white/5 space-y-1">
                 <span className="text-slate-400 font-bold uppercase text-[10px]">Aircraft Models:</span>
                 <p className="font-mono text-white">
-                  {requirement.applicabilityRule?.aircraftModels.join(', ') || 'All Models'}
+                  {requirement.applicabilityRule?.aircraftModels?.join(', ') || 'All Models'}
                 </p>
               </div>
 
               <div className="p-3 bg-slate-950/60 rounded-lg border border-white/5 space-y-1">
                 <span className="text-slate-400 font-bold uppercase text-[10px]">Affected Part Numbers (P/N):</span>
                 <p className="font-mono text-indigo-300 font-bold">
-                  {requirement.applicabilityRule?.componentPartNumbers.length 
+                  {requirement.applicabilityRule?.componentPartNumbers?.length 
                     ? requirement.applicabilityRule.componentPartNumbers.join(', ') 
                     : 'N/A (Airframe Level)'}
                 </p>
@@ -918,7 +918,7 @@ export default function AdDetailView({ requirementId, state, onBack, onRefreshSt
               <div className="p-3 bg-slate-950/60 rounded-lg border border-white/5 space-y-1">
                 <span className="text-slate-400 font-bold uppercase text-[10px]">Required Parts:</span>
                 <p className="font-mono text-slate-300">
-                  {requirement.requirementDetails?.requiredParts.join(', ') || 'Standard hardware'}
+                  {requirement.requirementDetails?.requiredParts?.join(', ') || 'Standard hardware'}
                 </p>
               </div>
             </div>

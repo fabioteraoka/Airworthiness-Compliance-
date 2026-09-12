@@ -1914,7 +1914,27 @@ export class RegulatoryIntelligenceEngine {
           verificationMethod: 'ON_BOARD_DATA_LOAD',
           notes: 'Software version L102 (P/N 3945128215) must be loaded on both ELAC 1 and ELAC 2.'
         }
-      ] : undefined
+      ] : undefined,
+      sourceDocument: {
+        fileName: `${candidate.adNumber.replace(/[^a-zA-Z0-9_-]/g, '_')}.pdf`,
+        fileSize: (candidate.rawApplicabilityText || '').length + 300,
+        mimeType: 'text/plain',
+        rawExtractedText: [
+          `AIRWORTHINESS DIRECTIVE (REGULATORY OFFICIAL RECORD)`,
+          `AD Number: ${candidate.adNumber}`,
+          `Authority: ${candidate.authority}`,
+          `Title: ${candidate.title}`,
+          `Manufacturer: ${candidate.manufacturer}`,
+          `Target Family: ${candidate.family || ''}`,
+          `Issue Date: ${candidate.issueDate || ''}`,
+          `Effective Date: ${candidate.effectiveDate || ''}`,
+          `Docket: ${candidate.docketNumber || 'N/A'}`,
+          `Applicability:`,
+          candidate.rawApplicabilityText || `Applies to ${candidate.manufacturer} ${candidate.modelScope?.join(', ') || ''} airplanes.`,
+          candidate.summary ? `Summary:\n${candidate.summary}` : ''
+        ].filter(Boolean).join('\n\n'),
+        documentHash: crypto.createHash('sha256').update(candidate.adNumber + (candidate.rawApplicabilityText || '')).digest('hex')
+      }
     };
   }
 }

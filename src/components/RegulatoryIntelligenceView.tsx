@@ -614,7 +614,7 @@ export default function RegulatoryIntelligenceView({
                         <div className="flex flex-wrap items-center gap-4 text-[10px] text-slate-400 font-mono pt-1">
                           <span>Publicação: <strong className="text-slate-300">{cand.issueDate}</strong></span>
                           <span>Efetivação: <strong className="text-slate-300">{cand.effectiveDate}</strong></span>
-                          <span>Modelos Afetados: <strong className="text-indigo-300">{cand.modelScope.join(', ')}</strong></span>
+                          <span>Modelos Afetados: <strong className="text-indigo-300">{cand.modelScope?.length ? cand.modelScope.join(', ') : (cand.family || 'Escopo Geral')}</strong></span>
                         </div>
                       </div>
 
@@ -1009,7 +1009,7 @@ export default function RegulatoryIntelligenceView({
                       </div>
 
                       <p className="text-[11px] text-slate-300 font-mono">
-                        Impacto Direto: Afeta <strong className="text-rose-300">{item.adImpactCount} ADs</strong> ({item.adReferences.join(', ')})
+                        Impacto Direto: Afeta <strong className="text-rose-300">{item.adImpactCount} ADs</strong> ({item.adReferences?.length ? item.adReferences.join(', ') : 'N/A'})
                       </p>
 
                       <p className="text-[10px] text-slate-400 italic">
@@ -1085,7 +1085,7 @@ export default function RegulatoryIntelligenceView({
                           {param.currentValue ? String(param.currentValue) : <span className="text-slate-400 italic">Pendente de inserção</span>}
                         </td>
                         <td className="py-2.5 px-3 text-indigo-300">
-                          {param.requiredByAds.map(a => a.adNumber).join(', ')}
+                          {param.requiredByAds?.map(a => a.adNumber)?.join(', ') || 'N/A'}
                         </td>
                       </tr>
                     ))}
@@ -1206,7 +1206,7 @@ export default function RegulatoryIntelligenceView({
             <div className="p-3 bg-slate-950 rounded-lg border border-white/10 text-xs space-y-1 font-mono">
               <div className="text-slate-400">Parâmetro: <strong className="text-white">{resolvingItem.label}</strong></div>
               <div className="text-slate-400">Categoria: <strong className="text-indigo-300">{resolvingItem.category}</strong></div>
-              <div className="text-slate-400">ADs Impactadas: <strong className="text-rose-300">{resolvingItem.adImpactCount}</strong> ({resolvingItem.adReferences.join(', ')})</div>
+              <div className="text-slate-400">ADs Impactadas: <strong className="text-rose-300">{resolvingItem.adImpactCount}</strong> ({resolvingItem.adReferences?.length ? resolvingItem.adReferences.join(', ') : 'N/A'})</div>
             </div>
 
             <div>

@@ -49,6 +49,8 @@ export default function Sidebar({ currentView, onSelectView, state }: SidebarPro
   const overdueObligationsCount = state?.complianceObligations?.filter(o => o.status === 'OVERDUE' || o.temporalCounters?.isOverdue).length || 0;
   const candidateCount = state?.adCandidates?.length || 0;
   const kbCount = state?.regulatoryKnowledgeBase?.length || 0;
+  const registerCount = state?.camoRegulatoryRegister?.length || 0;
+  const pendingAnalysisCount = state?.camoRegulatoryRegister?.filter(r => r.analysisStatus === 'PENDING_ANALYSIS').length || 0;
 
   const navSections: NavSection[] = [
     {
@@ -75,19 +77,22 @@ export default function Sidebar({ currentView, onSelectView, state }: SidebarPro
           id: 'regulatory-intel',
           label: 'Inteligência & Lacunas',
           icon: Sparkles,
-          badge: 'FASE 9.4'
+          badge: 'Descoberta'
         },
         {
-          id: 'fleet-ad-search',
-          label: 'Screening por Frota',
-          icon: Search,
-          badge: null
+          id: 'analysis-phase',
+          label: 'Fase de Análise',
+          icon: FileCheck2,
+          count: registerCount,
+          alertCount: pendingAnalysisCount > 0 ? pendingAnalysisCount : null,
+          badge: 'Operacional'
         },
         {
-          id: 'regulatory',
-          label: 'Fontes & Conectores',
-          icon: Globe2,
-          badge: 'FAA/EASA'
+          id: 'camo-register',
+          label: 'Regulatory Register',
+          icon: Layers,
+          count: registerCount,
+          badge: 'Repositório'
         },
         {
           id: 'knowledge',
@@ -95,6 +100,12 @@ export default function Sidebar({ currentView, onSelectView, state }: SidebarPro
           icon: BrainCircuit,
           count: kbCount > 0 ? kbCount : factsCount,
           alertCount: pendingQuestionsCount > 0 ? pendingQuestionsCount : null
+        },
+        {
+          id: 'regulatory',
+          label: 'Fontes & Conectores',
+          icon: Globe2,
+          badge: 'FAA/EASA'
         }
       ]
     },

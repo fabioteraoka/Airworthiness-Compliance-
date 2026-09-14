@@ -889,6 +889,32 @@ export default function HelpCenterView({
             <div className="space-y-3">
               {[
                 {
+                  id: 'CAP-009-5',
+                  phase: 'FASE 9 — ETAPA 5',
+                  name: 'Regulatory Fleet Intake, CAMO Register & Analysis Queue Engine',
+                  module: 'RegulatoryIntelligenceEngine / CamoRegulatoryRegisterView / AircraftDeliveryAssessmentEngine',
+                  status: 'HOMOLOGATED / OPERATIONAL',
+                  version: '9.5.0',
+                  purpose: 'Screening multi-autoridade (FAA, EASA, ANAC) por frota, detecção de delta (NOVA, INALTERADA, ATUALIZADA, SUPERSEDED, REVOKED), importação idempotente para o Registro do CAMO estritamente como PENDENTE DE ANÁLISE (sem acionamento automático de IA), Fila Operacional de Análise individual e integração com Relatório de Delivery.',
+                  inputs: 'Configuração de frota (OEM, modelo, motor, matrícula), candidatos regulatórios, decisões de importação e de análise individual.',
+                  outputs: 'Registro regulatório do CAMO (camoRegulatoryRegister), status de análise rastreável (PENDING_ANALYSIS -> ANALYZED), histórico de versões (v1, v2) com diff probatório, confrontação de delivery com visibilidade de ADs pendentes.',
+                  security: 'Idempotência canônica (authority + adNumber), cálculo de SHA-256 de payload, proibição estrita de auto-Gemini na importação e isolamento de estado.',
+                  auditability: 'Trilha de auditoria por AD (data, autor, versão, hash) e bloqueio/aviso explícito em relatórios de Delivery quando há ADs pendentes de análise.'
+                },
+                {
+                  id: 'CAP-009-4',
+                  phase: 'FASE 9 — ETAPA 4',
+                  name: 'Open Regulatory Discovery, Diagnostic & Knowledge Base Engine',
+                  module: 'RegulatoryIntelligenceEngine / RegulatoryIntelligenceView',
+                  status: 'HOMOLOGATED / OPERATIONAL',
+                  version: '9.4.0',
+                  purpose: 'Busca aberta e adaptativa de ADs com diagnóstico unificado de autoridades (FAA DRS, Federal Register, EASA), paginação e extração de regras de aplicabilidade progressiva.',
+                  inputs: 'Modelos e famílias aeronáuticas arbitrárias, filtros por autoridade regulatória, termos de busca.',
+                  outputs: 'Diagnóstico estruturado por autoridade, candidatos a AD catalogados e base de conhecimento reutilizável.',
+                  security: 'Sanitização de parâmetros de busca e normalização de identificadores.',
+                  auditability: 'Relatório diagnóstico em texto e JSON com telemetria das fontes consultadas.'
+                },
+                {
                   id: 'CAP-009-3',
                   phase: 'FASE 9 — ETAPA 3',
                   name: 'Aircraft Real Configuration & Fleet AD Search Engine',

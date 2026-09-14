@@ -1078,6 +1078,9 @@ export interface AuditTrailEntry {
     | 'COMPLIANCE_STATUS_CONSOLIDATION'
     | 'REGULATORY_KNOWLEDGE_COMPILED'
     | 'CONFIGURATION_DATA_RESOLVED'
+    | 'REGULATORY_SEARCH_EXECUTED'
+    | 'REGULATORY_RESULT_IMPORTED'
+    | 'REGULATORY_REGISTER_ANALYSIS'
     | 'UPDATE'
     | 'DELETE'
     | 'SYSTEM_DELETE'
@@ -2289,7 +2292,8 @@ export type DeliveryApplicabilityStatus =
   | 'POTENTIALLY_APPLICABLE'
   | 'APPLICABILITY_CONFIRMED'
   | 'NOT_APPLICABLE'
-  | 'REVIEW_REQUIRED';
+  | 'REVIEW_REQUIRED'
+  | 'NOT_DETERMINED';
 
 export type LessorConfrontationStatus = 
   | 'MATCH'
@@ -2323,6 +2327,7 @@ export interface DeliveryAdItem {
   // Knowledge reuse
   isKnownInCamo: boolean;
   camoRequirementId?: string;
+  complianceRequirementId?: string;
   knownRequirementVersion?: number;
   
   // Applicability scoping & confirmation
@@ -2354,6 +2359,11 @@ export interface DeliveryAdItem {
   // Supersedence & versioning
   isSuperseded?: boolean;
   supersededByAdNumber?: string;
+  
+  // CAMO Regulatory Register integration
+  camoRegisterId?: string;
+  registerAnalysisStatus?: RegulatoryRegisterAnalysisStatus;
+  ataChapter?: string;
   
   analyzedAt?: string;
   analyzedBy?: string;
@@ -2390,6 +2400,7 @@ export interface DeliveryAircraftConfig {
   family?: string;
   series?: string;
   variant?: string;
+  lineVariation?: string;
   msn: string;
   serialNumber?: string;
   registration: string;
@@ -2401,6 +2412,10 @@ export interface DeliveryAircraftConfig {
   totalFlightHours: number;
   totalCycles: number;
   totalLandings?: number;
+  totalAirframeHours?: number;
+  totalAirframeCycles?: number;
+  engineModel?: string;
+  currentModifications?: string[];
   apu?: any;
   engines: Array<{
     position: string;
@@ -2437,6 +2452,7 @@ export interface DeliveryAssessmentSnapshot {
     reviewRequired: number;
     notApplicable: number;
     superseded: number;
+    pendingAnalysis?: number;
   };
   confrontationSummary: {
     matches: number;
@@ -2507,6 +2523,8 @@ export interface CreateDeliveryAssessmentInput {
   notes?: string;
   actor?: string;
 }
+
+export type AircraftDeliveryAssessmentInput = CreateDeliveryAssessmentInput;
 
 export interface ReconcileLessorInput {
   assessmentId: string;
@@ -2605,6 +2623,8 @@ export interface RegulatoryAdCandidate {
   analysisStatus: 'PENDING_ANALYSIS' | 'ANALYZED' | 'FAILED';
   analyzedRequirementId?: string;
   discoveryTimestamp: string;
+  retrievedAt?: string;
+  lifecycleStatus?: string;
   searchQuery?: string;
   summary?: string;
   operationalPriority?: 'CRITICAL_URGENT' | 'HIGH' | 'NORMAL';
@@ -2732,6 +2752,163 @@ export interface RegulatoryDiscoveryDiagnostic {
   };
   diagnosticReportText: string;
 }
+
+// ============================================================================
+// FASE 9 — ETAPA 5: CAMO REGULATORY REGISTER, INTAKE & ANALYSIS QUEUE TYPES
+// ============================================================================
+
+export type RegulatoryDeltaClassification =
+  | 'NEW'
+  | 'UNCHANGED'
+  | 'UPDATED'
+  | 'SUPERSEDED'
+  | 'REVOKED'
+  | 'REVIEW_REQUIRED';
+
+export type RegulatoryRegisterAnalysisStatus =
+  | 'PENDING_ANALYSIS'
+  | 'ANALYZED'
+  | 'REVIEW_REQUIRED'
+  | 'FAILED';
+
+export interface RegulatoryRegisterVersionHistory {
+  version: number;
+  changedAt: string;
+  changedBy: string;
+  changesSummary: string;
+  previousSha256?: string;
+  previousPayload?: any;
+  previousAnalysisStatus?: RegulatoryRegisterAnalysisStatus;
+  reReviewRequired: boolean;
+}
+
+export interface CamoRegulatoryRecord {
+  id: string; // Deterministic canonical ID: reg-{authority}-{adNumberClean}
+  canonicalAdId?: string;
+  authority: IssuingAuthority;
+  adNumber: string; // Official AD identifier (e.g. "2024-12-05", "2024-0120")
+  officialDocumentNumber?: string;
+  title: string;
+  manufacturer: string;
+  family: string;
+  modelScope: string[];
+  ataChapter?: string; // e.g. "32", "27", "57", "72"
+  issueDate?: string;
+  publicationDate?: string;
+  effectiveDate?: string;
+  officialStatus?: 'ACTIVE' | 'SUPERSEDED' | 'REVOKED' | 'CANCELLED';
+  sourceUrl?: string;
+  sourceType: string;
+  sourceIdentifier: string;
+  originalPayload?: any;
+  sha256?: string; // Content integrity verification hash
+  firstSeenAt: string;
+  lastSeenAt: string;
+  lastChangedAt: string;
+  retrievedAt: string;
+  searchContext?: {
+    family?: string;
+    model?: string;
+    manufacturer?: string;
+    query?: string;
+    variant?: string;
+    engine?: string;
+  };
+  version: number;
+  versionHistory?: RegulatoryRegisterVersionHistory[];
+  deltaStatus?: RegulatoryDeltaClassification;
+  analysisStatus: RegulatoryRegisterAnalysisStatus; // Default strictly PENDING_ANALYSIS
+  analysisId?: string; // ComplianceRequirement ID when analyzed
+  analyzedRequirementId?: string;
+  knowledgeId?: string; // RegulatoryKnowledgeItem ID when analyzed
+  rawApplicabilityText?: string;
+  operationalPriority?: 'CRITICAL_URGENT' | 'HIGH' | 'NORMAL';
+  auditTrail?: Array<{
+    timestamp: string;
+    action: string;
+    actor: string;
+    details: string;
+  }>;
+}
+
+export interface DiscoveredRegulatoryAd extends RegulatoryAdCandidate {
+  canonicalAdId?: string;
+  deltaStatus: RegulatoryDeltaClassification;
+  deltaClassification?: RegulatoryDeltaClassification;
+  inRegister: boolean;
+  registerId?: string;
+  registerAnalysisStatus?: RegulatoryRegisterAnalysisStatus;
+  ataChapter?: string;
+  sha256?: string;
+}
+
+export interface FleetRegulatoryIntakeParams {
+  query?: string;
+  manufacturer?: string;
+  family?: string;
+  model?: string;
+  variant?: string;
+  engine?: string;
+  engineFamily?: string;
+  registration?: string;
+  msn?: string;
+  authority?: IssuingAuthority | 'ALL';
+  page?: number;
+  perPage?: number;
+  maxPages?: number;
+  autoPaginate?: boolean;
+}
+
+export interface FleetRegulatoryIntakeResult {
+  candidates: DiscoveredRegulatoryAd[];
+  totalCount: number;
+  importedCount?: number;
+  notImportedCount?: number;
+  pendingAnalysisCount?: number;
+  analyzedCount?: number;
+  newCount: number;
+  unchangedCount: number;
+  updatedCount: number;
+  supersededCount: number;
+  revokedCount: number;
+  reviewRequiredCount: number;
+  fleetContext: {
+    manufacturer?: string;
+    family?: string;
+    model?: string;
+    variant?: string;
+    engine?: string;
+    registration?: string;
+    msn?: string;
+    rawQuery?: string;
+  };
+  sourcesConsulted: string[];
+  diagnostic: RegulatoryDiscoveryDiagnostic;
+  diagnosticReportText: string;
+  timestamp: string;
+}
+
+export interface ImportToRegisterInput {
+  candidates?: RegulatoryAdCandidate[];
+  candidateIds?: string[];
+  importAll?: boolean;
+  searchParams?: FleetRegulatoryIntakeParams;
+  actor?: string;
+  operationalPriority?: 'CRITICAL_URGENT' | 'HIGH' | 'NORMAL';
+}
+
+export interface ImportToRegisterResult {
+  totalConsidered: number;
+  importedNew: number;
+  importedCount?: number;
+  skippedExisting: number;
+  unchangedCount?: number;
+  updated: number;
+  updatedCount?: number;
+  camoRegisterTotal: number;
+  records: CamoRegulatoryRecord[];
+}
+
 
 
 

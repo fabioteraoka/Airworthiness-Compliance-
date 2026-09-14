@@ -661,5 +661,261 @@
   "adCandidates": [],
   "regulatoryKnowledgeBase": [],
   "configurationAssessments": [],
+  "camoRegulatoryRegister": [
+    {
+      "id": "reg-faa-2020-24-02",
+      "authority": "FAA",
+      "adNumber": "2020-24-02",
+      "officialDocumentNumber": "FAA-2020-0466",
+      "title": "Boeing 737 Main Landing Gear (MLG) Actuator Beam Outboard Pin Cracking and Corrosion Inspection",
+      "manufacturer": "Boeing",
+      "family": "737",
+      "modelScope": [
+        "737-600",
+        "737-700",
+        "737-700C",
+        "737-800",
+        "737-900",
+        "737-900ER"
+      ],
+      "ataChapter": "32",
+      "issueDate": "2020-11-27",
+      "publicationDate": "2020-12-01",
+      "effectiveDate": "2021-01-05",
+      "officialStatus": "ACTIVE",
+      "sourceUrl": "https://www.federalregister.gov/documents/2020/12/01/2020-26430/airworthiness-directives-the-boeing-company-airplanes",
+      "sourceType": "FEDERAL_REGISTER",
+      "sourceIdentifier": "2020-26430",
+      "sha256": "9f83a241b77382d56a04871e84a29a3a93c72b83a049d978a3c4839c09931b23",
+      "firstSeenAt": "2024-01-15T10:00:00.000Z",
+      "lastSeenAt": "2026-09-12T08:00:00.000Z",
+      "lastChangedAt": "2024-01-15T10:00:00.000Z",
+      "retrievedAt": "2024-01-15T10:00:00.000Z",
+      "searchContext": {
+        "family": "737",
+        "model": "737-800",
+        "manufacturer": "Boeing"
+      },
+      "version": 1,
+      "deltaStatus": "UNCHANGED",
+      "analysisStatus": "ANALYZED",
+      "analysisId": "req-faa-2020-24-02",
+      "knowledgeId": "kb-faa-2020-24-02",
+      "rawApplicabilityText": "The Boeing Company Model 737-600, -700, -700C, -800, -900, and -900ER series airplanes, certificated in any category.",
+      "operationalPriority": "HIGH",
+      "auditTrail": [
+        {
+          "timestamp": "2024-01-15T10:00:00.000Z",
+          "action": "REGULATORY_RESULT_IMPORTED",
+          "actor": "System Auto-Intake",
+          "details": "AD 2020-24-02 incorporada ao Registro Regulatório do CAMO."
+        },
+        {
+          "timestamp": "2024-01-15T11:00:00.000Z",
+          "action": "ANALYSIS_COMPLETED",
+          "actor": "Chief Technical Engineer",
+          "details": "Análise técnica e extração de regras de aplicabilidade concluídas com sucesso."
+        }
+      ]
+    },
+    {
+      "id": "reg-faa-2024-12-05",
+      "authority": "FAA",
+      "adNumber": "2024-12-05",
+      "officialDocumentNumber": "FAA-2024-0320",
+      "title": "Boeing 737 Angle of Attack (AOA) Sensor and Wire Harness Separation Inspection",
+      "manufacturer": "Boeing",
+      "family": "737",
+      "modelScope": [
+        "737-8",
+        "737-9",
+        "737-8200",
+        "737-800"
+      ],
+      "ataChapter": "34",
+      "issueDate": "2024-06-12",
+      "publicationDate": "2024-06-14",
+      "effectiveDate": "2024-07-19",
+      "officialStatus": "ACTIVE",
+      "sourceUrl": "https://www.federalregister.gov/documents/2024/06/14/2024-12-05",
+      "sourceType": "FEDERAL_REGISTER",
+      "sourceIdentifier": "2024-12-05",
+      "sha256": "4b7911bca0e7228811d7c30089ffb571120a174092b779a557b6108ad41f71a0",
+      "firstSeenAt": "2024-06-15T14:30:00.000Z",
+      "lastSeenAt": "2026-09-12T08:00:00.000Z",
+      "lastChangedAt": "2024-06-15T14:30:00.000Z",
+      "retrievedAt": "2024-06-15T14:30:00.000Z",
+      "searchContext": {
+        "family": "737",
+        "model": "737-800",
+        "manufacturer": "Boeing"
+      },
+      "version": 1,
+      "deltaStatus": "UNCHANGED",
+      "analysisStatus": "ANALYZED",
+      "analysisId": "req-ad-2024-12-05",
+      "knowledgeId": "kb-faa-2024-12-05",
+      "rawApplicabilityText": "The Boeing Company Model 737-8, 737-9, 737-8200, and 737-800 airplanes, equipped with Collins Aerospace AOA sensors.",
+      "operationalPriority": "CRITICAL_URGENT",
+      "auditTrail": [
+        {
+          "timestamp": "2024-06-15T14:30:00.000Z",
+          "action": "REGULATORY_RESULT_IMPORTED",
+          "actor": "System Auto-Intake",
+          "details": "AD 2024-12-05 incorporada ao Registro Regulatório do CAMO."
+        },
+        {
+          "timestamp": "2024-06-15T15:00:00.000Z",
+          "action": "ANALYSIS_COMPLETED",
+          "actor": "Safety Inspector",
+          "details": "Análise técnica concluída."
+        }
+      ]
+    },
+    {
+      "id": "reg-faa-2023-18-04",
+      "authority": "FAA",
+      "adNumber": "2023-18-04",
+      "officialDocumentNumber": "FAA-2023-1450",
+      "title": "Boeing 737 Auxiliary Power Unit (APU) Fuel Feed Line Shroud Clamp Bonding Inspection",
+      "manufacturer": "Boeing",
+      "family": "737",
+      "modelScope": [
+        "737-600",
+        "737-700",
+        "737-800",
+        "737-900",
+        "737-900ER"
+      ],
+      "ataChapter": "28",
+      "issueDate": "2023-09-18",
+      "publicationDate": "2023-09-22",
+      "effectiveDate": "2023-10-27",
+      "officialStatus": "ACTIVE",
+      "sourceUrl": "https://www.federalregister.gov/documents/2023/09/22/2023-18-04",
+      "sourceType": "FEDERAL_REGISTER",
+      "sourceIdentifier": "2023-18-04",
+      "sha256": "a12bc549e3178df90b6a718c9431109a25b78d21c3b7a599182570081d64319a",
+      "firstSeenAt": "2024-02-10T09:15:00.000Z",
+      "lastSeenAt": "2026-09-12T08:00:00.000Z",
+      "lastChangedAt": "2024-02-10T09:15:00.000Z",
+      "retrievedAt": "2024-02-10T09:15:00.000Z",
+      "searchContext": {
+        "family": "737",
+        "model": "737-800",
+        "manufacturer": "Boeing"
+      },
+      "version": 1,
+      "deltaStatus": "UNCHANGED",
+      "analysisStatus": "PENDING_ANALYSIS",
+      "rawApplicabilityText": "Boeing Model 737-600, -700, -800, -900, and -900ER airplanes having line numbers 1 through 6000.",
+      "operationalPriority": "HIGH",
+      "auditTrail": [
+        {
+          "timestamp": "2024-02-10T09:15:00.000Z",
+          "action": "REGULATORY_RESULT_IMPORTED",
+          "actor": "Fleet Intake Officer",
+          "details": "AD incorporada ao CAMO Regulatory Register. Status inicial: PENDENTE DE ANÁLISE."
+        }
+      ]
+    },
+    {
+      "id": "reg-easa-2024-0120",
+      "authority": "EASA",
+      "adNumber": "2024-0120",
+      "officialDocumentNumber": "EASA-2024-0120",
+      "title": "Airbus A319, A320, A321 Ram Air Turbine (RAT) Deployment Actuator Inspection",
+      "manufacturer": "Airbus",
+      "family": "A320",
+      "modelScope": [
+        "A319-111",
+        "A319-112",
+        "A320-211",
+        "A320-214",
+        "A321-211"
+      ],
+      "ataChapter": "29",
+      "issueDate": "2024-05-18",
+      "publicationDate": "2024-05-19",
+      "effectiveDate": "2024-06-01",
+      "officialStatus": "ACTIVE",
+      "sourceUrl": "https://ad.easa.europa.eu/ad/2024-0120",
+      "sourceType": "EASA_SAFETY_PUB",
+      "sourceIdentifier": "2024-0120",
+      "sha256": "c88421098bfe11993412aa081297cc89745129ffba990176412354890019bf41",
+      "firstSeenAt": "2024-05-20T11:00:00.000Z",
+      "lastSeenAt": "2026-09-12T08:00:00.000Z",
+      "lastChangedAt": "2024-05-20T11:00:00.000Z",
+      "retrievedAt": "2024-05-20T11:00:00.000Z",
+      "searchContext": {
+        "family": "A320",
+        "model": "A320-214",
+        "manufacturer": "Airbus"
+      },
+      "version": 1,
+      "deltaStatus": "UNCHANGED",
+      "analysisStatus": "PENDING_ANALYSIS",
+      "rawApplicabilityText": "Airbus A319, A320, and A321 airplanes, all serial numbers, equipped with RAT actuator P/N 762300-1.",
+      "operationalPriority": "HIGH",
+      "auditTrail": [
+        {
+          "timestamp": "2024-05-20T11:00:00.000Z",
+          "action": "REGULATORY_RESULT_IMPORTED",
+          "actor": "Fleet Intake Officer",
+          "details": "AD incorporada ao CAMO Regulatory Register. Status inicial: PENDENTE DE ANÁLISE."
+        }
+      ]
+    },
+    {
+      "id": "reg-anac-2024-03-01",
+      "authority": "ANAC",
+      "adNumber": "2024-03-01",
+      "officialDocumentNumber": "ANAC-2024-03-01",
+      "title": "Embraer ERJ 190 and 195 Flap Power Unit Secondary Brake Torque Limit Verification",
+      "manufacturer": "Embraer",
+      "family": "E-Jets",
+      "modelScope": [
+        "ERJ 190-100",
+        "ERJ 190-200"
+      ],
+      "ataChapter": "27",
+      "issueDate": "2024-03-15",
+      "publicationDate": "2024-03-18",
+      "effectiveDate": "2024-04-01",
+      "officialStatus": "ACTIVE",
+      "sourceUrl": "https://sistemas.anac.gov.br/certificacao/DA/DA.asp",
+      "sourceType": "ANAC_SISAC",
+      "sourceIdentifier": "2024-03-01",
+      "sha256": "88721fae9231776510aa98bc4302981144cbb019564700934812895610287114",
+      "firstSeenAt": "2024-03-20T08:00:00.000Z",
+      "lastSeenAt": "2026-09-12T08:00:00.000Z",
+      "lastChangedAt": "2024-03-20T08:00:00.000Z",
+      "retrievedAt": "2024-03-20T08:00:00.000Z",
+      "searchContext": {
+        "family": "E-Jets",
+        "model": "ERJ 190",
+        "manufacturer": "Embraer"
+      },
+      "version": 1,
+      "deltaStatus": "UNCHANGED",
+      "analysisStatus": "REVIEW_REQUIRED",
+      "rawApplicabilityText": "Embraer ERJ 190-100 and ERJ 190-200 airplanes.",
+      "operationalPriority": "NORMAL",
+      "auditTrail": [
+        {
+          "timestamp": "2024-03-20T08:00:00.000Z",
+          "action": "REGULATORY_RESULT_IMPORTED",
+          "actor": "Fleet Intake Officer",
+          "details": "AD incorporada ao CAMO Regulatory Register."
+        },
+        {
+          "timestamp": "2024-03-21T09:00:00.000Z",
+          "action": "ANALYSIS_REVIEW_REQUIRED",
+          "actor": "Airworthiness Engineer",
+          "details": "Dados técnicos preliminares necessitam confirmação com boletim de serviço do fabricante."
+        }
+      ]
+    }
+  ],
   "complianceObligations": []
 }

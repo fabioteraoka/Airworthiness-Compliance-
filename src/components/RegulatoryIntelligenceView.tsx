@@ -1,15 +1,15 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { DatabaseState } from '../../server/dataStore';
 import { 
   RegulatoryAdCandidate, 
-  RegulatoryKnowledgeItem, 
+  DiscoveredRegulatoryAd,
+  FleetRegulatoryIntakeResult,
   AircraftConfigurationAssessment,
   ParameterEvaluationItem,
   OperationalMissingItem,
   ProgressiveApplicabilityState,
-  Aircraft,
-  RegulatoryDiscoveryDiagnostic,
-  AuthorityDiscoveryDiagnostic
+  IssuingAuthority,
+  RegulatoryDiscoveryDiagnostic
 } from '../types';
 import { 
   Search, 
@@ -37,7 +37,10 @@ import {
   ChevronLeft,
   Terminal,
   Copy,
-  Globe
+  Globe,
+  FileCheck2,
+  Download,
+  Filter
 } from 'lucide-react';
 
 interface RegulatoryIntelligenceViewProps {
@@ -53,44 +56,245 @@ export default function RegulatoryIntelligenceView({
   onSelectAd,
   onSelectView
 }: RegulatoryIntelligenceViewProps) {
-  const [activeTab, setActiveTab] = useState<'candidates' | 'assessment' | 'knowledge'>('candidates');
+  const [activeTab, setActiveTab] = useState<'discovery' | 'assessment' | 'diagnostics'>('discovery');
 
-  // Candidate Search State (Open Model Architecture - Phase 9 Stage 4.1)
-  const [aircraftQuery, setAircraftQuery] = useState<string>('Airbus A320');
-  const [selectedFamily, setSelectedFamily] = useState<string>('A320');
-  const [selectedModel, setSelectedModel] = useState<string>('');
-  const [selectedAuthority, setSelectedAuthority] = useState<string>('ALL');
-  const [searchQuery, setSearchQuery] = useState<string>('');
-  const [candidates, setCandidates] = useState<RegulatoryAdCandidate[]>([]);
-  const [isLoadingCandidates, setIsLoadingCandidates] = useState<boolean>(false);
-  const [analyzingCandidateId, setAnalyzingCandidateId] = useState<string | null>(null);
+  // =========================================================================
+  // 1. DISCOVERY & INTAKE STATE (Phase 9 — Etapa 5.2 Flow)
+  // =========================================================================
+  const [manufacturer, setManufacturer] = useState<string>('Boeing');
+  const [family, setFamily] = useState<string>('737');
+  const [model, setModel] = useState<string>('737-800');
+  const [engine, setEngine] = useState<string>('CFM56-7B');
+  const [authority, setAuthority] = useState<IssuingAuthority | 'ALL'>('ALL');
+  const [searchContext, setSearchContext] = useState<string>('Boeing 737-800');
 
-  // Diagnostic Report State (Phase 9 — Stage 4.1)
-  const [diagnostic, setDiagnostic] = useState<RegulatoryDiscoveryDiagnostic | null>(null);
-  const [showDiagnosticModal, setShowDiagnosticModal] = useState<boolean>(false);
-  const [copiedDiagnostic, setCopiedDiagnostic] = useState<boolean>(false);
+  const [isSearching, setIsSearching] = useState<boolean>(false);
+  const [searchResult, setSearchResult] = useState<FleetRegulatoryIntakeResult | null>(null);
+  const [selectedCandidateIds, setSelectedCandidateIds] = useState<Set<string>>(new Set());
+  const [isImporting, setIsImporting] = useState<boolean>(false);
+  
+  // Feedback Banner for Import
+  const [importFeedback, setImportFeedback] = useState<{
+    type: 'success' | 'error' | 'info';
+    message: string;
+    importedCount?: number;
+    pendingCount?: number;
+  } | null>(null);
 
-  // Pagination & Discovery Controls
-  const [currentPage, setCurrentPage] = useState<number>(1);
-  const [perPage, setPerPage] = useState<number>(25);
-  const [totalPages, setTotalPages] = useState<number>(1);
-  const [totalDiscovered, setTotalDiscovered] = useState<number>(0);
-  const [autoPaginate, setAutoPaginate] = useState<boolean>(false);
+  // Pagination for Discovery Table
+  const [discoveryPage, setDiscoveryPage] = useState<number>(1);
+  const [discoveryPageSize, setDiscoveryPageSize] = useState<number>(25);
 
-  // Suggested Quick Queries for Operators
-  const QUICK_SUGGESTIONS = [
-    { label: 'Airbus A320', query: 'Airbus A320', family: 'A320', make: 'Airbus' },
-    { label: 'Boeing 737', query: 'Boeing 737', family: '737', make: 'Boeing' },
-    { label: 'Embraer E-Jets', query: 'Embraer E-Jets', family: 'E-Jets', make: 'Embraer' },
-    { label: 'ATR 42/72', query: 'ATR 72', family: 'ATR', make: 'ATR' },
-    { label: 'Airbus A330', query: 'Airbus A330', family: 'A330', make: 'Airbus' },
-    { label: 'Boeing 777', query: 'Boeing 777', family: '777', make: 'Boeing' },
-    { label: 'Bombardier CRJ', query: 'Bombardier CRJ', family: 'CRJ', make: 'Bombardier' },
-    { label: 'Pilatus PC-12', query: 'Pilatus PC-12', family: 'PC-12', make: 'Pilatus' },
-    { label: 'Cessna Citation', query: 'Cessna Citation', family: 'Citation', make: 'Cessna' }
+  // Quick Fleet Presets
+  const FLEET_PRESETS = [
+    { label: 'Boeing 737-800 (NG)', manufacturer: 'Boeing', family: '737', model: '737-800', engine: 'CFM56-7B', query: 'Boeing 737-800' },
+    { label: 'Airbus A320ceo', manufacturer: 'Airbus', family: 'A320', model: 'A320-200', engine: 'CFM56-5B4', query: 'Airbus A320' },
+    { label: 'Airbus A320neo', manufacturer: 'Airbus', family: 'A320', model: 'A320-271N', engine: 'PW1100G', query: 'Airbus A320neo' },
+    { label: 'Embraer E195-E2', manufacturer: 'Embraer', family: 'E-Jets', model: 'ERJ 190-400', engine: 'PW1900G', query: 'Embraer E195' },
+    { label: 'ATR 72-600', manufacturer: 'ATR', family: 'ATR', model: 'ATR 72-212A', engine: 'PW127M', query: 'ATR 72' }
   ];
 
-  // Configuration Assessment State
+  const handleApplyPreset = (preset: typeof FLEET_PRESETS[0]) => {
+    setManufacturer(preset.manufacturer);
+    setFamily(preset.family);
+    setModel(preset.model);
+    setEngine(preset.engine);
+    setSearchContext(preset.query);
+  };
+
+  // Execute Search Across Authorities
+  const handleSearchAuthorities = async () => {
+    setIsSearching(true);
+    setImportFeedback(null);
+    setSelectedCandidateIds(new Set());
+    setDiscoveryPage(1);
+
+    try {
+      const res = await fetch('/api/intel/fleet-search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          manufacturer,
+          family,
+          model,
+          engine,
+          authority,
+          query: searchContext || `${manufacturer} ${model}`,
+          autoPaginate: true
+        })
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setSearchResult({
+          candidates: data.candidates || [],
+          totalCount: data.totalCount || 0,
+          newCount: data.newCount || 0,
+          unchangedCount: data.unchangedCount || 0,
+          updatedCount: data.updatedCount || 0,
+          supersededCount: data.supersededCount || 0,
+          revokedCount: data.revokedCount || 0,
+          reviewRequiredCount: data.reviewRequiredCount || 0,
+          importedCount: data.importedCount || 0,
+          notImportedCount: data.notImportedCount || 0,
+          sourcesConsulted: data.sourcesConsulted || ['FAA', 'EASA', 'ANAC'],
+          diagnostic: data.diagnostic
+        });
+
+        if (data.state) {
+          onRefreshState(data.state);
+        }
+      } else {
+        const err = await res.json();
+        setImportFeedback({
+          type: 'error',
+          message: `Falha ao buscar nas autoridades: ${err.error || 'Erro desconhecido'}`
+        });
+      }
+    } catch (err: any) {
+      setImportFeedback({
+        type: 'error',
+        message: `Erro na comunicação com a API: ${err.message}`
+      });
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  // Run initial search for Boeing 737-800 on mount if no results
+  useEffect(() => {
+    if (!searchResult) {
+      handleSearchAuthorities();
+    }
+  }, []);
+
+  // Selection handlers
+  const handleToggleCandidate = (id: string) => {
+    setSelectedCandidateIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const handleSelectAll = () => {
+    if (!searchResult?.candidates) return;
+    const allIds = searchResult.candidates.map(c => c.id);
+    setSelectedCandidateIds(new Set(allIds));
+  };
+
+  const handleClearSelection = () => {
+    setSelectedCandidateIds(new Set());
+  };
+
+  // Execute Import (All or Selected) to CAMO Register
+  const handleImportToCamo = async (importAll: boolean) => {
+    if (!searchResult?.candidates || searchResult.candidates.length === 0) return;
+
+    const candidatesToImport = importAll 
+      ? searchResult.candidates 
+      : searchResult.candidates.filter(c => selectedCandidateIds.has(c.id));
+
+    if (candidatesToImport.length === 0) {
+      setImportFeedback({
+        type: 'info',
+        message: 'Nenhuma diretriz selecionada para importação.'
+      });
+      return;
+    }
+
+    setIsImporting(true);
+    setImportFeedback(null);
+
+    try {
+      const res = await fetch('/api/intel/register/import', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          candidates: candidatesToImport,
+          searchParams: {
+            manufacturer,
+            family,
+            model,
+            engine,
+            authority
+          },
+          actor: state?.currentUser?.name || 'Chief CAMO Engineer'
+        })
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.state) {
+          onRefreshState(data.state);
+        }
+
+        const count = data.newCount || candidatesToImport.length;
+        setImportFeedback({
+          type: 'success',
+          message: `✓ ${count} Diretrizes importadas com sucesso para o CAMO Regulatory Register como PENDING_ANALYSIS (0 analisadas automaticamente).`,
+          importedCount: count,
+          pendingCount: count
+        });
+
+        // Re-run search to update CAMO status badges
+        await handleSearchAuthorities();
+      } else {
+        const err = await res.json();
+        setImportFeedback({
+          type: 'error',
+          message: `Falha ao importar diretrizes: ${err.error || 'Erro no servidor'}`
+        });
+      }
+    } catch (err: any) {
+      setImportFeedback({
+        type: 'error',
+        message: `Erro na importação: ${err.message}`
+      });
+    } finally {
+      setIsImporting(false);
+    }
+  };
+
+  // Filtered and Paginated Discovery Candidates
+  const allCandidates = searchResult?.candidates || [];
+  const totalDiscoveryItems = allCandidates.length;
+  const totalDiscoveryPages = Math.ceil(totalDiscoveryItems / discoveryPageSize) || 1;
+  const paginatedCandidates = useMemo(() => {
+    if (discoveryPageSize >= 99999) return allCandidates;
+    const start = (discoveryPage - 1) * discoveryPageSize;
+    return allCandidates.slice(start, start + discoveryPageSize);
+  }, [allCandidates, discoveryPage, discoveryPageSize]);
+
+  // Check if a candidate is in CAMO register
+  const registerMap = useMemo(() => {
+    const map = new Map<string, { id: string; status: string }>();
+    (state?.camoRegulatoryRegister || []).forEach(r => {
+      map.set(r.adNumber, { id: r.id, status: r.analysisStatus });
+      if (r.canonicalAdId) map.set(r.canonicalAdId, { id: r.id, status: r.analysisStatus });
+    });
+    return map;
+  }, [state?.camoRegulatoryRegister]);
+
+  // Authority badge helper
+  const renderAuthorityBadge = (auth: string) => {
+    const a = (auth || 'FAA').toUpperCase();
+    if (a.includes('FAA')) {
+      return <span className="px-2 py-0.5 rounded text-xs font-bold bg-blue-500/20 text-blue-400 border border-blue-500/30">FAA</span>;
+    }
+    if (a.includes('EASA')) {
+      return <span className="px-2 py-0.5 rounded text-xs font-bold bg-indigo-500/20 text-indigo-400 border border-indigo-500/30">EASA</span>;
+    }
+    if (a.includes('ANAC')) {
+      return <span className="px-2 py-0.5 rounded text-xs font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">ANAC</span>;
+    }
+    return <span className="px-2 py-0.5 rounded text-xs font-bold bg-slate-500/20 text-slate-400 border border-slate-500/30">{a}</span>;
+  };
+
+  // =========================================================================
+  // 2. CONFIGURATION ASSESSMENT STATE (Stage 4)
+  // =========================================================================
   const [selectedAircraftMode, setSelectedAircraftMode] = useState<'fleet' | 'candidate'>('fleet');
   const [selectedFleetAircraftId, setSelectedFleetAircraftId] = useState<string>('');
   const [candidateAircraftForm, setCandidateAircraftForm] = useState({
@@ -101,73 +305,16 @@ export default function RegulatoryIntelligenceView({
     registration: 'PR-CAND',
     engineModel: 'CFM56-5B4/P',
     engine1Sn: '697412',
-    engine2Sn: '', // Intentionally blank to demonstrate missing data identification!
+    engine2Sn: '', // Intentionally blank to demonstrate missing data identification
     componentPn: '762300-1',
     componentSn: '', // Intentionally blank
     softwareVersion: '' // Intentionally blank
   });
   const [currentAssessment, setCurrentAssessment] = useState<AircraftConfigurationAssessment | null>(null);
   const [isAssessing, setIsAssessing] = useState<boolean>(false);
-
-  // In-place Operational Resolution Modal
   const [resolvingItem, setResolvingItem] = useState<OperationalMissingItem | null>(null);
   const [resolutionValue, setResolutionValue] = useState<string>('');
   const [isSubmittingResolution, setIsSubmittingResolution] = useState<boolean>(false);
-
-  // Candidate Details Drawer
-  const [viewingCandidate, setViewingCandidate] = useState<RegulatoryAdCandidate | null>(null);
-
-  // Load initial candidates & assessments with Open Discovery & Diagnostic
-  const fetchCandidates = async (
-    targetQuery?: string, 
-    auth?: string, 
-    filterText?: string,
-    page: number = currentPage,
-    pageSize: number = perPage,
-    autoPag: boolean = autoPaginate
-  ) => {
-    setIsLoadingCandidates(true);
-    try {
-      const q = targetQuery !== undefined ? targetQuery : aircraftQuery;
-      const authority = auth !== undefined ? auth : selectedAuthority;
-      const text = filterText !== undefined ? filterText : searchQuery;
-
-      const params = new URLSearchParams();
-      if (q) params.set('query', q);
-      if (authority && authority !== 'ALL') params.set('authority', authority);
-      if (text) params.set('query', text);
-      params.set('page', String(page));
-      params.set('perPage', String(pageSize));
-      if (autoPag) params.set('autoPaginate', 'true');
-
-      const url = `/api/intel/candidates?${params.toString()}`;
-      const res = await fetch(url);
-      if (res.ok) {
-        const data = await res.json();
-        setCandidates(data.candidates || []);
-        if (data.diagnostic) {
-          setDiagnostic(data.diagnostic);
-        }
-        if (data.pagination) {
-          setCurrentPage(data.pagination.page);
-          setTotalPages(data.pagination.totalPages);
-          setTotalDiscovered(data.pagination.totalDiscovered);
-        }
-        if (data.family) {
-          setSelectedFamily(data.family);
-        }
-        if (data.state) onRefreshState(data.state);
-      }
-    } catch (err) {
-      console.error('Failed to load candidates:', err);
-    } finally {
-      setIsLoadingCandidates(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchCandidates(aircraftQuery, selectedAuthority, searchQuery, 1, perPage, autoPaginate);
-  }, [selectedAuthority]);
 
   // Set default fleet aircraft if available
   useEffect(() => {
@@ -176,19 +323,12 @@ export default function RegulatoryIntelligenceView({
     }
   }, [state?.aircraft]);
 
-  // Run initial assessment if aircraft selected
-  useEffect(() => {
-    if (selectedFleetAircraftId && state?.aircraft) {
-      handleRunAssessment();
-    }
-  }, [selectedFleetAircraftId]);
-
   const handleRunAssessment = async () => {
     setIsAssessing(true);
     try {
       let body: any = {};
       if (selectedAircraftMode === 'fleet') {
-        body = { aircraftId: selectedFleetAircraftId, targetFamily: selectedFamily };
+        body = { aircraftId: selectedFleetAircraftId, targetFamily: family };
       } else {
         body = {
           candidateAircraft: {
@@ -230,29 +370,6 @@ export default function RegulatoryIntelligenceView({
     }
   };
 
-  const handleAnalyzeCandidate = async (candidateId: string) => {
-    setAnalyzingCandidateId(candidateId);
-    try {
-      const res = await fetch('/api/intel/candidates/analyze', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ candidateId, actor: state?.currentUser?.name || 'Chief CAMO Engineer' })
-      });
-      if (res.ok) {
-        const data = await res.json();
-        if (data.state) onRefreshState(data.state);
-        // Refresh local candidate list
-        setCandidates(prev => prev.map(c => c.id === candidateId ? { ...c, analysisStatus: 'ANALYZED' } : c));
-        // Re-run assessment to reflect new knowledge facts
-        await handleRunAssessment();
-      }
-    } catch (err) {
-      console.error('Failed to analyze candidate:', err);
-    } finally {
-      setAnalyzingCandidateId(null);
-    }
-  };
-
   const handleResolveMissing = async () => {
     if (!resolvingItem || !currentAssessment || !resolutionValue.trim()) return;
     setIsSubmittingResolution(true);
@@ -282,1240 +399,671 @@ export default function RegulatoryIntelligenceView({
     }
   };
 
-  const knowledgeItems = state?.regulatoryKnowledgeBase || [];
-
   return (
-    <div className="p-6 space-y-6 max-w-7xl mx-auto">
-      {/* Top Header & Operational Philosophy Banner */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-white/10 pb-5">
+    <div className="p-6 space-y-6 max-w-[1600px] mx-auto">
+      {/* Top Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-5">
         <div>
           <div className="flex items-center space-x-3">
-            <span className="p-2 rounded-lg bg-indigo-600/20 text-indigo-400 border border-indigo-500/30">
-              <BrainCircuit className="w-6 h-6" />
+            <span className="p-2.5 rounded-xl bg-blue-500/10 text-blue-400 border border-blue-500/20">
+              <Sparkles className="w-6 h-6" />
             </span>
             <div>
-              <h1 className="text-xl font-bold text-white tracking-tight flex items-center gap-2">
-                <span>Inteligência Regulatória & Avaliação de Aeronaves</span>
-                <span className="text-[10px] px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 uppercase font-mono">
-                  Fase 9 — Etapa 4
+              <h1 className="text-2xl font-bold text-white tracking-tight flex items-center gap-2">
+                <span>Inteligência & Lacunas</span>
+                <span className="text-[10px] px-2 py-0.5 rounded bg-blue-500/20 text-blue-300 border border-blue-500/30 uppercase font-mono">
+                  Descoberta Regulatória
                 </span>
               </h1>
-              <p className="text-xs text-slate-400 mt-0.5">
-                Descoberta por família/modelo, base de conhecimento reutilizável e avaliação individual de conformidade física e técnica.
+              <p className="text-sm text-slate-400 mt-0.5">
+                Ponto de origem para busca de Diretrizes de Aeronavegabilidade nas autoridades (FAA, EASA, ANAC) e importação para o CAMO.
               </p>
             </div>
           </div>
         </div>
 
-        {/* Action Controls & Tab Navigation */}
-        <div className="flex items-center gap-2 bg-slate-900/60 p-1.5 rounded-lg border border-white/10">
+        {/* Tab Selection */}
+        <div className="flex items-center gap-2 bg-slate-900 p-1.5 rounded-xl border border-slate-800">
           <button
-            onClick={() => setActiveTab('candidates')}
-            className={`px-3 py-1.5 rounded-md text-xs font-semibold transition ${
-              activeTab === 'candidates'
-                ? 'bg-indigo-600 text-white shadow-sm'
+            onClick={() => setActiveTab('discovery')}
+            className={`px-3.5 py-2 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 ${
+              activeTab === 'discovery'
+                ? 'bg-blue-600 text-white shadow-sm'
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >
-            1. Candidatas Regulatórias
+            <Search className="w-3.5 h-3.5" />
+            <span>1. Descoberta de ADs</span>
           </button>
           <button
             onClick={() => setActiveTab('assessment')}
-            className={`px-3 py-1.5 rounded-md text-xs font-semibold transition flex items-center gap-1.5 ${
+            className={`px-3.5 py-2 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 ${
               activeTab === 'assessment'
-                ? 'bg-indigo-600 text-white shadow-sm'
+                ? 'bg-blue-600 text-white shadow-sm'
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >
-            <span>2. Avaliação de Configuração</span>
+            <Plane className="w-3.5 h-3.5" />
+            <span>2. Avaliação de Lacunas</span>
             {currentAssessment && (
-              <span className={`text-[10px] px-1.5 py-0.2 rounded font-mono ${
-                currentAssessment.completionPercentage === 100 ? 'bg-emerald-500/30 text-emerald-300' : 'bg-amber-500/30 text-amber-300'
-              }`}>
+              <span className="text-[10px] px-1.5 py-0.2 rounded font-mono bg-emerald-500/30 text-emerald-300">
                 {currentAssessment.completionPercentage}%
               </span>
             )}
           </button>
           <button
-            onClick={() => setActiveTab('knowledge')}
-            className={`px-3 py-1.5 rounded-md text-xs font-semibold transition flex items-center gap-1.5 ${
-              activeTab === 'knowledge'
-                ? 'bg-indigo-600 text-white shadow-sm'
+            onClick={() => setActiveTab('diagnostics')}
+            className={`px-3.5 py-2 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 ${
+              activeTab === 'diagnostics'
+                ? 'bg-blue-600 text-white shadow-sm'
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >
-            <span>3. Base de Conhecimento</span>
-            <span className="text-[10px] px-1.5 py-0.2 rounded bg-slate-800 text-slate-300 font-mono">
-              {knowledgeItems.length}
-            </span>
+            <Terminal className="w-3.5 h-3.5" />
+            <span>3. Diagnóstico de Fontes</span>
           </button>
         </div>
       </div>
 
-      {/* Core Architectural Rule Guardrail Card */}
-      <div className="p-4 rounded-xl bg-gradient-to-r from-indigo-950/40 via-slate-900/60 to-slate-950/80 border border-indigo-500/20 text-xs text-slate-300 space-y-2">
-        <div className="flex items-center space-x-2 text-indigo-300 font-semibold tracking-wide uppercase text-[11px]">
-          <Lock className="w-4 h-4 text-indigo-400" />
-          <span>Princípio Arquitetural de Não-Contaminação (Regra CAMO Homologada)</span>
-        </div>
-        <p className="text-slate-300 leading-relaxed">
-          <strong className="text-white">O conhecimento regulatório pode ser reutilizado</strong> por toda a família/modelo (regras de aplicabilidade, limites, ações mandatórias). Contudo, <strong className="text-white">a aplicabilidade, a obrigação, a evidência, o cumprimento e a condição de aeronavegabilidade pertencem estritamente à entidade individual</strong> (aeronave, motor ou componente) e nunca são herdados cegamente entre aeronaves.
-        </p>
-      </div>
+      {/* ========================================================================= */}
+      {/* TAB 1: DESCOBERTA DE ADS & BUSCA NAS AUTORIDADES (PRIMARY VIEW)           */}
+      {/* ========================================================================= */}
+      {activeTab === 'discovery' && (
+        <div className="space-y-6">
+          {/* Quick Presets */}
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs text-slate-400 font-medium mr-1">Frotas Rápidas:</span>
+            {FLEET_PRESETS.map((p, idx) => (
+              <button
+                key={idx}
+                onClick={() => {
+                  handleApplyPreset(p);
+                }}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition ${
+                  model === p.model 
+                    ? 'bg-blue-600/20 text-blue-300 border-blue-500/40' 
+                    : 'bg-slate-900 hover:bg-slate-800 text-slate-400 border-slate-800'
+                }`}
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
 
-      {/* TAB 1: REGULATORY CANDIDATES LIST */}
-      {activeTab === 'candidates' && (
-        <div className="space-y-5">
-          {/* Main Open Query Panel (Section 4 — What aircraft are you assessing?) */}
-          <div className="bg-slate-900/90 border border-white/10 rounded-2xl p-5 space-y-4 shadow-lg">
-            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-              <div className="space-y-1 flex-1">
-                <label className="text-xs uppercase font-bold text-indigo-400 tracking-wider flex items-center gap-2">
-                  <Plane className="w-4 h-4" />
-                  <span>Qual aeronave você deseja avaliar? (Pesquisa Aberta por Fabricante, Família ou Modelo)</span>
+          {/* Search Inputs Card */}
+          <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-lg space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3">
+              {/* Fabricante */}
+              <div>
+                <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider block mb-1">
+                  Fabricante
                 </label>
-                <div className="relative">
-                  <input
-                    type="text"
-                    value={aircraftQuery}
-                    onChange={(e) => setAircraftQuery(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && fetchCandidates(aircraftQuery, selectedAuthority, searchQuery, 1, perPage, autoPaginate)}
-                    placeholder="Ex: Airbus A320, Boeing 777-300ER, Embraer E195-E2, Pilatus PC-12, Cessna Citation 525, ATR 72..."
-                    className="w-full bg-slate-950 border border-indigo-500/30 rounded-xl pl-10 pr-28 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-400 font-medium placeholder:text-slate-500 shadow-inner"
-                  />
-                  <Search className="w-4 h-4 text-indigo-400 absolute left-3.5 top-3" />
-                  <button
-                    onClick={() => fetchCandidates(aircraftQuery, selectedAuthority, searchQuery, 1, perPage, autoPaginate)}
-                    disabled={isLoadingCandidates}
-                    className="absolute right-2 top-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition flex items-center gap-1.5 disabled:opacity-50 shadow-sm"
-                  >
-                    {isLoadingCandidates ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Search className="w-3.5 h-3.5" />}
-                    <span>Pesquisar</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* Authority Filter & Action Buttons */}
-              <div className="flex items-center gap-3">
-                <div>
-                  <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-1 block">
-                    Autoridade
-                  </label>
-                  <select
-                    value={selectedAuthority}
-                    onChange={(e) => {
-                      setSelectedAuthority(e.target.value);
-                      fetchCandidates(aircraftQuery, e.target.value, searchQuery, 1, perPage, autoPaginate);
-                    }}
-                    className="bg-slate-800 border border-white/10 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500 font-medium"
-                  >
-                    <option value="ALL">Todas (FAA + EASA + ANAC)</option>
-                    <option value="FAA">FAA (Federal Register)</option>
-                    <option value="EASA">EASA (Portal & Curated)</option>
-                    <option value="ANAC">ANAC (Agência Nacional)</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-1 block">
-                    Diagnóstico
-                  </label>
-                  <button
-                    onClick={() => setShowDiagnosticModal(true)}
-                    className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-indigo-300 hover:text-white border border-indigo-500/30 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 shadow-sm"
-                  >
-                    <Terminal className="w-3.5 h-3.5 text-indigo-400" />
-                    <span>Auditoria do Pipeline</span>
-                    {diagnostic && (
-                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                    )}
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* Quick Suggestions Chips */}
-            <div className="flex flex-wrap items-center gap-1.5 pt-1">
-              <span className="text-[10px] font-bold uppercase text-slate-400 tracking-wider mr-1">
-                Aeronaves Frequentes:
-              </span>
-              {QUICK_SUGGESTIONS.map((item) => (
-                <button
-                  key={item.label}
-                  onClick={() => {
-                    setAircraftQuery(item.query);
-                    setSelectedFamily(item.family);
-                    fetchCandidates(item.query, selectedAuthority, searchQuery, 1, perPage, autoPaginate);
-                  }}
-                  className={`text-[11px] px-2.5 py-1 rounded-lg border transition font-medium ${
-                    aircraftQuery.toLowerCase().includes(item.family.toLowerCase()) || aircraftQuery.toLowerCase().includes(item.query.toLowerCase())
-                      ? 'bg-indigo-600/30 text-indigo-200 border-indigo-500/50 font-bold'
-                      : 'bg-slate-800/60 text-slate-300 border-white/5 hover:border-white/20 hover:text-white'
-                  }`}
-                >
-                  {item.label}
-                </button>
-              ))}
-            </div>
-
-            {/* Keyword / System Filter Bar */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-2 border-t border-white/5">
-              <div className="md:col-span-2 relative">
                 <input
                   type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && fetchCandidates(aircraftQuery, selectedAuthority, searchQuery, 1, perPage, autoPaginate)}
-                  placeholder="Filtro específico: ex.: CFM56, actuator, ELAC, RAT, pushrod, flap, P/N 762300..."
-                  className="w-full bg-slate-800/80 border border-white/10 rounded-lg pl-8 pr-20 py-1.5 text-xs text-white focus:outline-none focus:border-indigo-500"
+                  value={manufacturer}
+                  onChange={(e) => setManufacturer(e.target.value)}
+                  placeholder="Ex: Boeing, Airbus"
+                  className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
                 />
-                <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5" />
-                <button
-                  onClick={() => fetchCandidates(aircraftQuery, selectedAuthority, searchQuery, 1, perPage, autoPaginate)}
-                  className="absolute right-1 top-1 bg-slate-700 hover:bg-slate-600 text-white text-[10px] font-bold px-2 py-1 rounded"
-                >
-                  Filtrar
-                </button>
               </div>
 
-              <div className="flex items-center justify-end gap-3 text-xs text-slate-400">
-                <label className="flex items-center gap-1.5 text-[11px] cursor-pointer hover:text-slate-200">
-                  <input
-                    type="checkbox"
-                    checked={autoPaginate}
-                    onChange={(e) => {
-                      setAutoPaginate(e.target.checked);
-                      fetchCandidates(aircraftQuery, selectedAuthority, searchQuery, 1, perPage, e.target.checked);
-                    }}
-                    className="rounded bg-slate-800 border-white/20 text-indigo-600 focus:ring-0"
-                  />
-                  <span>Auto-paginar API Federal Register</span>
+              {/* Família */}
+              <div>
+                <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider block mb-1">
+                  Família
                 </label>
+                <input
+                  type="text"
+                  value={family}
+                  onChange={(e) => setFamily(e.target.value)}
+                  placeholder="Ex: 737, A320"
+                  className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
+                />
+              </div>
 
+              {/* Modelo */}
+              <div>
+                <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider block mb-1">
+                  Modelo
+                </label>
+                <input
+                  type="text"
+                  value={model}
+                  onChange={(e) => setModel(e.target.value)}
+                  placeholder="Ex: 737-800, A320-200"
+                  className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
+                />
+              </div>
+
+              {/* Motor */}
+              <div>
+                <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider block mb-1">
+                  Motor (Opcional)
+                </label>
+                <input
+                  type="text"
+                  value={engine}
+                  onChange={(e) => setEngine(e.target.value)}
+                  placeholder="Ex: CFM56-7B, LEAP"
+                  className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
+                />
+              </div>
+
+              {/* Autoridade */}
+              <div>
+                <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider block mb-1">
+                  Autoridade
+                </label>
                 <select
-                  value={perPage}
-                  onChange={(e) => {
-                    const newPerPage = Number(e.target.value);
-                    setPerPage(newPerPage);
-                    fetchCandidates(aircraftQuery, selectedAuthority, searchQuery, 1, newPerPage, autoPaginate);
-                  }}
-                  className="bg-slate-800 border border-white/10 rounded px-2 py-1 text-[11px] text-white"
+                  value={authority}
+                  onChange={(e) => setAuthority(e.target.value as any)}
+                  className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500"
                 >
-                  <option value="10">10 por pág</option>
-                  <option value="25">25 por pág</option>
-                  <option value="50">50 por pág</option>
-                  <option value="100">100 por pág</option>
+                  <option value="ALL">Todas (FAA + EASA + ANAC)</option>
+                  <option value="FAA">FAA (EUA)</option>
+                  <option value="EASA">EASA (Europa)</option>
+                  <option value="ANAC">ANAC (Brasil)</option>
                 </select>
               </div>
             </div>
 
-            {/* Discovery Status Bar */}
-            <div className="flex flex-wrap items-center justify-between text-xs text-slate-400 pt-2 border-t border-white/5 font-mono">
-              <div className="flex items-center gap-3">
-                <span>Candidatas Retornadas: <strong className="text-emerald-400">{candidates.length}</strong></span>
-                {diagnostic && (
-                  <span className="text-slate-400">
-                    (FAA: <strong className="text-sky-300">{diagnostic.authorities.FAA.finalCandidates}</strong> | 
-                    EASA: <strong className="text-amber-300">{diagnostic.authorities.EASA.finalCandidates}</strong> | 
-                    ANAC: <strong className="text-emerald-300">{diagnostic.authorities.ANAC.finalCandidates}</strong>)
-                  </span>
-                )}
+            {/* Context Query & Primary Search Button */}
+            <div className="flex flex-col sm:flex-row items-center gap-3 pt-2">
+              <div className="relative flex-1 w-full">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  value={searchContext}
+                  onChange={(e) => setSearchContext(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleSearchAuthorities()}
+                  placeholder="Contexto adicional ou palavras-chave (Ex: Boeing 737-800 wing spar inspection)..."
+                  className="w-full pl-9 pr-3 py-2.5 bg-slate-800/90 border border-slate-700 rounded-lg text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 font-medium"
+                />
               </div>
 
-              <div className="flex items-center gap-2 text-[11px]">
-                <span className="flex items-center gap-1 text-slate-400">
-                  <Globe className="w-3 h-3 text-indigo-400" />
-                  Fontes: Federal Register Public API (FAA), EASA Portal, ANAC SISAC
-                </span>
-              </div>
+              <button
+                onClick={handleSearchAuthorities}
+                disabled={isSearching}
+                className="w-full sm:w-auto px-6 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-lg text-xs transition flex items-center justify-center gap-2 shadow-md shadow-blue-600/20 disabled:opacity-50 shrink-0"
+              >
+                {isSearching ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                    <span>Consultando Autoridades...</span>
+                  </>
+                ) : (
+                  <>
+                    <Search className="w-4 h-4" />
+                    <span>BUSCAR ADs NAS AUTORIDADES</span>
+                  </>
+                )}
+              </button>
             </div>
           </div>
 
-          {/* Candidates Grid / List */}
-          {isLoadingCandidates ? (
-            <div className="p-12 text-center text-slate-400 flex flex-col items-center space-y-3 bg-slate-900/40 rounded-xl border border-white/10">
-              <RefreshCw className="w-8 h-8 text-indigo-400 animate-spin" />
-              <p className="text-sm">Consultando repositórios regulatórios para "{aircraftQuery}"...</p>
-              <p className="text-xs text-slate-400">Executando normalização aeronáutica e pipeline de auditoria multi-fonte...</p>
-            </div>
-          ) : candidates.length === 0 ? (
-            <div className="p-12 text-center text-slate-400 bg-slate-900/40 rounded-xl border border-white/10 space-y-3">
-              <p className="text-sm font-semibold text-white">Nenhuma diretriz candidata encontrada para este filtro.</p>
-              <p className="text-xs text-slate-400 max-w-md mx-auto">
-                Tente ajustar os termos de pesquisa para a família da aeronave (ex.: "Airbus A320", "Boeing 737", "ATR 72", "Embraer 190") ou remover palavras-chave restritivas.
-              </p>
-              <button
-                onClick={() => {
-                  setSearchQuery('');
-                  fetchCandidates(aircraftQuery, 'ALL', '', 1, perPage, autoPaginate);
-                }}
-                className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-lg transition"
-              >
-                Limpar Filtros e Reavaliar
-              </button>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              <div className="grid grid-cols-1 gap-3">
-              {candidates.map((cand) => {
-                const isAnalyzed = cand.analysisStatus === 'ANALYZED';
-                const isAnalyzing = analyzingCandidateId === cand.id;
+          {/* Feedback Banner (Import / Error / Success) */}
+          {importFeedback && (
+            <div className={`p-4 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-sm border shadow-lg ${
+              importFeedback.type === 'success' 
+                ? 'bg-emerald-950/70 border-emerald-500/50 text-emerald-200' 
+                : importFeedback.type === 'error'
+                ? 'bg-rose-950/70 border-rose-500/50 text-rose-200'
+                : 'bg-blue-950/70 border-blue-500/50 text-blue-200'
+            }`}>
+              <div className="flex items-center gap-2.5">
+                {importFeedback.type === 'success' && <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />}
+                {importFeedback.type === 'error' && <AlertTriangle className="w-5 h-5 text-rose-400 shrink-0" />}
+                {importFeedback.type === 'info' && <Info className="w-5 h-5 text-blue-400 shrink-0" />}
+                <span className="font-medium">{importFeedback.message}</span>
+              </div>
 
-                return (
-                  <div
-                    key={cand.id}
-                    className={`p-4 rounded-xl border transition-all ${
-                      isAnalyzed 
-                        ? 'bg-slate-900/70 border-emerald-500/20 hover:border-emerald-500/40' 
-                        : 'bg-slate-900/50 border-white/10 hover:border-indigo-500/30'
-                    }`}
+              {importFeedback.type === 'success' && onSelectView && (
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    onClick={() => onSelectView('analysis-phase')}
+                    className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-lg transition flex items-center gap-1.5 shadow-sm"
                   >
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
-                      <div className="space-y-1.5 flex-1">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase font-mono ${
-                            cand.authority === 'FAA' ? 'bg-sky-500/20 text-sky-300 border border-sky-500/30' :
-                            cand.authority === 'EASA' ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' :
-                            'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-                          }`}>
-                            {cand.authority}
-                          </span>
-                          <span className="text-sm font-bold text-white font-mono">
-                            {cand.adNumber}
-                          </span>
-                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 border border-white/10">
-                            Família: {cand.family}
-                          </span>
-                          {cand.operationalPriority === 'CRITICAL_URGENT' && (
-                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/30 font-bold">
-                              URGENTE / EMERGENCY
-                            </span>
-                          )}
-                          {isAnalyzed ? (
-                            <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-semibold flex items-center gap-1">
-                              <CheckCircle2 className="w-3 h-3" />
-                              <span>ANALISADA & NA BASE DE CONHECIMENTO</span>
-                            </span>
-                          ) : (
-                            <span className="text-[10px] px-2 py-0.5 rounded bg-slate-800 text-amber-300 border border-amber-500/20 font-semibold">
-                              CANDIDATA PENDENTE DE ANÁLISE
-                            </span>
-                          )}
-                        </div>
+                    <span>Ir para Fase de Análise</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
 
-                        <h3 className="text-xs font-semibold text-slate-200">
-                          {cand.title}
-                        </h3>
-
-                        <p className="text-[11px] text-slate-400 line-clamp-2 italic font-mono bg-slate-950/40 p-2 rounded border border-white/5">
-                          "{cand.rawApplicabilityText}"
-                        </p>
-
-                        <div className="flex flex-wrap items-center gap-4 text-[10px] text-slate-400 font-mono pt-1">
-                          <span>Publicação: <strong className="text-slate-300">{cand.issueDate}</strong></span>
-                          <span>Efetivação: <strong className="text-slate-300">{cand.effectiveDate}</strong></span>
-                          <span>Modelos Afetados: <strong className="text-indigo-300">{cand.modelScope?.length ? cand.modelScope.join(', ') : (cand.family || 'Escopo Geral')}</strong></span>
-                        </div>
-                      </div>
-
-                      {/* Right Action Buttons */}
-                      <div className="flex flex-row md:flex-col items-center md:items-end gap-2 shrink-0">
-                        {isAnalyzed ? (
-                          <button
-                            onClick={() => {
-                              if (cand.analyzedRequirementId && onSelectAd) {
-                                onSelectAd(cand.analyzedRequirementId);
-                              } else {
-                                setActiveTab('knowledge');
-                              }
-                            }}
-                            className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-emerald-400 text-xs font-semibold border border-emerald-500/30 flex items-center gap-1.5 transition"
-                          >
-                            <BookOpen className="w-3.5 h-3.5" />
-                            <span>Ver na Base de Conhecimento</span>
-                          </button>
-                        ) : (
-                          <button
-                            onClick={() => handleAnalyzeCandidate(cand.id)}
-                            disabled={isAnalyzing}
-                            className="px-3.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition flex items-center gap-1.5 shadow-md shadow-indigo-600/20 disabled:opacity-50"
-                          >
-                            {isAnalyzing ? (
-                              <>
-                                <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                                <span>Extraindo Parâmetros...</span>
-                              </>
-                            ) : (
-                              <>
-                                <Sparkles className="w-3.5 h-3.5" />
-                                <span>Analisar & Extrair Dados Requeridos</span>
-                              </>
-                            )}
-                          </button>
-                        )}
-
-                        <button
-                          onClick={() => setViewingCandidate(cand)}
-                          className="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px] border border-white/10 flex items-center gap-1 transition"
-                        >
-                          <Info className="w-3 h-3" />
-                          <span>Detalhes da Publicação</span>
-                        </button>
-                      </div>
+          {/* Search Results Container */}
+          {searchResult && (
+            <div className="space-y-4">
+              {/* Header Card: RESULTADO DA INTELIGÊNCIA REGULATÓRIA */}
+              <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-lg">
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                  <div>
+                    <span className="text-[11px] font-bold text-blue-400 uppercase tracking-wider block">
+                      Resultado da Inteligência Regulatória
+                    </span>
+                    <h2 className="text-xl font-bold text-white mt-0.5">
+                      Frota: {manufacturer} {model} {family ? `(${family})` : ''}
+                    </h2>
+                    <div className="flex flex-wrap items-center gap-2 mt-2 text-xs text-slate-400">
+                      <span className="flex items-center gap-1">
+                        <Globe className="w-3.5 h-3.5 text-slate-400" />
+                        <span>Fontes consultadas: <strong>{searchResult.sourcesConsulted.join(', ')}</strong></span>
+                      </span>
+                      <span>•</span>
+                      <span>Total encontradas: <strong className="text-white">{searchResult.totalCount}</strong></span>
+                      <span>•</span>
+                      <span>Não importadas: <strong className="text-amber-300">{searchResult.notImportedCount ?? 0}</strong></span>
+                      <span>•</span>
+                      <span>Já no CAMO: <strong className="text-emerald-300">{searchResult.importedCount ?? 0}</strong></span>
                     </div>
                   </div>
-                );
-              })}
-            </div>
 
-            {/* Pagination Controls */}
-            <div className="flex items-center justify-between p-4 bg-slate-900/60 rounded-xl border border-white/10 text-xs text-slate-400 font-mono">
-              <div>
-                Mostrando <strong className="text-white">{candidates.length}</strong> diretrizes de <strong className="text-indigo-300">{totalDiscovered || candidates.length}</strong> descobertas
+                  {/* Prominent Action Buttons: IMPORTAR TODAS / IMPORTAR SELECIONADAS */}
+                  <div className="flex flex-wrap items-center gap-2.5">
+                    {/* Select / Deselect All */}
+                    <button
+                      onClick={selectedCandidateIds.size === searchResult.candidates.length ? handleClearSelection : handleSelectAll}
+                      className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-medium border border-slate-700 transition"
+                    >
+                      {selectedCandidateIds.size === searchResult.candidates.length ? 'Desmarcar Todas' : '☑ Selecionar Todas'}
+                    </button>
+
+                    {/* Import Selected */}
+                    {selectedCandidateIds.size > 0 && (
+                      <button
+                        onClick={() => handleImportToCamo(false)}
+                        disabled={isImporting}
+                        className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-lg text-xs transition flex items-center gap-1.5 shadow-sm disabled:opacity-50"
+                      >
+                        <Download className="w-4 h-4" />
+                        <span>Importar {selectedCandidateIds.size} Selecionadas</span>
+                      </button>
+                    )}
+
+                    {/* IMPORTAR TODAS PARA O CAMO (Highlighted primary action) */}
+                    <button
+                      onClick={() => handleImportToCamo(true)}
+                      disabled={isImporting || searchResult.candidates.length === 0}
+                      className="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold rounded-lg text-xs transition flex items-center gap-2 shadow-lg shadow-blue-600/30 disabled:opacity-50"
+                    >
+                      {isImporting ? (
+                        <>
+                          <RefreshCw className="w-4 h-4 animate-spin" />
+                          <span>Importando para o CAMO...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Download className="w-4 h-4" />
+                          <span>📥 IMPORTAR TODAS ({searchResult.candidates.length}) PARA O CAMO</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
               </div>
 
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => {
-                    const prev = Math.max(1, currentPage - 1);
-                    setCurrentPage(prev);
-                    fetchCandidates(aircraftQuery, selectedAuthority, searchQuery, prev, perPage, autoPaginate);
-                  }}
-                  disabled={currentPage <= 1 || isLoadingCandidates}
-                  className="p-1.5 rounded bg-slate-800 hover:bg-slate-700 text-white disabled:opacity-30 border border-white/10"
-                  title="Página Anterior"
-                >
-                  <ChevronLeft className="w-4 h-4" />
-                </button>
+              {/* Discovered ADs Table */}
+              <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-lg">
+                <div className="p-4 border-b border-slate-800 flex items-center justify-between gap-2 bg-slate-900/50">
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-xs font-bold text-white uppercase tracking-wider">Diretrizes Encontradas</h3>
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 font-mono">
+                      {totalDiscoveryItems} registros
+                    </span>
+                  </div>
 
-                <span className="px-2 text-slate-300">
-                  Página {currentPage} de {totalPages}
-                </span>
+                  {/* Page Size */}
+                  <div className="flex items-center gap-2 text-xs text-slate-400">
+                    <span>Exibir:</span>
+                    <select
+                      value={discoveryPageSize}
+                      onChange={(e) => {
+                        setDiscoveryPageSize(Number(e.target.value));
+                        setDiscoveryPage(1);
+                      }}
+                      className="bg-slate-800 border border-slate-700 text-slate-200 rounded px-2 py-1 text-xs focus:outline-none"
+                    >
+                      <option value={25}>25 por página</option>
+                      <option value={50}>50 por página</option>
+                      <option value={100}>100 por página</option>
+                      <option value={99999}>Todas ({totalDiscoveryItems})</option>
+                    </select>
+                  </div>
+                </div>
 
-                <button
-                  onClick={() => {
-                    const next = currentPage + 1;
-                    setCurrentPage(next);
-                    fetchCandidates(aircraftQuery, selectedAuthority, searchQuery, next, perPage, autoPaginate);
-                  }}
-                  disabled={currentPage >= totalPages || isLoadingCandidates}
-                  className="p-1.5 rounded bg-slate-800 hover:bg-slate-700 text-white disabled:opacity-30 border border-white/10"
-                  title="Próxima Página"
-                >
-                  <ChevronRight className="w-4 h-4" />
-                </button>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="border-b border-slate-800 bg-slate-950/60 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+                        <th className="py-3 px-3 w-10 text-center">
+                          <input
+                            type="checkbox"
+                            checked={selectedCandidateIds.size > 0 && selectedCandidateIds.size === searchResult.candidates.length}
+                            onChange={(e) => {
+                              if (e.target.checked) handleSelectAll();
+                              else handleClearSelection();
+                            }}
+                            className="rounded bg-slate-800 border-slate-700 text-blue-500 focus:ring-0 cursor-pointer"
+                          />
+                        </th>
+                        <th className="py-3 px-4">Diretriz (AD)</th>
+                        <th className="py-3 px-3">Autoridade</th>
+                        <th className="py-3 px-4">Título Oficial & Escopo</th>
+                        <th className="py-3 px-3">Modelo</th>
+                        <th className="py-3 px-3">ATA</th>
+                        <th className="py-3 px-3">Data</th>
+                        <th className="py-3 px-4 text-right">Situação CAMO</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-800/60 text-xs">
+                      {paginatedCandidates.map(cand => {
+                        const isSelected = selectedCandidateIds.has(cand.id);
+                        const camoRecord = registerMap.get(cand.adNumber) || (cand.canonicalAdId ? registerMap.get(cand.canonicalAdId) : undefined);
+                        const isInCamo = !!camoRecord || cand.inRegister;
+                        const camoStatus = camoRecord?.status || (isInCamo ? 'PENDING_ANALYSIS' : null);
+
+                        return (
+                          <tr
+                            key={cand.id}
+                            className={`hover:bg-slate-800/40 transition ${
+                              isSelected ? 'bg-blue-950/20' : ''
+                            }`}
+                          >
+                            {/* Checkbox */}
+                            <td className="py-3 px-3 text-center">
+                              <input
+                                type="checkbox"
+                                checked={isSelected}
+                                onChange={() => handleToggleCandidate(cand.id)}
+                                className="rounded bg-slate-800 border-slate-700 text-blue-500 focus:ring-0 cursor-pointer"
+                              />
+                            </td>
+
+                            {/* AD Number */}
+                            <td className="py-3 px-4">
+                              <div className="font-mono font-bold text-white text-sm">
+                                {cand.adNumber}
+                              </div>
+                              <div className="text-[10px] font-mono text-slate-500">
+                                {cand.canonicalAdId || cand.id}
+                              </div>
+                            </td>
+
+                            {/* Authority */}
+                            <td className="py-3 px-3">
+                              {renderAuthorityBadge(cand.authority)}
+                            </td>
+
+                            {/* Title */}
+                            <td className="py-3 px-4 max-w-md">
+                              <p className="text-slate-200 font-medium line-clamp-2" title={cand.title}>
+                                {cand.title}
+                              </p>
+                              {cand.rawApplicabilityText && (
+                                <p className="text-[11px] text-slate-500 line-clamp-1 mt-0.5">
+                                  {cand.rawApplicabilityText}
+                                </p>
+                              )}
+                            </td>
+
+                            {/* Aircraft Model */}
+                            <td className="py-3 px-3 text-slate-300 font-medium whitespace-nowrap">
+                              {cand.modelScope && cand.modelScope.length > 0 
+                                ? cand.modelScope.slice(0, 2).join(', ') 
+                                : model}
+                            </td>
+
+                            {/* ATA */}
+                            <td className="py-3 px-3 font-mono text-slate-300">
+                              {cand.ataChapter ? (
+                                <span className="px-1.5 py-0.5 rounded bg-slate-800 border border-slate-700">
+                                  {cand.ataChapter}
+                                </span>
+                              ) : (
+                                <span className="text-slate-500">—</span>
+                              )}
+                            </td>
+
+                            {/* Date */}
+                            <td className="py-3 px-3 text-slate-300 whitespace-nowrap">
+                              {cand.effectiveDate || cand.issueDate || '—'}
+                            </td>
+
+                            {/* Situação CAMO */}
+                            <td className="py-3 px-4 text-right whitespace-nowrap">
+                              {isInCamo ? (
+                                <div className="inline-flex items-center gap-1.5">
+                                  {camoStatus === 'ANALYZED' ? (
+                                    <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+                                      NO CAMO: ANALISADA
+                                    </span>
+                                  ) : (
+                                    <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-300 border border-amber-500/30">
+                                      NO CAMO: PENDENTE
+                                    </span>
+                                  )}
+                                </div>
+                              ) : (
+                                <div className="inline-flex items-center gap-2">
+                                  <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-slate-800 text-slate-400 border border-slate-700">
+                                    NÃO IMPORTADA
+                                  </span>
+                                  <button
+                                    onClick={() => {
+                                      setSelectedCandidateIds(new Set([cand.id]));
+                                      handleImportToCamo(false);
+                                    }}
+                                    disabled={isImporting}
+                                    className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-blue-400 border border-blue-500/30 rounded text-[11px] font-semibold transition"
+                                  >
+                                    Importar
+                                  </button>
+                                </div>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Pagination Footer */}
+                {totalDiscoveryItems > 0 && discoveryPageSize < 99999 && (
+                  <div className="p-4 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-400 bg-slate-950/40">
+                    <div>
+                      Mostrando <span className="font-semibold text-white">{Math.min(totalDiscoveryItems, (discoveryPage - 1) * discoveryPageSize + 1)}</span> a{' '}
+                      <span className="font-semibold text-white">{Math.min(totalDiscoveryItems, discoveryPage * discoveryPageSize)}</span> de{' '}
+                      <span className="font-semibold text-white">{totalDiscoveryItems}</span> diretrizes
+                    </div>
+
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => setDiscoveryPage(p => Math.max(1, p - 1))}
+                        disabled={discoveryPage === 1}
+                        className="p-1.5 rounded-lg border border-slate-700 bg-slate-800 text-slate-300 hover:bg-slate-700 disabled:opacity-40 transition"
+                      >
+                        <ChevronLeft className="w-4 h-4" />
+                      </button>
+
+                      <div className="px-3 py-1 text-xs font-mono font-medium text-slate-300">
+                        Página {discoveryPage} de {totalDiscoveryPages}
+                      </div>
+
+                      <button
+                        onClick={() => setDiscoveryPage(p => Math.min(totalDiscoveryPages, p + 1))}
+                        disabled={discoveryPage === totalDiscoveryPages}
+                        className="p-1.5 rounded-lg border border-slate-700 bg-slate-800 text-slate-300 hover:bg-slate-700 disabled:opacity-40 transition"
+                      >
+                        <ChevronRight className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
-            </div>
             </div>
           )}
         </div>
       )}
 
-      {/* TAB 2: INDIVIDUAL AIRCRAFT CONFIGURATION ASSESSMENT */}
+      {/* ========================================================================= */}
+      {/* TAB 2: CONFIGURATION ASSESSMENT & MISSING DATA (STAGE 4)                  */}
+      {/* ========================================================================= */}
       {activeTab === 'assessment' && (
         <div className="space-y-6">
-          {/* Target Aircraft Selection Card */}
-          <div className="p-4 bg-slate-900/70 rounded-xl border border-white/10 space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-lg space-y-4">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div>
-                <h2 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
-                  <Plane className="w-4 h-4 text-indigo-400" />
-                  <span>Seleção da Aeronave Alvo para Aferição</span>
-                </h2>
+                <h3 className="text-base font-bold text-white">Avaliação de Lacunas de Configuração</h3>
                 <p className="text-xs text-slate-400">
-                  Avalie uma aeronave da frota existente OU uma aeronave candidata em pré-compra / delivery.
+                  Avalia se a aeronave possui todos os parâmetros requeridos (MSN, motores, Part Numbers) pelas Diretrizes do CAMO.
                 </p>
               </div>
 
-              {/* Mode Toggle */}
-              <div className="flex items-center gap-1 bg-slate-800 p-1 rounded-lg border border-white/10">
-                <button
-                  onClick={() => {
-                    setSelectedAircraftMode('fleet');
-                    setTimeout(() => handleRunAssessment(), 50);
-                  }}
-                  className={`px-3 py-1 text-xs font-semibold rounded ${
-                    selectedAircraftMode === 'fleet' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white'
-                  }`}
-                >
-                  Aeronave da Frota Ativa
-                </button>
-                <button
-                  onClick={() => {
-                    setSelectedAircraftMode('candidate');
-                    setTimeout(() => handleRunAssessment(), 50);
-                  }}
-                  className={`px-3 py-1 text-xs font-semibold rounded ${
-                    selectedAircraftMode === 'candidate' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white'
-                  }`}
-                >
-                  Candidata / Pré-Compra / Delivery
-                </button>
-              </div>
-            </div>
-
-            {/* Aircraft Selection Forms */}
-            {selectedAircraftMode === 'fleet' ? (
-              <div className="flex flex-col sm:flex-row items-end gap-3 pt-2">
-                <div className="flex-1">
-                  <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-1 block">
-                    Aeronave da Frota Cadastrada
-                  </label>
-                  <select
-                    value={selectedFleetAircraftId}
-                    onChange={(e) => setSelectedFleetAircraftId(e.target.value)}
-                    className="w-full bg-slate-800 border border-white/10 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500"
-                  >
-                    {(state?.aircraft || []).map((ac) => (
-                      <option key={ac.id} value={ac.id}>
-                        {ac.registration} • {ac.model} (MSN {ac.msn}) — Operador: {state?.operator.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+              <div className="flex items-center gap-3">
                 <button
                   onClick={handleRunAssessment}
                   disabled={isAssessing}
-                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs rounded-lg transition flex items-center gap-2 shrink-0 disabled:opacity-50"
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-lg text-xs transition flex items-center gap-2 disabled:opacity-50"
                 >
                   <RefreshCw className={`w-3.5 h-3.5 ${isAssessing ? 'animate-spin' : ''}`} />
-                  <span>Reavaliar Configuração</span>
+                  <span>Executar Avaliação</span>
                 </button>
               </div>
-            ) : (
-              <div className="space-y-3 pt-2 border-t border-white/5">
-                <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
-                  <div>
-                    <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-1 block">
-                      Família / Fabricante
-                    </label>
-                    <input
-                      type="text"
-                      value={`${candidateAircraftForm.manufacturer} (${candidateAircraftForm.family})`}
-                      disabled
-                      className="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-1.5 text-xs text-slate-400"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-1 block">
-                      Modelo Específico (Variant)
-                    </label>
-                    <input
-                      type="text"
-                      value={candidateAircraftForm.model}
-                      onChange={(e) => setCandidateAircraftForm(prev => ({ ...prev, model: e.target.value }))}
-                      className="w-full bg-slate-800 border border-white/10 rounded-lg px-3 py-1.5 text-xs text-white"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-1 block">
-                      MSN (Serial Number)
-                    </label>
-                    <input
-                      type="text"
-                      value={candidateAircraftForm.msn}
-                      onChange={(e) => setCandidateAircraftForm(prev => ({ ...prev, msn: e.target.value }))}
-                      className="w-full bg-slate-800 border border-white/10 rounded-lg px-3 py-1.5 text-xs text-white"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-1 block">
-                      Matrícula Provisória
-                    </label>
-                    <input
-                      type="text"
-                      value={candidateAircraftForm.registration}
-                      onChange={(e) => setCandidateAircraftForm(prev => ({ ...prev, registration: e.target.value }))}
-                      className="w-full bg-slate-800 border border-white/10 rounded-lg px-3 py-1.5 text-xs text-white"
-                    />
-                  </div>
-                </div>
+            </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div>
-                    <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-1 block">
-                      Modelo dos Motores
-                    </label>
-                    <input
-                      type="text"
-                      value={candidateAircraftForm.engineModel}
-                      onChange={(e) => setCandidateAircraftForm(prev => ({ ...prev, engineModel: e.target.value }))}
-                      className="w-full bg-slate-800 border border-white/10 rounded-lg px-3 py-1.5 text-xs text-white"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-1 block">
-                      S/N Motor Pos 1
-                    </label>
-                    <input
-                      type="text"
-                      value={candidateAircraftForm.engine1Sn}
-                      onChange={(e) => setCandidateAircraftForm(prev => ({ ...prev, engine1Sn: e.target.value }))}
-                      placeholder="Ex: 697412"
-                      className="w-full bg-slate-800 border border-white/10 rounded-lg px-3 py-1.5 text-xs text-white"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[10px] uppercase font-bold text-rose-400 tracking-wider mb-1 block">
-                      S/N Motor Pos 2 (Lacuna Intencional)
-                    </label>
-                    <input
-                      type="text"
-                      value={candidateAircraftForm.engine2Sn}
-                      onChange={(e) => setCandidateAircraftForm(prev => ({ ...prev, engine2Sn: e.target.value }))}
-                      placeholder="[Vazio para aferição de lacuna]"
-                      className="w-full bg-slate-800 border border-rose-500/30 rounded-lg px-3 py-1.5 text-xs text-white"
-                    />
-                  </div>
-                </div>
-
-                <div className="flex justify-end pt-2">
-                  <button
-                    onClick={handleRunAssessment}
-                    disabled={isAssessing}
-                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs rounded-lg transition flex items-center gap-2 disabled:opacity-50"
-                  >
-                    <RefreshCw className={`w-3.5 h-3.5 ${isAssessing ? 'animate-spin' : ''}`} />
-                    <span>Executar Aferição de Configuração</span>
-                  </button>
-                </div>
+            {/* Aircraft Selector */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-3 border-t border-slate-800">
+              <div>
+                <label className="text-[10px] uppercase font-bold text-slate-400 block mb-1">Aeronave da Frota</label>
+                <select
+                  value={selectedFleetAircraftId}
+                  onChange={(e) => setSelectedFleetAircraftId(e.target.value)}
+                  className="w-full bg-slate-800 border border-slate-700 text-white text-xs rounded-lg p-2 focus:outline-none"
+                >
+                  {(state?.aircraft || []).map(a => (
+                    <option key={a.id} value={a.id}>
+                      {a.registration} — {a.model} (MSN {a.msn})
+                    </option>
+                  ))}
+                </select>
               </div>
-            )}
-          </div>
 
-          {/* Assessment Summary Metrics */}
-          {currentAssessment && (
-            <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-              {/* Completeness Score */}
-              <div className="p-4 bg-slate-900/60 rounded-xl border border-white/10 flex flex-col justify-between">
-                <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
-                  Completude da Configuração
-                </span>
-                <div className="flex items-baseline gap-2 my-2">
-                  <span className={`text-3xl font-black font-mono ${
-                    currentAssessment.completionPercentage === 100 ? 'text-emerald-400' : 'text-amber-400'
-                  }`}>
-                    {currentAssessment.completionPercentage}%
-                  </span>
-                  <span className="text-xs text-slate-400">
-                    ({currentAssessment.satisfiedParametersCount} de {currentAssessment.totalParametersRequired} parâmetros)
-                  </span>
-                </div>
-                <div className="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
-                  <div 
-                    className={`h-full transition-all duration-500 ${
-                      currentAssessment.completionPercentage === 100 ? 'bg-emerald-400' : 'bg-amber-400'
-                    }`}
-                    style={{ width: `${currentAssessment.completionPercentage}%` }}
-                  />
+              <div>
+                <label className="text-[10px] uppercase font-bold text-slate-400 block mb-1">Status da Configuração</label>
+                <div className="p-2 bg-slate-800 rounded-lg text-xs text-slate-300 font-mono">
+                  {currentAssessment ? `${currentAssessment.completionPercentage}% Completo` : 'Não avaliado'}
                 </div>
               </div>
 
-              {/* Missing Parameters */}
-              <div className="p-4 bg-slate-900/60 rounded-xl border border-white/10 flex flex-col justify-between">
-                <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
-                  Lacunas de Configuração (Missing)
-                </span>
-                <div className="my-2">
-                  <span className={`text-3xl font-black font-mono ${
-                    currentAssessment.missingParametersCount === 0 ? 'text-emerald-400' : 'text-rose-400'
-                  }`}>
-                    {currentAssessment.missingParametersCount}
-                  </span>
-                </div>
-                <span className="text-[11px] text-slate-400">
-                  {currentAssessment.missingParametersCount === 0 ? 'Nenhuma lacuna crítica pendente' : 'Impedem determinação definitiva'}
-                </span>
-              </div>
-
-              {/* Progressive Applicability Breakdown */}
-              <div className="p-4 bg-slate-900/60 rounded-xl border border-white/10 sm:col-span-2 flex flex-col justify-between">
-                <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
-                  Desdobramento de Aplicabilidade Progressiva (5 Estados Estritos)
-                </span>
-                <div className="grid grid-cols-5 gap-1.5 my-2 text-center font-mono">
-                  <div className="p-1.5 bg-indigo-950/40 border border-indigo-500/20 rounded">
-                    <span className="text-base font-bold text-indigo-300 block">{currentAssessment.applicabilityBreakdown.potentiallyApplicable}</span>
-                    <span className="text-[8px] text-slate-400 uppercase">Potencial</span>
-                  </div>
-                  <div className="p-1.5 bg-amber-950/40 border border-amber-500/20 rounded">
-                    <span className="text-base font-bold text-amber-300 block">{currentAssessment.applicabilityBreakdown.insufficientData}</span>
-                    <span className="text-[8px] text-slate-400 uppercase">Dados Insuf.</span>
-                  </div>
-                  <div className="p-1.5 bg-purple-950/40 border border-purple-500/20 rounded">
-                    <span className="text-base font-bold text-purple-300 block">{currentAssessment.applicabilityBreakdown.reviewRequired}</span>
-                    <span className="text-[8px] text-slate-400 uppercase">Revisão Req.</span>
-                  </div>
-                  <div className="p-1.5 bg-emerald-950/40 border border-emerald-500/20 rounded">
-                    <span className="text-base font-bold text-emerald-300 block">{currentAssessment.applicabilityBreakdown.applicable}</span>
-                    <span className="text-[8px] text-slate-400 uppercase">Aplicável</span>
-                  </div>
-                  <div className="p-1.5 bg-slate-800 border border-white/5 rounded">
-                    <span className="text-base font-bold text-slate-400 block">{currentAssessment.applicabilityBreakdown.notApplicable}</span>
-                    <span className="text-[8px] text-slate-500 uppercase">Não Aplicável</span>
-                  </div>
-                </div>
-                <div className="text-[10px] text-slate-400 flex items-center justify-between">
-                  <span>Total de Diretrizes Avaliadas: {currentAssessment.applicabilityBreakdown.totalEvaluatedAds}</span>
-                  <span className="text-amber-400 font-semibold text-[10px]">
-                    *Dados Insuficientes ≠ Não Aplicável
-                  </span>
+              <div>
+                <label className="text-[10px] uppercase font-bold text-slate-400 block mb-1">Lacunas Identificadas</label>
+                <div className="p-2 bg-slate-800 rounded-lg text-xs text-amber-400 font-mono">
+                  {currentAssessment?.missingItems?.length || 0} parâmetro(s) pendente(s)
                 </div>
               </div>
             </div>
-          )}
+          </div>
 
-          {/* Operational Missing Items Checklist (Actionable by CAMO Engineer) */}
-          {currentAssessment && currentAssessment.operationalMissingList.length > 0 && (
-            <div className="p-5 bg-rose-950/20 border border-rose-500/30 rounded-xl space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2 text-rose-400 font-bold text-xs uppercase tracking-wider">
-                  <AlertTriangle className="w-4 h-4 text-rose-400" />
-                  <span>Checklist Operacional de Dados Faltantes & Inconsistências</span>
-                </div>
-                <span className="text-[10px] px-2 py-0.5 rounded bg-rose-500/20 text-rose-300 font-mono">
-                  {currentAssessment.operationalMissingList.filter(m => !m.resolved).length} Pendentes
-                </span>
-              </div>
-
-              <div className="space-y-2.5">
-                {currentAssessment.operationalMissingList.map((item) => (
-                  <div
-                    key={item.id}
-                    className={`p-3 rounded-lg border flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition ${
-                      item.resolved 
-                        ? 'bg-slate-900/40 border-emerald-500/30' 
-                        : 'bg-slate-900/80 border-rose-500/20'
-                    }`}
-                  >
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded uppercase font-mono ${
-                          item.category === 'AIRFRAME' ? 'bg-sky-500/20 text-sky-300' :
-                          item.category === 'ENGINE' ? 'bg-amber-500/20 text-amber-300' :
-                          item.category === 'COMPONENT' ? 'bg-purple-500/20 text-purple-300' :
-                          'bg-emerald-500/20 text-emerald-300'
-                        }`}>
-                          {item.category}
-                        </span>
-                        <span className="text-xs font-bold text-white">
-                          {item.label}
-                        </span>
-                        {item.resolved && (
-                          <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                            RESOLVIDO: {item.resolvedValue}
-                          </span>
-                        )}
+          {/* Missing Items List & In-place Resolver */}
+          {currentAssessment && (
+            <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-lg space-y-4">
+              <h4 className="text-sm font-bold text-white">Parâmetros de Configuração Requeridos</h4>
+              
+              {currentAssessment.missingItems && currentAssessment.missingItems.length > 0 ? (
+                <div className="space-y-2">
+                  {currentAssessment.missingItems.map((item, idx) => (
+                    <div key={idx} className="p-3 rounded-lg bg-slate-950 border border-slate-800 flex items-center justify-between gap-3 text-xs">
+                      <div>
+                        <span className="font-semibold text-white">{item.parameterLabel || item.parameterKey}</span>
+                        <p className="text-slate-400 text-[11px] mt-0.5">{item.impactDescription}</p>
                       </div>
 
-                      <p className="text-[11px] text-slate-300 font-mono">
-                        Impacto Direto: Afeta <strong className="text-rose-300">{item.adImpactCount} ADs</strong> ({item.adReferences?.length ? item.adReferences.join(', ') : 'N/A'})
-                      </p>
-
-                      <p className="text-[10px] text-slate-400 italic">
-                        Rastreabilidade: {item.traceabilityPath}
-                      </p>
-                    </div>
-
-                    {!item.resolved && (
                       <button
                         onClick={() => {
                           setResolvingItem(item);
                           setResolutionValue('');
                         }}
-                        className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-lg transition shrink-0 flex items-center gap-1 shadow-sm"
+                        className="px-3 py-1.5 bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 border border-blue-500/30 rounded text-xs font-semibold transition"
                       >
-                        <Plus className="w-3 h-3" />
-                        <span>Informar Dado</span>
+                        Informar Dado
                       </button>
-                    )}
-                  </div>
-                ))}
-              </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="p-6 text-center text-xs text-emerald-400 bg-emerald-950/20 border border-emerald-500/20 rounded-lg">
+                  ✓ Todos os dados de configuração da aeronave estão completos para as diretrizes avaliadas.
+                </div>
+              )}
             </div>
           )}
 
-          {/* Full Parameters Evaluation Table */}
-          {currentAssessment && (
-            <div className="p-4 bg-slate-900/60 rounded-xl border border-white/10 space-y-3">
-              <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider">
-                Matriz de Avaliação Detalhada de Parâmetros de Configuração
-              </h3>
-
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs border-collapse">
-                  <thead>
-                    <tr className="border-b border-white/10 text-[10px] uppercase font-bold text-slate-400 font-mono">
-                      <th className="py-2 px-3">Parâmetro Requerido</th>
-                      <th className="py-2 px-3">Categoria</th>
-                      <th className="py-2 px-3">Status na Aeronave</th>
-                      <th className="py-2 px-3">Valor Verificado</th>
-                      <th className="py-2 px-3">Diretrizes Afetadas</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-white/5 font-mono text-[11px]">
-                    {currentAssessment.parameterEvaluations.map((param, idx) => (
-                      <tr key={idx} className="hover:bg-white/5 transition">
-                        <td className="py-2.5 px-3">
-                          <span className="font-semibold text-white">{param.label}</span>
-                          <span className="block text-[9px] text-slate-400">{param.parameterKey}</span>
-                        </td>
-                        <td className="py-2.5 px-3 text-slate-300">
-                          {param.category}
-                        </td>
-                        <td className="py-2.5 px-3">
-                          {param.evaluationStatus === 'AVAILABLE' ? (
-                            <span className="inline-flex items-center gap-1 text-emerald-400 font-bold text-[10px] bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
-                              <Check className="w-3 h-3" />
-                              <span>DISPONÍVEL</span>
-                            </span>
-                          ) : param.evaluationStatus === 'MISSING' ? (
-                            <span className="inline-flex items-center gap-1 text-rose-400 font-bold text-[10px] bg-rose-500/10 px-2 py-0.5 rounded border border-rose-500/20">
-                              <X className="w-3 h-3" />
-                              <span>FALTANTE</span>
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1 text-purple-400 font-bold text-[10px] bg-purple-500/10 px-2 py-0.5 rounded border border-purple-500/20">
-                              <AlertTriangle className="w-3 h-3" />
-                              <span>INCONSISTENTE</span>
-                            </span>
-                          )}
-                        </td>
-                        <td className="py-2.5 px-3 text-slate-300">
-                          {param.currentValue ? String(param.currentValue) : <span className="text-slate-400 italic">Pendente de inserção</span>}
-                        </td>
-                        <td className="py-2.5 px-3 text-indigo-300">
-                          {param.requiredByAds?.map(a => a.adNumber)?.join(', ') || 'N/A'}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* TAB 3: ACCUMULATED REGULATORY KNOWLEDGE BASE */}
-      {activeTab === 'knowledge' && (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
-                <Database className="w-4 h-4 text-indigo-400" />
-                <span>Base de Conhecimento Regulatório Consolidada</span>
-              </h2>
-              <p className="text-xs text-slate-400">
-                Regras regulatórias, parâmetros extraídos e limites reutilizáveis por família/modelo.
-              </p>
-            </div>
-            <span className="text-xs font-mono text-indigo-300 bg-indigo-500/10 px-2.5 py-1 rounded border border-indigo-500/20">
-              {knowledgeItems.length} Itens de Conhecimento
-            </span>
-          </div>
-
-          {knowledgeItems.length === 0 ? (
-            <div className="p-12 text-center text-slate-400 bg-slate-900/40 rounded-xl border border-white/10 space-y-2">
-              <p className="text-sm font-semibold text-white">Nenhum item na base de conhecimento ainda.</p>
-              <p className="text-xs text-slate-400">
-                Vá até a aba <strong>1. Candidatas Regulatórias</strong> e clique em <strong>"Analisar & Extrair Dados Requeridos"</strong> em qualquer AD.
-              </p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 gap-3">
-              {knowledgeItems.map((item) => (
-                <div
-                  key={item.id}
-                  className="p-4 bg-slate-900/70 border border-white/10 rounded-xl space-y-3 hover:border-indigo-500/30 transition"
-                >
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/5 pb-2">
-                    <div className="flex items-center gap-2">
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 uppercase font-mono">
-                        {item.authority}
-                      </span>
-                      <span className="text-sm font-bold text-white font-mono">
-                        {item.adNumber}
-                      </span>
-                      <span className="text-xs text-slate-400">
-                        • Família: <strong className="text-slate-200">{item.family}</strong>
-                      </span>
-                    </div>
-
-                    <div className="text-[10px] text-slate-400 font-mono">
-                      Analisado em: {new Date(item.analyzedAt).toLocaleDateString()}
-                    </div>
-                  </div>
-
-                  <h4 className="text-xs font-semibold text-slate-200">
-                    {item.title}
-                  </h4>
-
-                  {/* Derived Configuration Requirements List */}
-                  <div>
-                    <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider block mb-1">
-                      Parâmetros de Configuração Exigidos para Aferição de Aeronave:
-                    </span>
-                    <div className="flex flex-wrap gap-1.5">
-                      {item.requiredConfigurationData.map((p, idx) => (
-                        <span
-                          key={idx}
-                          className="text-[10px] px-2 py-0.5 rounded bg-slate-800 border border-white/10 text-slate-200 font-mono"
-                        >
-                          {p.label}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Threshold & Applicability Summary */}
-                  <div className="p-2.5 bg-slate-950/40 rounded border border-white/5 text-[11px] font-mono text-slate-300 space-y-1">
-                    <div>
-                      <span className="text-slate-400">Threshold de Cumprimento: </span>
-                      <span className="text-emerald-300 font-semibold">{item.complianceThresholdSummary}</span>
-                    </div>
-                    <div>
-                      <span className="text-slate-400">Resumo de Aplicabilidade: </span>
-                      <span className="text-slate-200">{item.applicabilityRuleSummary}</span>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* MODAL: Operational Missing Parameter Resolution */}
-      {resolvingItem && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-white/20 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                <Plus className="w-4 h-4 text-indigo-400" />
-                <span>Resolver Lacuna de Configuração</span>
-              </h3>
-              <button
-                onClick={() => setResolvingItem(null)}
-                className="text-slate-400 hover:text-white"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="p-3 bg-slate-950 rounded-lg border border-white/10 text-xs space-y-1 font-mono">
-              <div className="text-slate-400">Parâmetro: <strong className="text-white">{resolvingItem.label}</strong></div>
-              <div className="text-slate-400">Categoria: <strong className="text-indigo-300">{resolvingItem.category}</strong></div>
-              <div className="text-slate-400">ADs Impactadas: <strong className="text-rose-300">{resolvingItem.adImpactCount}</strong> ({resolvingItem.adReferences?.length ? resolvingItem.adReferences.join(', ') : 'N/A'})</div>
-            </div>
-
-            <div>
-              <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-1 block">
-                Valor Informado (Número de Série / P/N / Versão)
-              </label>
-              <input
-                type="text"
-                value={resolutionValue}
-                onChange={(e) => setResolutionValue(e.target.value)}
-                placeholder="Ex: 697413 (S/N Motor) ou 762300-1 ou v2.1"
-                className="w-full bg-slate-800 border border-white/10 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500"
-                autoFocus
-              />
-            </div>
-
-            <div className="flex justify-end gap-2 pt-2">
-              <button
-                onClick={() => setResolvingItem(null)}
-                className="px-3 py-1.5 text-xs text-slate-400 hover:text-white"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handleResolveMissing}
-                disabled={!resolutionValue.trim() || isSubmittingResolution}
-                className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-lg transition disabled:opacity-50"
-              >
-                {isSubmittingResolution ? 'Salvando...' : 'Confirmar & Reavaliar'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL: Candidate Details Drawer */}
-      {viewingCandidate && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-white/20 rounded-2xl max-w-2xl w-full p-6 space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between border-b border-white/10 pb-3">
-              <div>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 uppercase font-mono">
-                  {viewingCandidate.authority}
-                </span>
-                <h3 className="text-base font-bold text-white mt-1">
-                  {viewingCandidate.adNumber}
-                </h3>
-              </div>
-              <button
-                onClick={() => setViewingCandidate(null)}
-                className="text-slate-400 hover:text-white"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="space-y-3 text-xs">
-              <div>
-                <span className="text-[10px] uppercase font-bold text-slate-400 block mb-1">Título Oficial</span>
-                <p className="text-slate-200 font-semibold">{viewingCandidate.title}</p>
-              </div>
-
-              <div>
-                <span className="text-[10px] uppercase font-bold text-slate-400 block mb-1">Texto de Aplicabilidade (Original)</span>
-                <p className="p-3 bg-slate-950 rounded-lg border border-white/10 font-mono text-[11px] text-slate-300 leading-relaxed">
-                  {viewingCandidate.rawApplicabilityText}
-                </p>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3 font-mono text-[11px] text-slate-400 bg-slate-950/40 p-3 rounded border border-white/5">
-                <div>Fabricante: <strong className="text-slate-200">{viewingCandidate.manufacturer}</strong></div>
-                <div>Família: <strong className="text-slate-200">{viewingCandidate.family}</strong></div>
-                <div>Data de Publicação: <strong className="text-slate-200">{viewingCandidate.issueDate}</strong></div>
-                <div>Data Efetiva: <strong className="text-slate-200">{viewingCandidate.effectiveDate}</strong></div>
-                {viewingCandidate.docketNumber && (
-                  <div className="col-span-2">Docket: <strong className="text-slate-200">{viewingCandidate.docketNumber}</strong></div>
-                )}
-              </div>
-            </div>
-
-            <div className="flex justify-between items-center pt-3 border-t border-white/10">
-              {viewingCandidate.sourceUrl ? (
-                <a
-                  href={viewingCandidate.sourceUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-indigo-400 hover:text-indigo-300 text-xs flex items-center gap-1 font-mono"
-                >
-                  <ExternalLink className="w-3.5 h-3.5" />
-                  <span>Ver Publicação no Portal Oficial ({viewingCandidate.authority})</span>
-                </a>
-              ) : <span />}
-
-              <button
-                onClick={() => setViewingCandidate(null)}
-                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold rounded-lg"
-              >
-                Fechar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL: REGULATORY DISCOVERY DIAGNOSTIC REPORT (Section 6 Audit Report) */}
-      {showDiagnosticModal && diagnostic && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-white/20 rounded-2xl max-w-3xl w-full p-6 space-y-5 shadow-2xl max-h-[90vh] overflow-y-auto font-mono">
-            <div className="flex items-center justify-between border-b border-white/10 pb-3">
-              <div className="flex items-center gap-2">
-                <Terminal className="w-5 h-5 text-indigo-400" />
-                <h3 className="text-sm font-bold text-white tracking-wider">
-                  REGULATORY DISCOVERY DIAGNOSTIC & AUDIT
-                </h3>
-              </div>
-              <button
-                onClick={() => setShowDiagnosticModal(false)}
-                className="text-slate-400 hover:text-white"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Pipeline Stage Cards */}
-            <div className="space-y-4 text-xs">
-              <div className="p-3 bg-slate-950 rounded-xl border border-white/10 flex flex-col md:flex-row md:items-center justify-between gap-2">
-                <div>
-                  <span className="text-[10px] uppercase font-bold text-slate-400 block">Query Avaliada:</span>
-                  <span className="text-sm font-bold text-indigo-300">{diagnostic.query}</span>
-                </div>
-                <div className="text-right text-[11px] text-slate-400">
-                  Timestamp: <strong className="text-slate-200">{new Date(diagnostic.timestamp).toLocaleString()}</strong>
-                </div>
-              </div>
-
-              {/* Authorities Breakdown */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                {/* FAA */}
-                <div className="p-3.5 bg-slate-950/80 rounded-xl border border-sky-500/30 space-y-2">
-                  <div className="flex items-center justify-between border-b border-white/10 pb-1.5">
-                    <span className="text-xs font-bold text-sky-400">FAA (Federal Register)</span>
-                    <span className="text-[10px] px-1.5 py-0.2 rounded bg-sky-500/20 text-sky-300">
-                      {diagnostic.authorities.FAA.sourceStatus}
-                    </span>
-                  </div>
-                  <div className="space-y-1 text-[11px] text-slate-300">
-                    <div className="flex justify-between">
-                      <span className="text-slate-400">Raw retrieved:</span>
-                      <strong className="text-white">{diagnostic.authorities.FAA.rawRetrieved}</strong>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-400">Normalized:</span>
-                      <strong className="text-white">{diagnostic.authorities.FAA.normalized}</strong>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-400">Before filter:</span>
-                      <strong className="text-white">{diagnostic.authorities.FAA.candidatesBeforeFilter}</strong>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-400">After filter:</span>
-                      <strong className="text-white">{diagnostic.authorities.FAA.candidatesAfterFilter}</strong>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-400">Duplicates removed:</span>
-                      <strong className="text-amber-400">{diagnostic.authorities.FAA.duplicatesRemoved}</strong>
-                    </div>
-                    <div className="flex justify-between pt-1 border-t border-white/10">
-                      <span className="text-sky-300 font-bold">Final candidates:</span>
-                      <strong className="text-sky-300 text-sm font-bold">{diagnostic.authorities.FAA.finalCandidates}</strong>
-                    </div>
-                  </div>
-                </div>
-
-                {/* EASA */}
-                <div className="p-3.5 bg-slate-950/80 rounded-xl border border-amber-500/30 space-y-2">
-                  <div className="flex items-center justify-between border-b border-white/10 pb-1.5">
-                    <span className="text-xs font-bold text-amber-400">EASA</span>
-                    <span className="text-[10px] px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300">
-                      {diagnostic.authorities.EASA.sourceStatus}
-                    </span>
-                  </div>
-                  <div className="space-y-1 text-[11px] text-slate-300">
-                    <div className="flex justify-between">
-                      <span className="text-slate-400">Raw retrieved:</span>
-                      <strong className="text-white">{diagnostic.authorities.EASA.rawRetrieved}</strong>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-400">Normalized:</span>
-                      <strong className="text-white">{diagnostic.authorities.EASA.normalized}</strong>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-400">Before filter:</span>
-                      <strong className="text-white">{diagnostic.authorities.EASA.candidatesBeforeFilter}</strong>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-400">After filter:</span>
-                      <strong className="text-white">{diagnostic.authorities.EASA.candidatesAfterFilter}</strong>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-400">Duplicates removed:</span>
-                      <strong className="text-amber-400">{diagnostic.authorities.EASA.duplicatesRemoved}</strong>
-                    </div>
-                    <div className="flex justify-between pt-1 border-t border-white/10">
-                      <span className="text-amber-300 font-bold">Final candidates:</span>
-                      <strong className="text-amber-300 text-sm font-bold">{diagnostic.authorities.EASA.finalCandidates}</strong>
-                    </div>
-                  </div>
-                </div>
-
-                {/* ANAC */}
-                <div className="p-3.5 bg-slate-950/80 rounded-xl border border-emerald-500/30 space-y-2">
-                  <div className="flex items-center justify-between border-b border-white/10 pb-1.5">
-                    <span className="text-xs font-bold text-emerald-400">ANAC (SISAC)</span>
-                    <span className="text-[10px] px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300">
-                      {diagnostic.authorities.ANAC.sourceStatus}
-                    </span>
-                  </div>
-                  <div className="space-y-1 text-[11px] text-slate-300">
-                    <div className="flex justify-between">
-                      <span className="text-slate-400">Raw retrieved:</span>
-                      <strong className="text-white">{diagnostic.authorities.ANAC.rawRetrieved}</strong>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-400">Normalized:</span>
-                      <strong className="text-white">{diagnostic.authorities.ANAC.normalized}</strong>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-400">Before filter:</span>
-                      <strong className="text-white">{diagnostic.authorities.ANAC.candidatesBeforeFilter}</strong>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-400">After filter:</span>
-                      <strong className="text-white">{diagnostic.authorities.ANAC.candidatesAfterFilter}</strong>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-400">Duplicates removed:</span>
-                      <strong className="text-amber-400">{diagnostic.authorities.ANAC.duplicatesRemoved}</strong>
-                    </div>
-                    <div className="flex justify-between pt-1 border-t border-white/10">
-                      <span className="text-emerald-300 font-bold">Final candidates:</span>
-                      <strong className="text-emerald-300 text-sm font-bold">{diagnostic.authorities.ANAC.finalCandidates}</strong>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* TOTAL PIPELINE FUNNEL */}
-              <div className="p-4 bg-slate-950 rounded-xl border border-indigo-500/30 space-y-2">
-                <span className="text-xs uppercase font-bold text-indigo-400 block">
-                  Pipeline Funnel Total
-                </span>
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-3 text-center">
-                  <div className="p-2 bg-slate-900 rounded border border-white/5">
-                    <span className="text-[10px] text-slate-400 block">Raw Retrieved</span>
-                    <span className="text-base font-bold text-white">{diagnostic.totals.rawRetrieved}</span>
-                  </div>
-                  <div className="p-2 bg-slate-900 rounded border border-white/5">
-                    <span className="text-[10px] text-slate-400 block">Normalized</span>
-                    <span className="text-base font-bold text-white">{diagnostic.totals.normalized}</span>
-                  </div>
-                  <div className="p-2 bg-slate-900 rounded border border-white/5">
-                    <span className="text-[10px] text-slate-400 block">Candidates</span>
-                    <span className="text-base font-bold text-white">{diagnostic.totals.candidatesBeforeFilter}</span>
-                  </div>
-                  <div className="p-2 bg-slate-900 rounded border border-white/5">
-                    <span className="text-[10px] text-slate-400 block">Deduplicated</span>
-                    <span className="text-base font-bold text-amber-400">-{diagnostic.totals.duplicatesRemoved}</span>
-                  </div>
-                  <div className="p-2 bg-indigo-950/60 rounded border border-indigo-500/40">
-                    <span className="text-[10px] text-indigo-300 block font-bold">Final Candidates</span>
-                    <span className="text-base font-bold text-emerald-400">{diagnostic.totals.finalCandidates}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Section 6 Plain Text Output Container */}
-              <div className="space-y-1">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] uppercase font-bold text-slate-400">
-                    Relatório Diagnóstico Formatado (Seção 6 — Plain Text):
-                  </span>
-                  <button
-                    onClick={() => {
-                      if (diagnostic?.diagnosticReportText) {
-                        navigator.clipboard.writeText(diagnostic.diagnosticReportText);
-                        setCopiedDiagnostic(true);
-                        setTimeout(() => setCopiedDiagnostic(false), 2000);
-                      }
-                    }}
-                    className="text-[11px] text-indigo-400 hover:text-indigo-300 flex items-center gap-1 bg-slate-800 px-2 py-1 rounded"
-                  >
-                    {copiedDiagnostic ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
-                    <span>{copiedDiagnostic ? 'Copiado!' : 'Copiar Texto'}</span>
+          {/* In-Place Resolver Modal */}
+          {resolvingItem && (
+            <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+              <div className="bg-slate-900 border border-slate-800 rounded-xl max-w-md w-full p-5 space-y-4 shadow-2xl">
+                <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                  <h4 className="text-sm font-bold text-white">Informar Parâmetro de Configuração</h4>
+                  <button onClick={() => setResolvingItem(null)} className="text-slate-400 hover:text-white">
+                    <X className="w-4 h-4" />
                   </button>
                 </div>
-                <pre className="p-3 bg-slate-950 rounded-xl border border-white/10 text-[11px] text-emerald-300 leading-relaxed overflow-x-auto max-h-48">
-                  {diagnostic.diagnosticReportText}
-                </pre>
+
+                <div className="space-y-3 text-xs">
+                  <div>
+                    <label className="text-slate-400 block mb-1">Parâmetro: <strong>{resolvingItem.parameterLabel || resolvingItem.parameterKey}</strong></label>
+                    <input
+                      type="text"
+                      value={resolutionValue}
+                      onChange={(e) => setResolutionValue(e.target.value)}
+                      placeholder="Insira o valor homologado (ex: número de série, P/N)..."
+                      className="w-full bg-slate-800 border border-slate-700 rounded-lg p-2.5 text-white text-xs focus:outline-none focus:border-blue-500"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-800">
+                  <button
+                    onClick={() => setResolvingItem(null)}
+                    className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-xs"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={handleResolveMissing}
+                    disabled={isSubmittingResolution || !resolutionValue.trim()}
+                    className="px-4 py-1.5 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded text-xs transition disabled:opacity-50"
+                  >
+                    Salvar & Reavaliar
+                  </button>
+                </div>
               </div>
             </div>
+          )}
+        </div>
+      )}
 
-            <div className="flex justify-end pt-2 border-t border-white/10">
-              <button
-                onClick={() => setShowDiagnosticModal(false)}
-                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold rounded-lg"
-              >
-                Fechar Diagnóstico
-              </button>
-            </div>
+      {/* ========================================================================= */}
+      {/* TAB 3: DIAGNÓSTICO DE FONTES & CONECTORES (STAGE 4.1)                     */}
+      {/* ========================================================================= */}
+      {activeTab === 'diagnostics' && (
+        <div className="space-y-6">
+          <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-lg space-y-4">
+            <h3 className="text-base font-bold text-white">Diagnóstico das Conexões Oficiais</h3>
+            <p className="text-xs text-slate-400">
+              Relatório em tempo real de latência, status de conectores e telemetria de requisições às autoridades.
+            </p>
+
+            {searchResult?.diagnostic ? (
+              <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 font-mono text-xs text-slate-300 max-h-96 overflow-y-auto">
+                <pre className="whitespace-pre-wrap">{JSON.stringify(searchResult.diagnostic, null, 2)}</pre>
+              </div>
+            ) : (
+              <div className="p-6 text-center text-xs text-slate-500 bg-slate-950/40 rounded-lg border border-slate-800">
+                Execute uma busca na aba 1 para gerar o diagnóstico em tempo real das APIs da FAA, EASA e ANAC.
+              </div>
+            )}
           </div>
         </div>
       )}

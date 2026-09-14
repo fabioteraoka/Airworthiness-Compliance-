@@ -284,6 +284,78 @@ export class AircraftDeliveryAssessmentEngine {
     const model = acConfig.model.toLowerCase();
     const manufacturer = acConfig.manufacturer.toLowerCase();
 
+    // Step 0: Discover from CAMO Regulatory Register (Phase 9 — Stage 5)
+    // Ensures all ADs imported into CAMO Register (both PENDING_ANALYSIS and ANALYZED) are visible in delivery assessment!
+    const registerRecords = db.camoRegulatoryRegister || [];
+    const discoveredFromRegister: DeliveryAdItem[] = [];
+
+    for (const reg of registerRecords) {
+      const adNumber = reg.adNumber;
+      const authority: IssuingAuthority = (reg.authority as IssuingAuthority) || 'FAA';
+      const title = reg.title;
+      const issueDate = reg.issueDate;
+      const effectiveDate = reg.effectiveDate;
+
+      // Check model / family / manufacturer relevance
+      const regModels = (reg.modelScope || []).map(m => m.toLowerCase());
+      const regMfg = (reg.manufacturer || '').toLowerCase();
+      const regFam = (reg.family || '').toLowerCase();
+
+      const mfgMatch = !regMfg || manufacturer.includes(regMfg) || regMfg.includes(manufacturer);
+      const famMatch = !regFam || acConfig.model.toLowerCase().includes(regFam) || regFam.includes(acConfig.model.toLowerCase());
+      const modelMatch = regModels.length === 0 || matchesModel(acConfig.model, regModels);
+
+      if (!mfgMatch && !famMatch && !modelMatch) {
+        continue;
+      }
+
+      let applicabilityStatus: DeliveryApplicabilityStatus = 'POTENTIALLY_APPLICABLE';
+      let applicabilityReason = 'Discovered in CAMO Regulatory Register.';
+      let confrontationStatus: LessorConfrontationStatus = 'UNVERIFIED';
+
+      if (reg.analysisStatus === 'PENDING_ANALYSIS') {
+        applicabilityStatus = 'POTENTIALLY_APPLICABLE';
+        applicabilityReason = 'AD pendente de análise técnica no CAMO. Aplicabilidade formal não determinada.';
+        confrontationStatus = 'PENDING_ANALYSIS';
+      } else if (reg.analysisStatus === 'REVIEW_REQUIRED') {
+        applicabilityStatus = 'REVIEW_REQUIRED';
+        applicabilityReason = 'AD requer revisão técnica no CAMO. Aplicabilidade não determinada.';
+        confrontationStatus = 'PENDING_ANALYSIS';
+      } else if (reg.analysisStatus === 'ANALYZED') {
+        if (!modelMatch && regModels.length > 0) {
+          applicabilityStatus = 'NOT_APPLICABLE';
+          applicabilityReason = `Aircraft model '${acConfig.model}' is not listed in AD model effectivity (${reg.modelScope.join(', ')}).`;
+        } else {
+          applicabilityStatus = 'POTENTIALLY_APPLICABLE';
+          applicabilityReason = `AD analisada no CAMO para a frota ${reg.family}.`;
+        }
+      }
+
+      const hasReq = !!(reg.analyzedRequirementId || reg.analysisId);
+      discoveredFromRegister.push({
+        id: `ad-reg-${assessment.id}-${authority.toLowerCase()}-${adNumber.replace(/[^a-zA-Z0-9]/g, '_')}`,
+        adNumber,
+        issuingAuthority: authority,
+        title,
+        issueDate,
+        effectiveDate,
+        sourceUrl: reg.sourceUrl,
+        documentHash: reg.sha256,
+        isKnownInCamo: hasReq,
+        camoRequirementId: reg.analyzedRequirementId || reg.analysisId,
+        camoRegisterId: reg.id,
+        registerAnalysisStatus: reg.analysisStatus,
+        ataChapter: reg.ataChapter,
+        knownRequirementVersion: reg.version || 1,
+        applicabilityStatus,
+        applicabilityReason,
+        operationalPriority: (reg.operationalPriority as any) || 'HIGH',
+        confrontationStatus,
+        evidenceSummary: { total: 0, valid: 0, insufficient: 0, revoked: 0 },
+        isSuperseded: reg.officialStatus === 'SUPERSEDED'
+      });
+    }
+
     // Step 1: Discover from existing CAMO Knowledge Base (requirements)
     const existingRequirements = db.requirements || [];
     const discoveredFromReqs: DeliveryAdItem[] = [];
@@ -410,7 +482,28 @@ export class AircraftDeliveryAssessmentEngine {
     }
 
     // Step 3: Combine and reconcile with existing items in the assessment (IDEMPOTENCY)
-    const combinedDiscovered = [...discoveredFromReqs, ...discoveredFromRecords];
+    // Precedence: 
+    // 1. Fully analyzed Requirements (discoveredFromReqs) have highest knowledge precedence
+    // 2. CAMO Regulatory Register items (discoveredFromRegister) add imported register ADs or enrich reqs
+    // 3. Discovery Records (discoveredFromRecords) add external scans
+    const combinedDiscovered: DeliveryAdItem[] = [...discoveredFromReqs];
+    for (const regItem of discoveredFromRegister) {
+      const existingReqIdx = combinedDiscovered.findIndex(d => normalizeText(d.adNumber) === normalizeText(regItem.adNumber));
+      if (existingReqIdx >= 0) {
+        combinedDiscovered[existingReqIdx].camoRegisterId = regItem.camoRegisterId;
+        combinedDiscovered[existingReqIdx].registerAnalysisStatus = regItem.registerAnalysisStatus;
+        if (!combinedDiscovered[existingReqIdx].ataChapter) {
+          combinedDiscovered[existingReqIdx].ataChapter = regItem.ataChapter;
+        }
+      } else {
+        combinedDiscovered.push(regItem);
+      }
+    }
+    for (const recItem of discoveredFromRecords) {
+      if (!combinedDiscovered.some(d => normalizeText(d.adNumber) === normalizeText(recItem.adNumber))) {
+        combinedDiscovered.push(recItem);
+      }
+    }
     const existingItems = assessment.adItems || [];
 
     const updatedAdItems: DeliveryAdItem[] = [];
@@ -422,13 +515,19 @@ export class AircraftDeliveryAssessmentEngine {
       );
 
       if (existingMatch) {
-        // Keep analyzed state, obligationId, lessorDeclaration, confrontationStatus
+        // Keep analyzed state, obligationId, lessorDeclaration, confrontationStatus, but update register analysis progress
+        const isNowAnalyzed = discovered.registerAnalysisStatus === 'ANALYZED' && existingMatch.registerAnalysisStatus !== 'ANALYZED';
         updatedAdItems.push({
           ...discovered,
           ...existingMatch,
           // Update known flag if now known in CAMO
           isKnownInCamo: discovered.isKnownInCamo || existingMatch.isKnownInCamo,
-          camoRequirementId: discovered.camoRequirementId || existingMatch.camoRequirementId
+          camoRequirementId: discovered.camoRequirementId || existingMatch.camoRequirementId,
+          complianceRequirementId: discovered.camoRequirementId || existingMatch.complianceRequirementId,
+          registerAnalysisStatus: discovered.registerAnalysisStatus || existingMatch.registerAnalysisStatus,
+          confrontationStatus: (isNowAnalyzed && existingMatch.confrontationStatus === 'PENDING_ANALYSIS')
+            ? 'UNVERIFIED'
+            : existingMatch.confrontationStatus
         });
       } else {
         updatedAdItems.push(discovered);
@@ -1063,6 +1162,15 @@ export class AircraftDeliveryAssessmentEngine {
       );
     }
 
+    const pendingAnalysisAds = assessment.adItems.filter(
+      i => i.registerAnalysisStatus === 'PENDING_ANALYSIS' || i.confrontationStatus === 'PENDING_ANALYSIS' || (!i.analyzedAt && i.applicabilityStatus === 'NOT_DETERMINED')
+    );
+    if (pendingAnalysisAds.length > 0) {
+      warningIssues.push(
+        `${pendingAnalysisAds.length} Diretriz(es) de Aeronavegabilidade (AD) constam como PENDENTES DE ANÁLISE no CAMO Regulatory Register. Liberação técnica definitiva condicionada à conclusão da análise individual.`
+      );
+    }
+
     const snapshotId = `snap-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
 
     const snapshotPayload = {
@@ -1080,7 +1188,8 @@ export class AircraftDeliveryAssessmentEngine {
         dueSoon: metrics.complianceBreakdown.dueSoon,
         reviewRequired: metrics.complianceBreakdown.reviewRequired,
         notApplicable: metrics.complianceBreakdown.notApplicable,
-        superseded: metrics.complianceBreakdown.superseded
+        superseded: metrics.complianceBreakdown.superseded,
+        pendingAnalysis: pendingAnalysisAds.length
       },
       confrontationSummary: {
         matches: metrics.confrontationBreakdown.matchCount,

@@ -17,7 +17,16 @@ import {
   RegulatorySourceType,
   RegulatoryDiscoveryDiagnostic,
   AuthorityDiscoveryDiagnostic,
-  RegulatorySourceConnectionStatus
+  RegulatorySourceConnectionStatus,
+  CamoRegulatoryRecord,
+  DiscoveredRegulatoryAd,
+  FleetRegulatoryIntakeParams,
+  FleetRegulatoryIntakeResult,
+  ImportToRegisterInput,
+  ImportToRegisterResult,
+  RegulatoryDeltaClassification,
+  RegulatoryRegisterAnalysisStatus,
+  RegulatoryRegisterVersionHistory
 } from '../../src/types';
 import { camoDb } from '../dataStore';
 import { 
@@ -1934,6 +1943,662 @@ export class RegulatoryIntelligenceEngine {
           candidate.summary ? `Summary:\n${candidate.summary}` : ''
         ].filter(Boolean).join('\n\n'),
         documentHash: crypto.createHash('sha256').update(candidate.adNumber + (candidate.rawApplicabilityText || '')).digest('hex')
+      }
+    };
+  }
+
+  // ==========================================================================
+  // FASE 9 — ETAPA 5: REGULATORY INTAKE, CAMO REGISTER & ANALYSIS QUEUE METHODS
+  // ==========================================================================
+
+  public calculateCanonicalAdId(authority: string, adNumber: string): string {
+    const authClean = (authority || 'FAA').trim().toLowerCase();
+    const adClean = (adNumber || 'UNKNOWN').trim().replace(/[^a-zA-Z0-9-]/g, '-').replace(/-+/g, '-').toLowerCase();
+    return `reg-${authClean}-${adClean}`;
+  }
+
+  public calculateAdSha256(ad: {
+    authority: string;
+    adNumber: string;
+    title?: string;
+    rawApplicabilityText?: string;
+    modelScope?: string[];
+    effectiveDate?: string;
+    issueDate?: string;
+  }): string {
+    const normalizedString = [
+      (ad.authority || '').trim().toUpperCase(),
+      (ad.adNumber || '').trim().toUpperCase(),
+      (ad.title || '').trim().toLowerCase(),
+      (ad.rawApplicabilityText || '').trim().toLowerCase(),
+      (ad.modelScope || []).slice().sort().join(',').toLowerCase(),
+      (ad.effectiveDate || '').trim(),
+      (ad.issueDate || '').trim()
+    ].join('||');
+    return crypto.createHash('sha256').update(normalizedString).digest('hex');
+  }
+
+  public extractAtaChapter(title: string = '', rawText: string = ''): string {
+    const combined = `${title} ${rawText}`.toLowerCase();
+    const explicitMatch = combined.match(/ata[\s-]?(\d{2})/i);
+    if (explicitMatch && explicitMatch[1]) {
+      return explicitMatch[1];
+    }
+    if (combined.includes('landing gear') || combined.includes('mlg') || combined.includes('nlg') || combined.includes('bogie') || combined.includes('wheel') || combined.includes('brake')) return '32';
+    if (combined.includes('flight control') || combined.includes('elevator') || combined.includes('aileron') || combined.includes('rudder') || combined.includes('flap') || combined.includes('slat') || combined.includes('spoiler')) return '27';
+    if (combined.includes('engine') || combined.includes('turbine') || combined.includes('fan blade') || combined.includes('hpt') || combined.includes('rotor') || combined.includes('compressor')) return '72';
+    if (combined.includes('hydraulic') || combined.includes('rat') || combined.includes('ram air turbine')) return '29';
+    if (combined.includes('fuel') || combined.includes('shroud') || combined.includes('fuel tank') || combined.includes('feed line')) return '28';
+    if (combined.includes('navigation') || combined.includes('aoa') || combined.includes('angle of attack') || combined.includes('pitot') || combined.includes('altimeter') || combined.includes('avionics')) return '34';
+    if (combined.includes('electrical') || combined.includes('generator') || combined.includes('battery') || combined.includes('bus')) return '24';
+    if (combined.includes('air conditioning') || combined.includes('pressurization') || combined.includes('ozone') || combined.includes('bleed')) return '21';
+    if (combined.includes('fire') || combined.includes('extinguish') || combined.includes('smoke')) return '26';
+    if (combined.includes('door') || combined.includes('cargo door')) return '52';
+    if (combined.includes('wing')) return '57';
+    if (combined.includes('fuselage')) return '53';
+    if (combined.includes('empennage') || combined.includes('stabilizer')) return '55';
+    if (combined.includes('apu') || combined.includes('auxiliary power')) return '49';
+    if (combined.includes('software') || combined.includes('fcc') || combined.includes('computer')) return '22';
+    if (combined.includes('oxygen')) return '35';
+    if (combined.includes('lights') || combined.includes('lighting')) return '33';
+    return '05';
+  }
+
+  /**
+   * Fleet Regulatory Discovery + Delta Comparison with CAMO Register
+   */
+  public async searchFleetAndCompareWithRegister(
+    params: FleetRegulatoryIntakeParams
+  ): Promise<FleetRegulatoryIntakeResult> {
+    const discoveryResult = await this.searchCandidatesByFamilyOrModel({
+      make: params.manufacturer,
+      manufacturer: params.manufacturer,
+      family: params.family,
+      model: params.model,
+      variant: params.variant,
+      authority: params.authority,
+      query: params.query,
+      page: params.page,
+      perPage: params.perPage,
+      maxPages: params.maxPages,
+      autoPaginate: params.autoPaginate !== false
+    });
+
+    const state = camoDb.getState();
+    const register = state.camoRegulatoryRegister || [];
+
+    let newCount = 0;
+    let unchangedCount = 0;
+    let updatedCount = 0;
+    let supersededCount = 0;
+    let revokedCount = 0;
+    let reviewRequiredCount = 0;
+
+    const enrichedCandidates: DiscoveredRegulatoryAd[] = discoveryResult.candidates.map(candidate => {
+      const candidateSha = this.calculateAdSha256(candidate);
+      const ata = this.extractAtaChapter(candidate.title, candidate.rawApplicabilityText);
+      const canonicalAdId = this.calculateCanonicalAdId(candidate.authority, candidate.adNumber);
+
+      // Find in existing register
+      const existing = register.find(r => 
+        (r.authority.toUpperCase() === candidate.authority.toUpperCase() && 
+         r.adNumber.trim().toUpperCase() === candidate.adNumber.trim().toUpperCase()) ||
+        r.id === canonicalAdId ||
+        r.canonicalAdId === canonicalAdId
+      );
+
+      let deltaStatus: RegulatoryDeltaClassification = 'NEW';
+      let inRegister = false;
+      let registerId: string | undefined = undefined;
+      let registerAnalysisStatus: RegulatoryRegisterAnalysisStatus | undefined = undefined;
+
+      if (!existing) {
+        deltaStatus = 'NEW';
+        inRegister = false;
+        newCount++;
+      } else {
+        inRegister = true;
+        registerId = existing.id;
+        registerAnalysisStatus = existing.analysisStatus;
+
+        if (existing.officialStatus === 'SUPERSEDED' || (candidate as any).officialStatus === 'SUPERSEDED' || candidate.lifecycleStatus === 'SUPERSEDED') {
+          deltaStatus = 'SUPERSEDED';
+          supersededCount++;
+        } else if (existing.officialStatus === 'REVOKED' || (candidate as any).officialStatus === 'REVOKED' || candidate.lifecycleStatus === 'REVOKED') {
+          deltaStatus = 'REVOKED';
+          revokedCount++;
+        } else if (existing.sha256 && existing.sha256 === candidateSha) {
+          deltaStatus = 'UNCHANGED';
+          unchangedCount++;
+        } else if (!existing.sha256) {
+          const isSame = 
+            existing.title.trim().toLowerCase() === (candidate.title || '').trim().toLowerCase() &&
+            (existing.effectiveDate || '') === (candidate.effectiveDate || '') &&
+            (existing.rawApplicabilityText || '').trim() === (candidate.rawApplicabilityText || '').trim();
+          if (isSame) {
+            deltaStatus = 'UNCHANGED';
+            unchangedCount++;
+          } else {
+            deltaStatus = 'UPDATED';
+            updatedCount++;
+          }
+        } else {
+          deltaStatus = 'UPDATED';
+          updatedCount++;
+        }
+      }
+
+      return {
+        ...candidate,
+        canonicalAdId,
+        deltaStatus,
+        deltaClassification: deltaStatus,
+        inRegister,
+        registerId,
+        registerAnalysisStatus,
+        ataChapter: ata,
+        sha256: candidateSha
+      };
+    });
+
+    // Merge any registered ADs that match the fleet but were not in discovery candidates
+    for (const reg of register) {
+      const canonicalAdId = reg.canonicalAdId || this.calculateCanonicalAdId(reg.authority, reg.adNumber);
+      const alreadyIncluded = enrichedCandidates.some(c => 
+        c.canonicalAdId === canonicalAdId || 
+        (c.authority.toUpperCase() === reg.authority.toUpperCase() && c.adNumber.trim().toUpperCase() === reg.adNumber.trim().toUpperCase()) ||
+        c.id === reg.id
+      );
+
+      if (alreadyIncluded) continue;
+
+      // Check if reg matches the fleet query
+      const regFam = (reg.family || '').toUpperCase();
+      const regMfg = (reg.manufacturer || '').toUpperCase();
+      const regModels = (reg.modelScope || []).map(m => m.toUpperCase());
+      const sFam = (params.family || '').toUpperCase();
+      const sMfg = (params.manufacturer || '').toUpperCase();
+      const sModel = (params.model || '').toUpperCase();
+
+      const mfgMatch = !sMfg || !regMfg || regMfg.includes(sMfg) || sMfg.includes(regMfg) || regMfg === 'VARIOUS';
+      const famMatch = !sFam || sFam === 'OPEN_MODEL' || regFam.includes(sFam) || sFam.includes(regFam) ||
+        (sFam.includes('737') && regFam.includes('737')) ||
+        (sFam.includes('320') && regFam.includes('320'));
+      const modelMatch = !sModel || regModels.length === 0 || 
+        regModels.some(m => matchesModel(m, [sModel])) ||
+        reg.title.toUpperCase().includes(sModel) ||
+        (reg.rawApplicabilityText || '').toUpperCase().includes(sModel);
+
+      if (mfgMatch && famMatch && modelMatch) {
+        let deltaStatus: RegulatoryDeltaClassification = 'UNCHANGED';
+        if (reg.officialStatus === 'SUPERSEDED') deltaStatus = 'SUPERSEDED';
+        else if (reg.officialStatus === 'REVOKED') deltaStatus = 'REVOKED';
+
+        if (deltaStatus === 'UNCHANGED') unchangedCount++;
+        else if (deltaStatus === 'SUPERSEDED') supersededCount++;
+        else if (deltaStatus === 'REVOKED') revokedCount++;
+
+        const candidateAnalysisStatus = (reg.analysisStatus === 'REVIEW_REQUIRED' ? 'PENDING_ANALYSIS' : reg.analysisStatus) as ('FAILED' | 'ANALYZED' | 'PENDING_ANALYSIS' | undefined);
+
+        enrichedCandidates.push({
+          id: reg.id || `reg-${reg.authority}-${reg.adNumber}`,
+          adNumber: reg.adNumber,
+          authority: reg.authority,
+          title: reg.title,
+          issueDate: reg.issueDate,
+          effectiveDate: reg.effectiveDate,
+          manufacturer: reg.manufacturer || params.manufacturer || 'Various',
+          family: reg.family || params.family,
+          modelScope: reg.modelScope || (params.model ? [params.model] : []),
+          rawApplicabilityText: reg.rawApplicabilityText || reg.title,
+          sourceUrl: reg.sourceUrl,
+          docketNumber: reg.officialDocumentNumber,
+          source: ((reg as any).source || 'FEDERAL_REGISTER') as any,
+          status: 'SCREENED',
+          analysisStatus: candidateAnalysisStatus,
+          discoveryTimestamp: (reg as any).createdAt || (reg as any).intakeTimestamp || new Date().toISOString(),
+          canonicalAdId,
+          deltaStatus,
+          deltaClassification: deltaStatus,
+          inRegister: true,
+          registerId: reg.id,
+          registerAnalysisStatus: reg.analysisStatus,
+          ataChapter: reg.ataChapter,
+          sha256: reg.sha256
+        });
+      }
+    }
+
+    const totalCount = enrichedCandidates.length;
+    const importedCount = enrichedCandidates.filter(c => c.inRegister).length;
+    const notImportedCount = enrichedCandidates.filter(c => !c.inRegister).length;
+    const pendingAnalysisCount = enrichedCandidates.filter(c => c.registerAnalysisStatus === 'PENDING_ANALYSIS').length;
+    const analyzedCount = enrichedCandidates.filter(c => c.registerAnalysisStatus === 'ANALYZED').length;
+    const computedReviewRequiredCount = enrichedCandidates.filter(c => c.registerAnalysisStatus === 'REVIEW_REQUIRED' || c.deltaStatus === 'REVIEW_REQUIRED').length;
+
+    camoDb.logAudit({
+      user: 'CAMO Regulatory Intake',
+      role: 'REGULATORY_INTELLIGENCE',
+      action: 'REGULATORY_SEARCH_EXECUTED',
+      entityType: 'RegulatorySearch',
+      entityId: `search-${Date.now()}`,
+      details: `Pesquisa regulatória executada para frota: ${params.manufacturer || ''} ${params.family || ''} ${params.model || ''}. ${enrichedCandidates.length} ADs retornadas (${newCount} novas, ${unchangedCount} inalteradas, ${updatedCount} atualizadas). Fontes: ${discoveryResult.sourcesConsulted.join(', ')}.`
+    });
+
+    return {
+      candidates: enrichedCandidates,
+      totalCount,
+      importedCount,
+      notImportedCount,
+      pendingAnalysisCount,
+      analyzedCount,
+      newCount,
+      unchangedCount,
+      updatedCount,
+      supersededCount,
+      revokedCount,
+      reviewRequiredCount: computedReviewRequiredCount || reviewRequiredCount,
+      fleetContext: {
+        manufacturer: params.manufacturer,
+        family: params.family,
+        model: params.model,
+        variant: params.variant,
+        engine: params.engine,
+        registration: params.registration,
+        msn: params.msn,
+        rawQuery: params.query
+      },
+      sourcesConsulted: discoveryResult.sourcesConsulted,
+      diagnostic: discoveryResult.diagnostic,
+      diagnosticReportText: discoveryResult.diagnosticReportText,
+      timestamp: new Date().toISOString()
+    };
+  }
+
+  /**
+   * Idempotent import to CAMO Regulatory Register.
+   * ADs are registered explicitly with analysisStatus: 'PENDING_ANALYSIS'.
+   * Never triggers automatic Gemini or Compliance creation.
+   */
+  public async importCandidatesToCamoRegister(
+    input: ImportToRegisterInput
+  ): Promise<ImportToRegisterResult> {
+    const state = camoDb.getState();
+    const actor = input.actor || state.currentUser.name || 'CAMO Technical Officer';
+    const now = new Date().toISOString();
+
+    let candidatesToProcess: RegulatoryAdCandidate[] = [];
+
+    if (input.candidates && input.candidates.length > 0) {
+      candidatesToProcess = input.candidates;
+    } else if (input.searchParams) {
+      const searchResult = await this.searchCandidatesByFamilyOrModel({
+        make: input.searchParams.manufacturer,
+        manufacturer: input.searchParams.manufacturer,
+        family: input.searchParams.family,
+        model: input.searchParams.model,
+        variant: input.searchParams.variant,
+        authority: input.searchParams.authority,
+        query: input.searchParams.query,
+        page: input.searchParams.page,
+        perPage: input.searchParams.perPage,
+        maxPages: input.searchParams.maxPages,
+        autoPaginate: true
+      });
+      candidatesToProcess = searchResult.candidates;
+    } else {
+      candidatesToProcess = state.adCandidates || [];
+    }
+
+    if (input.candidateIds && input.candidateIds.length > 0) {
+      const idSet = new Set(input.candidateIds);
+      candidatesToProcess = candidatesToProcess.filter(c => idSet.has(c.id) || idSet.has(c.adNumber));
+    }
+
+    let importedNew = 0;
+    let skippedExisting = 0;
+    let updated = 0;
+    const affectedRecords: CamoRegulatoryRecord[] = [];
+
+    camoDb.update(draft => {
+      if (!draft.camoRegulatoryRegister) {
+        draft.camoRegulatoryRegister = [];
+      }
+
+      for (const cand of candidatesToProcess) {
+        if (!cand || !cand.authority || !cand.adNumber) {
+          continue;
+        }
+        const canonicalId = this.calculateCanonicalAdId(cand.authority, cand.adNumber);
+        const candSha = this.calculateAdSha256(cand);
+        const ata = this.extractAtaChapter(cand.title, cand.rawApplicabilityText);
+
+        const existingIdx = draft.camoRegulatoryRegister.findIndex(r => 
+          r.id === canonicalId ||
+          (r.authority.toUpperCase() === cand.authority.toUpperCase() && 
+           r.adNumber.trim().toUpperCase() === cand.adNumber.trim().toUpperCase())
+        );
+
+        if (existingIdx >= 0) {
+          const existing = draft.camoRegulatoryRegister[existingIdx];
+          const isContentChanged = existing.sha256 ? (existing.sha256 !== candSha) : (
+            existing.title.trim() !== cand.title.trim() ||
+            (existing.effectiveDate || '') !== (cand.effectiveDate || '') ||
+            (existing.rawApplicabilityText || '').trim() !== (cand.rawApplicabilityText || '').trim()
+          );
+
+          if (isContentChanged) {
+            if (!existing.versionHistory) existing.versionHistory = [];
+            existing.versionHistory.push({
+              version: existing.version,
+              changedAt: now,
+              changedBy: actor,
+              changesSummary: `Atualização regulatória detectada da fonte ${cand.source}. Metadados/conteúdo alterados.`,
+              previousSha256: existing.sha256,
+              previousPayload: existing.originalPayload,
+              previousAnalysisStatus: existing.analysisStatus,
+              reReviewRequired: existing.analysisStatus === 'ANALYZED'
+            });
+
+            existing.version += 1;
+            existing.title = cand.title;
+            existing.rawApplicabilityText = cand.rawApplicabilityText;
+            existing.modelScope = cand.modelScope;
+            existing.effectiveDate = cand.effectiveDate;
+            existing.issueDate = cand.issueDate;
+            existing.sourceUrl = cand.sourceUrl || existing.sourceUrl;
+            existing.sha256 = candSha;
+            existing.lastChangedAt = now;
+            existing.lastSeenAt = now;
+            existing.deltaStatus = 'UPDATED';
+
+            // If it was already analyzed, require re-review because the regulatory document changed!
+            if (existing.analysisStatus === 'ANALYZED') {
+              existing.analysisStatus = 'REVIEW_REQUIRED';
+            }
+
+            if (!existing.auditTrail) existing.auditTrail = [];
+            existing.auditTrail.unshift({
+              timestamp: now,
+              action: 'REGULATORY_UPDATED',
+              actor,
+              details: `Nova versão v${existing.version} da AD incorporada ao registro CAMO. Histórico preservado.`
+            });
+
+            updated++;
+            affectedRecords.push(existing);
+          } else {
+            // UNCHANGED: Idempotent skip, do NOT duplicate, do NOT re-analyze!
+            existing.lastSeenAt = now;
+            existing.deltaStatus = 'UNCHANGED';
+            skippedExisting++;
+            affectedRecords.push(existing);
+          }
+        } else {
+          // BRAND NEW: Register strictly as PENDING_ANALYSIS
+          const newRecord: CamoRegulatoryRecord = {
+            id: canonicalId,
+            canonicalAdId: canonicalId,
+            authority: cand.authority,
+            adNumber: cand.adNumber,
+            officialDocumentNumber: cand.docketNumber || cand.id,
+            title: cand.title,
+            manufacturer: cand.manufacturer,
+            family: cand.family || '',
+            modelScope: cand.modelScope || [],
+            ataChapter: ata,
+            issueDate: cand.issueDate,
+            publicationDate: cand.issueDate,
+            effectiveDate: cand.effectiveDate,
+            officialStatus: (cand as any).officialStatus === 'SUPERSEDED' || cand.lifecycleStatus === 'SUPERSEDED' ? 'SUPERSEDED' : 'ACTIVE',
+            sourceUrl: cand.sourceUrl,
+            sourceType: cand.source,
+            sourceIdentifier: cand.docketNumber || cand.adNumber,
+            originalPayload: cand,
+            sha256: candSha,
+            firstSeenAt: now,
+            lastSeenAt: now,
+            lastChangedAt: now,
+            retrievedAt: cand.retrievedAt || cand.discoveryTimestamp || now,
+            searchContext: {
+              family: cand.family,
+              model: cand.modelScope?.[0] || '',
+              manufacturer: cand.manufacturer
+            },
+            version: 1,
+            versionHistory: [],
+            deltaStatus: 'NEW',
+            analysisStatus: 'PENDING_ANALYSIS', // CRITICAL: strictly PENDING_ANALYSIS
+            operationalPriority: cand.operationalPriority || 'HIGH',
+            auditTrail: [
+              {
+                timestamp: now,
+                action: 'REGULATORY_RESULT_IMPORTED',
+                actor,
+                details: `AD ${cand.adNumber} (${cand.authority}) incorporada ao CAMO Regulatory Register. Status inicial: PENDENTE DE ANÁLISE.`
+              }
+            ]
+          };
+
+          draft.camoRegulatoryRegister.unshift(newRecord);
+          importedNew++;
+          affectedRecords.push(newRecord);
+        }
+      }
+    });
+
+    camoDb.logAudit({
+      user: actor,
+      role: state.currentUser.role,
+      action: 'REGULATORY_RESULT_IMPORTED',
+      entityType: 'CamoRegulatoryRegister',
+      entityId: `import-${Date.now()}`,
+      details: `Importação de inteligência regulatória concluída: ${importedNew} novas ADs registradas como PENDENTE DE ANÁLISE, ${skippedExisting} inalteradas mantidas sem duplicata, ${updated} atualizadas com histórico de versão.`
+    });
+
+    const finalState = camoDb.getState();
+    return {
+      totalConsidered: candidatesToProcess.length,
+      importedNew,
+      importedCount: importedNew,
+      skippedExisting,
+      unchangedCount: skippedExisting,
+      updated,
+      updatedCount: updated,
+      camoRegisterTotal: (finalState.camoRegulatoryRegister || []).length,
+      records: affectedRecords
+    };
+  }
+
+  /**
+   * Analysis Queue Operational Execution:
+   * Analyzes an individual AD from the CAMO Regulatory Register.
+   * Transitions status from PENDING_ANALYSIS -> ANALYZED.
+   */
+  public async analyzeRegisterRecord(
+    recordIdOrInput: string | { registerRecordId?: string; adNumber?: string; actor?: string },
+    actorArg?: string
+  ): Promise<{
+    success: boolean;
+    record: CamoRegulatoryRecord;
+    requirement: ComplianceRequirement;
+    knowledgeItem: RegulatoryKnowledgeItem;
+  }> {
+    const recordIdOrAdNumber = typeof recordIdOrInput === 'string' 
+      ? recordIdOrInput 
+      : (recordIdOrInput.registerRecordId || recordIdOrInput.adNumber || '');
+    const actor = typeof recordIdOrInput === 'object' && recordIdOrInput.actor 
+      ? recordIdOrInput.actor 
+      : actorArg;
+
+    const state = camoDb.getState();
+    const register = state.camoRegulatoryRegister || [];
+    const record = register.find(r => 
+      r.id === recordIdOrAdNumber ||
+      r.adNumber.toLowerCase() === recordIdOrAdNumber.toLowerCase() ||
+      r.id === this.calculateCanonicalAdId(r.authority, recordIdOrAdNumber)
+    );
+
+    if (!record) {
+      throw new Error(`Registro regulatório '${recordIdOrAdNumber}' não encontrado no CAMO Register.`);
+    }
+
+    const effectiveActor = actor || state.currentUser.name || 'CAMO Technical Analyst';
+    const now = new Date().toISOString();
+
+    const candidate: RegulatoryAdCandidate = {
+      id: record.id,
+      authority: record.authority,
+      adNumber: record.adNumber,
+      title: record.title,
+      effectiveDate: record.effectiveDate || '',
+      issueDate: record.issueDate,
+      manufacturer: record.manufacturer,
+      family: record.family,
+      modelScope: record.modelScope,
+      rawApplicabilityText: record.rawApplicabilityText || `Applies to ${record.manufacturer} ${record.family} aircraft.`,
+      source: (record.sourceType as any) || 'FEDERAL_REGISTER',
+      sourceUrl: record.sourceUrl || '',
+      docketNumber: record.officialDocumentNumber,
+      status: 'DISCOVERED',
+      analysisStatus: 'PENDING_ANALYSIS',
+      operationalPriority: record.operationalPriority || 'HIGH',
+      discoveryTimestamp: record.retrievedAt || new Date().toISOString(),
+      retrievedAt: record.retrievedAt
+    };
+
+    camoDb.update(draft => {
+      if (!draft.adCandidates) draft.adCandidates = [];
+      const candIdx = draft.adCandidates.findIndex(c => c.id === candidate.id || c.adNumber.toLowerCase() === candidate.adNumber.toLowerCase());
+      if (candIdx >= 0) {
+        draft.adCandidates[candIdx] = { ...draft.adCandidates[candIdx], ...candidate };
+      } else {
+        draft.adCandidates.push(candidate);
+      }
+    });
+
+    const analysisResult = await this.analyzeCandidateAd(candidate.id, effectiveActor);
+
+    let updatedRecord!: CamoRegulatoryRecord;
+    camoDb.update(draft => {
+      const regIdx = (draft.camoRegulatoryRegister || []).findIndex(r => r.id === record.id);
+      if (regIdx >= 0) {
+        const target = draft.camoRegulatoryRegister![regIdx];
+        target.analysisStatus = 'ANALYZED';
+        target.analysisId = analysisResult.requirement.id;
+        target.analyzedRequirementId = analysisResult.requirement.id;
+        target.knowledgeId = analysisResult.knowledgeItem.id;
+        target.lastChangedAt = now;
+        if (!target.auditTrail) target.auditTrail = [];
+        target.auditTrail.unshift({
+          timestamp: now,
+          action: 'ANALYSIS_COMPLETED',
+          actor: effectiveActor,
+          details: `Análise técnica da AD concluída individualmente na Fila de Análise do CAMO. Requisito ID: ${analysisResult.requirement.id}.`
+        });
+        updatedRecord = target;
+      }
+    });
+
+    return {
+      success: true,
+      record: updatedRecord || record,
+      requirement: analysisResult.requirement,
+      knowledgeItem: analysisResult.knowledgeItem
+    };
+  }
+
+  /**
+   * Get filtered records and statistics from CAMO Regulatory Register
+   */
+  public getRegisterRecords(filters?: {
+    family?: string;
+    model?: string;
+    manufacturer?: string;
+    authority?: string;
+    ataChapter?: string;
+    analysisStatus?: string;
+    deltaStatus?: string;
+    search?: string;
+  }): {
+    records: CamoRegulatoryRecord[];
+    total: number;
+    metrics: {
+      total: number;
+      newCount: number;
+      pendingCount: number;
+      analyzedCount: number;
+      reviewRequiredCount: number;
+      failedCount: number;
+      updatedCount: number;
+      supersededCount: number;
+      revokedCount: number;
+    };
+  } {
+    const state = camoDb.getState();
+    let list = state.camoRegulatoryRegister || [];
+
+    const total = list.length;
+    const newCount = list.filter(r => r.deltaStatus === 'NEW').length;
+    const pendingCount = list.filter(r => r.analysisStatus === 'PENDING_ANALYSIS').length;
+    const analyzedCount = list.filter(r => r.analysisStatus === 'ANALYZED').length;
+    const reviewRequiredCount = list.filter(r => r.analysisStatus === 'REVIEW_REQUIRED').length;
+    const failedCount = list.filter(r => r.analysisStatus === 'FAILED').length;
+    const updatedCount = list.filter(r => r.deltaStatus === 'UPDATED').length;
+    const supersededCount = list.filter(r => r.officialStatus === 'SUPERSEDED' || r.deltaStatus === 'SUPERSEDED').length;
+    const revokedCount = list.filter(r => r.officialStatus === 'REVOKED' || r.deltaStatus === 'REVOKED').length;
+
+    if (filters) {
+      if (filters.family) {
+        const famClean = filters.family.trim().toUpperCase();
+        list = list.filter(r => r.family.toUpperCase().includes(famClean));
+      }
+      if (filters.model) {
+        const modClean = filters.model.trim().toUpperCase();
+        list = list.filter(r => r.modelScope.some(m => m.toUpperCase().includes(modClean)) || r.title.toUpperCase().includes(modClean));
+      }
+      if (filters.manufacturer) {
+        const mfgClean = filters.manufacturer.trim().toUpperCase();
+        list = list.filter(r => r.manufacturer.toUpperCase().includes(mfgClean));
+      }
+      if (filters.authority && filters.authority !== 'ALL') {
+        const authClean = filters.authority.trim().toUpperCase();
+        list = list.filter(r => r.authority.toUpperCase() === authClean);
+      }
+      if (filters.ataChapter && filters.ataChapter !== 'ALL') {
+        list = list.filter(r => r.ataChapter === filters.ataChapter);
+      }
+      if (filters.analysisStatus && filters.analysisStatus !== 'ALL') {
+        list = list.filter(r => r.analysisStatus === filters.analysisStatus);
+      }
+      if (filters.deltaStatus && filters.deltaStatus !== 'ALL') {
+        list = list.filter(r => r.deltaStatus === filters.deltaStatus);
+      }
+      if (filters.search) {
+        const q = filters.search.trim().toLowerCase();
+        list = list.filter(r => 
+          r.adNumber.toLowerCase().includes(q) ||
+          r.title.toLowerCase().includes(q) ||
+          r.manufacturer.toLowerCase().includes(q) ||
+          r.family.toLowerCase().includes(q) ||
+          (r.ataChapter && r.ataChapter.includes(q))
+        );
+      }
+    }
+
+    return {
+      records: list,
+      total: list.length,
+      metrics: {
+        total,
+        newCount,
+        pendingCount,
+        analyzedCount,
+        reviewRequiredCount,
+        failedCount,
+        updatedCount,
+        supersededCount,
+        revokedCount
       }
     };
   }

@@ -81,3 +81,34 @@ FAPT Compliance Sheet & Technical Airworthiness Status
 
 Para aprofundamento completo, consulte o documento executivo:
 `DOSSIE_ARQUITETURA_SISTEMA_CAMO.md`
+
+---
+
+### Fase 9 — Etapa 5: Fleet Intake, CAMO Register, Fila de Análise e Delivery
+
+#### 1. Screening Regulatório por Frota
+* **Entrada**: Especificação da frota por OEM, modelo, variante, família de motores e matrículas.
+* **Consulta Multi-Autoridade**: Varredura em FAA (Dynamic Regulatory System & Federal Register), EASA (Safety Publications) e ANAC.
+* **Comparação com Banco Interno**: Detecção e classificação de cada AD encontrada em:
+  * `NOVA`: Não existe no registro do CAMO.
+  * `INALTERADA`: Já cadastrada com mesmo payload/hash e em análise/concluída.
+  * `ATUALIZADA`: Mesma identificação oficial porém com revisão ou payload divergente.
+  * `SUPERSEDED`: AD anterior substituída por novo mandamento.
+  * `REVOKED`: Mandamento revogado pela autoridade de emissão.
+
+#### 2. Importação Idempotente para o Registro do CAMO
+* **Princípio Fundamental**: Importar uma AD para o CAMO **NÃO** significa que ela é aplicável nem que foi analisada.
+* **Proibição Estrita de Auto-Gemini**: A importação persiste os metadados técnicos brutos (identificador canônico `authority:adNumber`, payload, hash SHA-256) com status compulsório:
+  ```
+  analysisStatus: "PENDING_ANALYSIS"
+  ```
+* **Garantia de Idempotência**: Se o operador pesquisar e importar a mesma AD repetidamente, nenhuma duplicata é criada. Atualizações de payload geram incrementos de versão (`v1` → `v2`) preservando o histórico probatório.
+
+#### 3. Fila Operacional de Análise
+* Tela operacional dedicada com filtros por status (`PENDING_ANALYSIS`, `IN_ANALYSIS`, `ANALYZED`, `REJECTED`), autoridade e criticidade.
+* Acionamento individual de análise via Gemini 3.7 Flash / Extrator CAMO, gerando regras de aplicabilidade determinísticas e migração para a Base de Conhecimento Regulatório.
+
+#### 4. Integração com Relatório de Delivery
+* O motor de avaliação de delivery (`AircraftDeliveryAssessmentEngine`) inclui obrigatoriamente todos os registros ativos do CAMO Register no inventário inicial da aeronave.
+* ADs com status `PENDING_ANALYSIS` permanecem explicitamente sinalizadas como `NOT_DETERMINED` e `PENDENTE DE ANÁLISE`, prevenindo que itens não analisados desapareçam ou recebam aprovação tácita indevida.
+

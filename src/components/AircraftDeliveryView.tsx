@@ -338,7 +338,8 @@ export default function AircraftDeliveryView({ state, onRefreshState, onSelectAd
       (statusFilter === 'MATCH' && item.confrontationStatus === 'MATCH') ||
       (statusFilter === 'DISCREPANCY' && item.confrontationStatus === 'DISCREPANCY') ||
       (statusFilter === 'PENDING_DOCS' && item.confrontationStatus === 'PENDING_DOCUMENTATION') ||
-      (statusFilter === 'UNVERIFIED' && item.confrontationStatus === 'UNVERIFIED');
+      (statusFilter === 'UNVERIFIED' && item.confrontationStatus === 'UNVERIFIED') ||
+      (statusFilter === 'PENDING_ANALYSIS' && (item.registerAnalysisStatus === 'PENDING_ANALYSIS' || item.confrontationStatus === 'PENDING_ANALYSIS' || item.applicabilityStatus === 'NOT_DETERMINED'));
 
     const matchesPriority = 
       priorityFilter === 'ALL' || item.operationalPriority === priorityFilter;
@@ -350,6 +351,11 @@ export default function AircraftDeliveryView({ state, onRefreshState, onSelectAd
   const discrepancyCount = items.filter(i => i.confrontationStatus === 'DISCREPANCY').length;
   const pendingDocsCount = items.filter(i => i.confrontationStatus === 'PENDING_DOCUMENTATION').length;
   const unverifiedCount = items.filter(i => i.confrontationStatus === 'UNVERIFIED').length;
+  const pendingAnalysisCount = items.filter(i => 
+    i.registerAnalysisStatus === 'PENDING_ANALYSIS' || 
+    i.confrontationStatus === 'PENDING_ANALYSIS' || 
+    i.applicabilityStatus === 'NOT_DETERMINED'
+  ).length;
 
   return (
     <div className="p-6 space-y-6 max-w-7xl mx-auto">
@@ -528,9 +534,9 @@ export default function AircraftDeliveryView({ state, onRefreshState, onSelectAd
         </div>
       )}
 
-      {/* 4 Confrontation Metric Cards */}
+      {/* 5 Confrontation & Status Metric Cards */}
       {activeAssessment && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
           {/* Card 1: Matches */}
           <div className="bg-slate-900/60 border border-emerald-500/20 rounded-xl p-4 backdrop-blur-sm relative overflow-hidden">
             <div className="flex items-center justify-between">
@@ -576,7 +582,22 @@ export default function AircraftDeliveryView({ state, onRefreshState, onSelectAd
             <p className="text-[11px] text-slate-500 mt-1">Lessor claimed COMPLIED without valid CRS</p>
           </div>
 
-          {/* Card 4: Total Baseline ADs */}
+          {/* Card 4: Pendentes de Análise */}
+          <div className="bg-slate-900/60 border border-amber-500/30 rounded-xl p-4 backdrop-blur-sm relative overflow-hidden">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-medium text-amber-300">Pendente de Análise</span>
+              <span className="p-2 rounded-lg bg-amber-500/10 text-amber-400">
+                <Clock className="w-4 h-4" />
+              </span>
+            </div>
+            <div className="mt-2 flex items-baseline gap-2">
+              <span className="text-2xl font-bold text-amber-400">{pendingAnalysisCount}</span>
+              <span className="text-[11px] text-amber-300 font-medium">No Register</span>
+            </div>
+            <p className="text-[11px] text-slate-500 mt-1">ADs aguardando análise técnica no CAMO</p>
+          </div>
+
+          {/* Card 5: Total Baseline ADs */}
           <div className="bg-slate-900/60 border border-indigo-500/20 rounded-xl p-4 backdrop-blur-sm relative overflow-hidden">
             <div className="flex items-center justify-between">
               <span className="text-xs font-medium text-slate-400">Discovered Baseline</span>
@@ -628,6 +649,7 @@ export default function AircraftDeliveryView({ state, onRefreshState, onSelectAd
                 className="bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white focus:ring-1 focus:ring-indigo-500"
               >
                 <option value="ALL">All Confrontation Statuses</option>
+                <option value="PENDING_ANALYSIS">PENDENTE DE ANÁLISE (CAMO Register)</option>
                 <option value="MATCH">MATCH (Consistent)</option>
                 <option value="DISCREPANCY">DISCREPANCY (Conflict)</option>
                 <option value="PENDING_DOCS">PENDING_DOCUMENTATION</option>
@@ -679,6 +701,11 @@ export default function AircraftDeliveryView({ state, onRefreshState, onSelectAd
                           <span className="text-[10px] font-semibold px-1.5 py-0.2 rounded bg-slate-800 text-slate-400 border border-slate-700">
                             {item.issuingAuthority}
                           </span>
+                          {item.ataChapter && (
+                            <span className="text-[9px] font-mono px-1 rounded bg-indigo-500/10 text-indigo-300 border border-indigo-500/30">
+                              ATA {item.ataChapter}
+                            </span>
+                          )}
                         </div>
                         <p className="text-[11px] text-slate-400 line-clamp-1 max-w-sm mt-0.5" title={item.title}>
                           {item.title}
@@ -686,15 +713,26 @@ export default function AircraftDeliveryView({ state, onRefreshState, onSelectAd
                       </td>
 
                       <td className="py-3 px-3">
-                        <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-semibold ${
-                          item.applicabilityStatus === 'APPLICABILITY_CONFIRMED'
-                            ? 'bg-emerald-500/10 text-emerald-300 border border-emerald-500/30'
-                            : item.applicabilityStatus === 'NOT_APPLICABLE'
-                            ? 'bg-slate-700/50 text-slate-400'
-                            : 'bg-amber-500/10 text-amber-300 border border-amber-500/30'
-                        }`}>
-                          {item.applicabilityStatus}
-                        </span>
+                        {item.registerAnalysisStatus === 'PENDING_ANALYSIS' || item.applicabilityStatus === 'NOT_DETERMINED' ? (
+                          <div>
+                            <span className="inline-block px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                              PENDENTE ANÁLISE
+                            </span>
+                            <span className="block text-[10px] text-amber-400/80 font-mono mt-0.5">
+                              Pendente no Register
+                            </span>
+                          </div>
+                        ) : (
+                          <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-semibold ${
+                            item.applicabilityStatus === 'APPLICABILITY_CONFIRMED'
+                              ? 'bg-emerald-500/10 text-emerald-300 border border-emerald-500/30'
+                              : item.applicabilityStatus === 'NOT_APPLICABLE'
+                              ? 'bg-slate-700/50 text-slate-400'
+                              : 'bg-amber-500/10 text-amber-300 border border-amber-500/30'
+                          }`}>
+                            {item.applicabilityStatus}
+                          </span>
+                        )}
                       </td>
 
                       <td className="py-3 px-3">
@@ -721,7 +759,16 @@ export default function AircraftDeliveryView({ state, onRefreshState, onSelectAd
                       </td>
 
                       <td className="py-3 px-3">
-                        {item.regulatoryComplianceStatus ? (
+                        {item.registerAnalysisStatus === 'PENDING_ANALYSIS' ? (
+                          <div>
+                            <span className="inline-block px-2 py-0.5 rounded text-[10px] font-medium bg-amber-500/15 text-amber-300 border border-amber-500/30">
+                              PENDENTE DE ANÁLISE
+                            </span>
+                            <span className="block text-[10px] text-slate-500 mt-0.5">
+                              Sem regra CAMO
+                            </span>
+                          </div>
+                        ) : item.regulatoryComplianceStatus ? (
                           <div>
                             <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-semibold ${
                               item.regulatoryComplianceStatus === 'COMPLIED'
@@ -1224,6 +1271,13 @@ export default function AircraftDeliveryView({ state, onRefreshState, onSelectAd
                   <span className="text-slate-500 block text-[10px]">Timestamp</span>
                   <span className="font-mono text-slate-300 text-xs">{showSnapshotModal.sealedAt}</span>
                 </div>
+
+                {showSnapshotModal.complianceSummary?.pendingAnalysis !== undefined && (
+                  <div className="col-span-2 bg-amber-500/10 border border-amber-500/30 p-2 rounded text-amber-300 text-[11px] flex items-center justify-between">
+                    <span>ADs Pendentes de Análise Técnica no Register:</span>
+                    <span className="font-bold font-mono text-amber-400">{showSnapshotModal.complianceSummary.pendingAnalysis}</span>
+                  </div>
+                )}
               </div>
             </div>
 

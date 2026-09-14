@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { DatabaseState } from '../../server/dataStore';
 import { ComplianceRequirement, Aircraft, ComplianceAssessment, ComplianceObligation } from '../types';
+import FleetAdInventoryView from './FleetAdInventoryView';
 
 interface FleetAdSearchViewProps {
   state: DatabaseState;
@@ -51,6 +52,7 @@ export default function FleetAdSearchView({
   onSelectView, 
   onRefreshState 
 }: FleetAdSearchViewProps) {
+  const [activeMainTab, setActiveMainTab] = useState<'inventory' | 'physical-matrix'>('inventory');
   const [scopeType, setScopeType] = useState<ScopeSelectionType>('ALL_FLEET');
   const [selectedFamily, setSelectedFamily] = useState<string>('ALL');
   const [selectedAircraftId, setSelectedAircraftId] = useState<string>('ALL');
@@ -232,44 +234,92 @@ export default function FleetAdSearchView({
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6 text-slate-200">
-      {/* Top Title & Mission Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-white/10 pb-5">
-        <div>
-          <div className="flex items-center space-x-3">
-            <div className="p-2.5 bg-indigo-500/10 border border-indigo-500/20 rounded-xl text-indigo-400">
-              <Plane className="w-6 h-6" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold text-white tracking-tight flex items-center gap-2">
-                Busca de AD por Frota
-                <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
-                  Fase 9 — Etapa 3
-                </span>
-              </h1>
-              <p className="text-sm text-slate-400 mt-0.5">
-                Consulta unificada de Diretrizes de Aeronavegabilidade (ADs) com filtragem por aeronave, grupo ou frota completa.
-              </p>
-            </div>
-          </div>
+      {/* View Switcher: Inventário de ADs da Frota vs Matriz de Cumprimento Físico */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/10 pb-4">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setActiveMainTab('inventory')}
+            className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold rounded-xl border transition-all ${
+              activeMainTab === 'inventory'
+                ? 'bg-indigo-600 text-white border-indigo-500 shadow-lg shadow-indigo-500/25'
+                : 'bg-slate-900/60 text-slate-400 hover:text-white border-slate-800'
+            }`}
+          >
+            <Layers className="w-4 h-4" />
+            <span>Inventário de ADs da Frota</span>
+            <span className="px-1.5 py-0.5 rounded text-[10px] bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-mono">
+              FASE 9.5.1
+            </span>
+          </button>
+
+          <button
+            onClick={() => setActiveMainTab('physical-matrix')}
+            className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold rounded-xl border transition-all ${
+              activeMainTab === 'physical-matrix'
+                ? 'bg-indigo-600 text-white border-indigo-500 shadow-lg shadow-indigo-500/25'
+                : 'bg-slate-900/60 text-slate-400 hover:text-white border-slate-800'
+            }`}
+          >
+            <ShieldCheck className="w-4 h-4" />
+            <span>Matriz de Cumprimento Físico (Aeronaves)</span>
+            <span className="px-1.5 py-0.5 rounded text-[10px] bg-slate-800 text-slate-400 border border-slate-700 font-mono">
+              FASE 9.3
+            </span>
+          </button>
         </div>
 
         <div className="flex items-center gap-2">
           <button
-            onClick={() => onSelectView('obligations')}
-            className="flex items-center gap-2 px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold rounded-lg border border-slate-700 transition-colors"
+            onClick={() => onSelectView('camo-register')}
+            className="flex items-center gap-2 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-indigo-300 text-xs font-semibold rounded-lg border border-slate-700 transition"
           >
-            <Clock className="w-4 h-4 text-amber-400" />
-            Ver Prazos & Limites
+            <FileText className="w-3.5 h-3.5" />
+            <span>CAMO Register</span>
           </button>
           <button
-            onClick={() => onSelectView('ads')}
-            className="flex items-center gap-2 px-3.5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-lg shadow-sm transition-colors"
+            onClick={() => onSelectView('obligations')}
+            className="flex items-center gap-2 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold rounded-lg border border-slate-700 transition"
           >
-            <FileText className="w-4 h-4" />
-            Gestão de ADs
+            <Clock className="w-3.5 h-3.5 text-amber-400" />
+            <span>Prazos & Limites</span>
           </button>
         </div>
       </div>
+
+      {/* TAB 1: INVENTÁRIO DE ADs DA FROTA (DESCOBERTA & INTAKE) */}
+      {activeMainTab === 'inventory' && (
+        <FleetAdInventoryView
+          state={state}
+          onSelectAd={onSelectAd}
+          onSelectView={onSelectView}
+          onRefreshState={onRefreshState}
+        />
+      )}
+
+      {/* TAB 2: MATRIZ DE CUMPRIMENTO FÍSICO (AERONAVES) */}
+      {activeMainTab === 'physical-matrix' && (
+        <div className="space-y-6">
+          {/* Top Title & Mission Header */}
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-white/10 pb-5">
+            <div>
+              <div className="flex items-center space-x-3">
+                <div className="p-2.5 bg-indigo-500/10 border border-indigo-500/20 rounded-xl text-indigo-400">
+                  <Plane className="w-6 h-6" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-white tracking-tight flex items-center gap-2">
+                    Matriz de Cumprimento Físico por Frota
+                    <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                      Fase 9 — Etapa 3
+                    </span>
+                  </h2>
+                  <p className="text-sm text-slate-400 mt-0.5">
+                    Avaliação detalhada de requisitos de aeronavegabilidade aplicados a cada prefixo físico registrado na base.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
 
       {/* Scope Selector Control Panel */}
       <div className="bg-slate-900/60 border border-white/10 rounded-2xl p-5 backdrop-blur-md space-y-4">
@@ -743,6 +793,8 @@ export default function FleetAdSearchView({
           </div>
         )}
       </div>
+        </div>
+      )}
     </div>
   );
 }

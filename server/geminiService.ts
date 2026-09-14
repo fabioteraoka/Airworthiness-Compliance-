@@ -665,7 +665,7 @@ export async function extractAdWithGemini(input: {
     rawTechnicalExtractionResponse: undefined
   };
 
-  let successfulModelName = 'gemini-3.7-flash';
+  let successfulModelName = 'gemini-3.8-flash';
   const ai = getGeminiClient();
 
   // Perform high-fidelity PDF text extraction
@@ -739,19 +739,18 @@ ABSOLUTE ZERO-FABRICATION SAFETY INVARIANTS (NEVER INVENT DATA):
       }
 
       const candidateModels = [
-        'gemini-3.7-flash',
-        'gemini-3.6-flash',
-        'gemini-3.1-flash-lite',
-        'gemini-flash-latest'
+        'gemini-3.8-flash',
+        'gemini-flash-latest',
+        'gemini-3.1-flash-lite'
       ];
       let response: any = null;
       let lastModelError: any = null;
-      successfulModelName = 'gemini-3.7-flash';
+      successfulModelName = 'gemini-3.8-flash';
 
       for (const modelName of candidateModels) {
         try {
           const timeoutPromise = new Promise<never>((_, reject) => 
-            setTimeout(() => reject(new Error(`AI extraction request timed out after 35s for model ${modelName}`)), 35000)
+            setTimeout(() => reject(new Error(`AI extraction request timed out after 8s for model ${modelName}`)), 8000)
           );
 
           const generatePromise = ai.models.generateContent({
@@ -1469,7 +1468,7 @@ ABSOLUTE ZERO-FABRICATION SAFETY INVARIANTS (NEVER INVENT DATA):
     modelInvocationSuccess: false,
     apiError: diagnostics.exactErrorMessage || 'AI invocation failed',
     requestSize: rawTextLength,
-    modelName: successfulModelName || 'gemini-3.7-flash',
+    modelName: successfulModelName || 'gemini-3.8-flash',
 
     aiReturnedResponse: diagnostics.geminiReturnedResponse,
     rawResponseLength: 0,

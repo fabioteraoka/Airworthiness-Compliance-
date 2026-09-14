@@ -121,10 +121,10 @@ export function buildExtractionPipelineDiagnostics(input: DiagnosticsBuildInput)
     requestTimestamp: input.requestTimestamp || now,
     modelInvocationSuccess: s3Success,
     requestSize: input.requestSize || input.extractedTextCharCount || 0,
-    modelName: input.modelName || 'gemini-3.7-flash',
+    modelName: input.modelName || 'gemini-3.8-flash',
     apiError: input.apiError || null,
     message: s3Success 
-      ? `Successfully invoked model ${input.modelName || 'gemini-3.7-flash'} (${input.requestSize || 0} chars payload).`
+      ? `Successfully invoked model ${input.modelName || 'gemini-3.8-flash'} (${input.requestSize || 0} chars payload).`
       : (input.apiError ? `AI extraction failed: ${input.apiError}` : 'Deterministic parser used or AI not invoked.')
   };
 

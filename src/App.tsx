@@ -19,6 +19,8 @@ import HelpCenterView from './components/HelpCenterView';
 import FleetAdSearchView from './components/FleetAdSearchView';
 import ContextualHelpDrawer from './components/ContextualHelpDrawer';
 import RegulatoryIntelligenceView from './components/RegulatoryIntelligenceView';
+import CamoRegulatoryRegisterView from './components/CamoRegulatoryRegisterView';
+import AnalysisPhaseView from './components/AnalysisPhaseView';
 import { Loader2, AlertCircle, HelpCircle, Compass } from 'lucide-react';
 import { ComplianceRequirement } from './types';
 
@@ -166,6 +168,24 @@ export default function App() {
                 state={state}
                 onSelectView={setCurrentView}
                 onSelectAd={handleSelectAd}
+              />
+            )}
+
+            {currentView === 'analysis-phase' && (
+              <AnalysisPhaseView
+                state={state}
+                onRefreshState={setState}
+                onSelectAd={handleSelectAd}
+                onSelectView={setCurrentView}
+              />
+            )}
+
+            {currentView === 'camo-register' && (
+              <CamoRegulatoryRegisterView
+                state={state}
+                onRefreshState={setState}
+                onSelectAd={handleSelectAd}
+                onSelectView={setCurrentView}
               />
             )}
 

@@ -3341,6 +3341,131 @@ async function startServer() {
     }
   });
 
+  // 15.1. Regulatory Fleet Intake Search + Register Comparison (Phase 9 — Stage 5)
+  app.get('/api/intel/fleet-search', async (req, res) => {
+    try {
+      const { 
+        manufacturer, 
+        family, 
+        model, 
+        variant, 
+        engine, 
+        registration, 
+        msn, 
+        authority, 
+        query, 
+        page, 
+        perPage, 
+        maxPages, 
+        autoPaginate 
+      } = req.query;
+
+      const result = await regulatoryIntelligenceEngine.searchFleetAndCompareWithRegister({
+        manufacturer: manufacturer ? String(manufacturer) : undefined,
+        family: family ? String(family) : undefined,
+        model: model ? String(model) : undefined,
+        variant: variant ? String(variant) : undefined,
+        engine: engine ? String(engine) : undefined,
+        registration: registration ? String(registration) : undefined,
+        msn: msn ? String(msn) : undefined,
+        authority: authority ? (String(authority) as any) : 'ALL',
+        query: query ? String(query) : undefined,
+        page: page ? Number(page) : undefined,
+        perPage: perPage ? Number(perPage) : undefined,
+        maxPages: maxPages ? Number(maxPages) : undefined,
+        autoPaginate: autoPaginate === 'true' || autoPaginate === '1'
+      });
+
+      res.json({
+        success: true,
+        ...result,
+        state: camoDb.getState()
+      });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post('/api/intel/fleet-search', async (req, res) => {
+    try {
+      const result = await regulatoryIntelligenceEngine.searchFleetAndCompareWithRegister(req.body);
+      res.json({
+        success: true,
+        ...result,
+        state: camoDb.getState()
+      });
+    } catch (err: any) {
+      res.status(400).json({ error: err.message });
+    }
+  });
+
+  // 15.2. Import ADs to CAMO Regulatory Register (strictly PENDING_ANALYSIS, Idempotent, No Auto-AI)
+  app.post('/api/intel/register/import', async (req, res) => {
+    try {
+      const result = await regulatoryIntelligenceEngine.importCandidatesToCamoRegister(req.body);
+      res.json({
+        success: true,
+        ...result,
+        state: camoDb.getState()
+      });
+    } catch (err: any) {
+      res.status(400).json({ error: err.message });
+    }
+  });
+
+  // 15.3. Get CAMO Regulatory Register (Analysis Queue)
+  app.get('/api/intel/register', (req, res) => {
+    try {
+      const { 
+        family, 
+        model, 
+        manufacturer, 
+        authority, 
+        ataChapter, 
+        analysisStatus, 
+        deltaStatus, 
+        search 
+      } = req.query;
+
+      const result = regulatoryIntelligenceEngine.getRegisterRecords({
+        family: family ? String(family) : undefined,
+        model: model ? String(model) : undefined,
+        manufacturer: manufacturer ? String(manufacturer) : undefined,
+        authority: authority ? String(authority) : undefined,
+        ataChapter: ataChapter ? String(ataChapter) : undefined,
+        analysisStatus: analysisStatus ? String(analysisStatus) : undefined,
+        deltaStatus: deltaStatus ? String(deltaStatus) : undefined,
+        search: search ? String(search) : undefined
+      });
+
+      res.json({
+        success: true,
+        ...result
+      });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // 15.4. Execute Individual AD Analysis in Queue (PENDING_ANALYSIS -> ANALYZED)
+  app.post('/api/intel/register/analyze', async (req, res) => {
+    try {
+      const { recordId, actor } = req.body;
+      if (!recordId) {
+        return res.status(400).json({ error: 'recordId is required' });
+      }
+
+      const result = await regulatoryIntelligenceEngine.analyzeRegisterRecord(recordId, actor);
+      res.json({
+        success: true,
+        ...result,
+        state: camoDb.getState()
+      });
+    } catch (err: any) {
+      res.status(400).json({ error: err.message });
+    }
+  });
+
   // 16. Get Accumulated Regulatory Knowledge Base
   app.get('/api/intel/knowledge-base', (req, res) => {
     try {

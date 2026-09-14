@@ -25,13 +25,14 @@
       "model": "737-800",
       "series": "Next Generation (NG)",
       "aircraftType": "Commercial Transport",
-      "status": "OPERATIONAL",
+      "status": "DECOMMISSIONED",
       "totalFlightHours": 28450,
       "totalCycles": 14200,
       "totalLandings": 14200,
       "variableNumber": "YC123",
       "lineNo": "3452",
-      "manufactureDate": "2014-06-18"
+      "manufactureDate": "2014-06-18",
+      "statusReason": "Baixada do registro de voo"
     },
     {
       "id": "ac-02",
@@ -81,51 +82,6 @@
       "variableNumber": "ZM004",
       "lineNo": "7210",
       "manufactureDate": "2019-11-05"
-    },
-    {
-      "id": "ac-stage3-737-01",
-      "operatorId": "op-camo-01",
-      "registration": "PR-STG3A",
-      "msn": "30001",
-      "manufacturer": "Boeing",
-      "model": "737-800",
-      "series": "NG",
-      "aircraftType": "Commercial Transport",
-      "status": "OPERATIONAL",
-      "totalFlightHours": 9500,
-      "totalCycles": 4750,
-      "totalLandings": 4750,
-      "manufactureDate": "2018-01-10"
-    },
-    {
-      "id": "ac-stage3-737-02",
-      "operatorId": "op-camo-01",
-      "registration": "PR-STG3B",
-      "msn": "30002",
-      "manufacturer": "Boeing",
-      "model": "737-800",
-      "series": "NG",
-      "aircraftType": "Commercial Transport",
-      "status": "OPERATIONAL",
-      "totalFlightHours": 8200,
-      "totalCycles": 4100,
-      "totalLandings": 4100,
-      "manufactureDate": "2019-06-15"
-    },
-    {
-      "id": "ac-stage3-max-03",
-      "operatorId": "op-camo-01",
-      "registration": "PR-MAX03",
-      "msn": "43105",
-      "manufacturer": "Boeing",
-      "model": "737-8",
-      "series": "MAX",
-      "aircraftType": "Commercial Transport",
-      "status": "OPERATIONAL",
-      "totalFlightHours": 3500,
-      "totalCycles": 1750,
-      "totalLandings": 1750,
-      "manufactureDate": "2021-11-20"
     }
   ],
   "engines": [
@@ -916,6 +872,5 @@
         }
       ]
     }
-  ],
-  "complianceObligations": []
+  ]
 }

@@ -325,6 +325,15 @@ export interface Operator {
   camoCertificate: string;
 }
 
+export type AircraftOperationalStatus = 
+  | 'OPERATIONAL' 
+  | 'MAINTENANCE' 
+  | 'AOG' 
+  | 'STORED' 
+  | 'DECOMMISSIONED' 
+  | 'RETIRED' 
+  | 'INACTIVE';
+
 export interface Aircraft {
   id: string;
   operatorId: string;
@@ -334,13 +343,17 @@ export interface Aircraft {
   model: string; // "737-800"
   series?: string; // "Next Generation"
   aircraftType: string; // "Commercial Transport"
-  status: 'OPERATIONAL' | 'MAINTENANCE' | 'AOG' | 'STORED';
+  status: AircraftOperationalStatus;
+  statusReason?: string;
+  decommissionDate?: string;
+  notes?: string;
   totalFlightHours: number;
   totalCycles: number;
   totalLandings: number;
   variableNumber?: string;
   lineNo?: string;
   manufactureDate?: string;
+  updatedAt?: string;
 }
 
 export interface Engine {
@@ -1082,6 +1095,7 @@ export interface AuditTrailEntry {
     | 'REGULATORY_RESULT_IMPORTED'
     | 'REGULATORY_REGISTER_ANALYSIS'
     | 'UPDATE'
+    | 'STATUS_CHANGE'
     | 'DELETE'
     | 'SYSTEM_DELETE'
     | 'SYSTEM_RESET';

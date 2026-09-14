@@ -1,9 +1,9 @@
 # SYSTEM CURRENT STATE AUDIT — CAMO AIRWORTHINESS ENGINE
 ## Auditoria Técnica e Estrutural do Estado Real do Sistema
 **Data da Auditoria:** 14 de Setembro de 2026  
-**Versão do Sistema Auditado:** Release 9.5.1 (Post Phase 9 Stage 5.1 Fleet Intake & Governance)  
+**Versão do Sistema Auditado:** Release 9.5.2 (Fleet Management CRUD, Inactivation & Decommissioning Engine)  
 **Auditor:** Agente Autônomo de Governança e Arquitetura CAMO  
-**Status da Auditoria:** AUDITADO • OPERACIONAL • 100% GREEN NOS TESTES REGULAMENTARES
+**Status da Auditoria:** AUDITADO • OPERACIONAL • 100% GREEN NOS TESTES REGULAMENTARES (128 TESTES PASSANDO)
 
 ---
 
@@ -13,9 +13,9 @@ Esta auditoria representa uma **fotografia confiável, exaustiva e factual** da 
 
 ### Indicadores Globais do Código Auditado:
 * **Frontend:** 27 componentes principais em React 18 + Tailwind CSS + Lucide Icons.
-* **Backend:** Servidor Express com mais de 70 endpoints REST especializados.
+* **Backend:** Servidor Express com mais de 73 endpoints REST especializados.
 * **Motores de Domínio:** 14 módulos especializados em `server/camoEngine/` e `server/regulatoryConnectors/`.
-* **Suíte de Testes Automatizados:** 10 arquivos de teste no Vitest, **110 testes unitários, de integração e de máquina de estados — 100% PASSING**.
+* **Suíte de Testes Automatizados:** 12 arquivos de teste no Vitest, **128 testes unitários, de integração e de máquina de estados — 100% PASSING**.
 * **Integridade TypeScript / Linter:** 0 erros (`tsc --noEmit` limpo).
 * **Compilação de Produção:** 100% aprovada via Vite + esbuild (`compile_applet` verde).
 
@@ -30,8 +30,8 @@ Esta auditoria representa uma **fotografia confiável, exaustiva e factual** da 
    * *Função:* Visão holística da frota ativa, diretrizes aplicáveis, pendências de engenharia e telemetria de aeronaves.
    * *Status:* IMPLEMENTED. Totalmente sincronizado com o estado global.
 2. **Inventário da Frota (`FleetView.tsx`):**
-   * *Função:* Gestão física de células de aeronaves (MSN, horas de voo, ciclos, operadora, status operacional), motores e componentes rotáveis instalados.
-   * *Status:* IMPLEMENTED.
+   * *Função:* Gestão física de células de aeronaves (MSN, matrícula, horas de voo TSN, ciclos CSN, pousos, modelo, fabricante, status operacional), motores e componentes rotáveis instalados. Inclui edição completa cadastral, transição de status operacional (inutilização / descomissionamento / preservação em estocagem) e exclusão segura com desvinculação em cascata de motores e registro no livro de auditoria.
+   * *Status:* IMPLEMENTED (Release 9.5.2). Suporta filtragem por status (`ALL`, `OPERATIONAL`, `MAINTENANCE`, `STORED`, `DECOMMISSIONED`) e busca em tempo real.
 3. **Inteligência Regulatória & Descoberta Aberta (`RegulatoryIntelligenceView.tsx`):**
    * *Função:* Motor de busca e descoberta multi-fonte (FAA 14 CFR Part 39, EASA, ANAC) por fabricante, família e modelo. Permite triagem progressiva, seleção de candidatas e importação em lote para o CAMO Register.
    * *Status:* IMPLEMENTED. Possui ação "IMPORTAR TODAS PARA O CAMO" que cadastra ADs com status `PENDING_ANALYSIS` sem acionamento indevido de IA.

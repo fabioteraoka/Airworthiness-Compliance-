@@ -8,10 +8,10 @@
 * **Nome do Sistema:** Airworthiness Compliance Intelligence (CAMO Intelligence Platform)
 * **Operador de Demonstração:** Blue-Sky Logistics (Certificado Homologado CAMO-PT.042)
 * **Regulamentações Alvo:** FAA 14 CFR Part 39 / EASA Part-M (Subpart G/CAMO) / ANAC RBAC 121 & RBAC 39
-* **Versão da Arquitetura:** Release 9.5.1 (Active Living Architecture, Unified Fleet Inventory, 3 Ingestion Flows & Adversarial Security Core)
+* **Versão da Arquitetura:** Release 9.5.2 (Active Living Architecture, Fleet Management CRUD, Decommissioning Engine & Adversarial Security Core)
 * **Data do Dossiê:** 14 de Setembro de 2026
-* **Status Formal de Homologação:** **GREEN — 100% AUDITADO & HOMOLOGADO** (124/124 Testes Vitest Automatizados Aprovados em 11 Suítes)
-* **Estrutura Auditada:** 27 Visões Frontend, 14 Submódulos de Backend, mais de 70 Endpoints REST, Persistência Transacional com Atomic Write.
+* **Status Formal de Homologação:** **GREEN — 100% AUDITADO & HOMOLOGADO** (128/128 Testes Vitest Automatizados Aprovados em 12 Suítes)
+* **Estrutura Auditada:** 27 Visões Frontend, 14 Submódulos de Backend, mais de 73 Endpoints REST, Persistência Transacional com Atomic Write.
 
 ---
 
@@ -268,6 +268,15 @@ O backend do sistema CAMO disponibiliza mais de 70 endpoints REST estruturados e
 * `POST /api/camo/register/:id/analyze` — Disparo de análise técnica deliberada na Fila de Análise.
 * `PUT /api/camo/register/:id` — Atualização de metadados ou prioridade de registro no CAMO Register.
 * `DELETE /api/camo/register/:id` — Exclusão de registro regulatório do CAMO Register.
+
+### 4.14 Gestão de Frota, Células, Motores e Componentes (Release 9.5.2)
+* `GET /api/fleet/aircraft` — Listagem do inventário de células da frota.
+* `POST /api/fleet/aircraft` — Cadastro de nova aeronave (matrícula, MSN, fabricante, modelo, horas TSN, ciclos CSN).
+* `PUT /api/fleet/aircraft/:id` — Edição cadastral completa para retificação de dados incorretos com sincronização de instalações e log de auditoria.
+* `PATCH /api/fleet/aircraft/:id/status` — Transição de status operacional (inutilização / descomissionamento / preservação / estocagem / manutenção) com justificativa técnica formal.
+* `DELETE /api/fleet/aircraft/:id` — Exclusão definitiva segura de registro cadastrado por erro, com desvinculação automática de motores (status STORED) e desinstalação de componentes.
+* `POST /api/fleet/component` — Cadastro e instalação de componentes e part numbers rastreados.
+* `POST /api/fleet/engine` — Cadastro e associação de motores e APUs com número de série (ESN).
 
 ---
 

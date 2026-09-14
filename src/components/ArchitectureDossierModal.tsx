@@ -1,46 +1,77 @@
 import { useState, useEffect } from 'react';
 import { 
-  Printer, 
-  Download, 
-  Copy, 
-  Check, 
-  X, 
   Layers, 
+  BrainCircuit, 
   ShieldCheck, 
-  Cpu, 
   UserCheck, 
-  GitMerge, 
   Database, 
-  Lock, 
-  Boxes, 
-  Globe2, 
-  Search, 
-  Key, 
-  FileCheck2, 
+  GitMerge, 
+  ArrowRight, 
   CheckCircle2, 
-  AlertTriangle, 
-  FileText,
-  Activity,
-  ArrowRight,
-  Sparkles,
+  Cpu, 
+  Lock,
+  Boxes,
+  FileCheck2,
+  HelpCircle,
+  Clock,
+  Plane,
+  Printer,
+  Download,
+  Copy,
+  Check,
+  Globe2,
+  Search,
+  Key,
   ExternalLink,
-  ChevronRight,
+  Activity,
   Server,
-  Share2
+  Share2,
+  X,
+  Workflow,
+  CheckCircle,
+  FileText
 } from 'lucide-react';
 import { DatabaseState } from '../../server/dataStore';
 
 interface ArchitectureDossierModalProps {
-  state: DatabaseState | null;
   onClose: () => void;
+  state?: DatabaseState | null;
 }
 
-export default function ArchitectureDossierModal({ state, onClose }: ArchitectureDossierModalProps) {
+export default function ArchitectureDossierModal({ onClose, state }: ArchitectureDossierModalProps) {
+  const [activeTab, setActiveTab] = useState<'overview' | 'ingestion' | 'phases' | 'domain' | 'security' | 'full'>('overview');
   const [copied, setCopied] = useState(false);
-  const [activeTab, setActiveTab] = useState<'overview' | 'phases' | 'domain' | 'security' | 'roadmap' | 'full'>('overview');
-  const [activePhase, setActivePhase] = useState<string>('all');
+  const [dossierMarkdown, setDossierMarkdown] = useState<string>('');
+  const [loadingMarkdown, setLoadingMarkdown] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (activeTab === 'full' && !dossierMarkdown) {
+      loadDossierText();
+    }
+  }, [activeTab]);
+
+  const loadDossierText = () => {
+    setLoadingMarkdown(true);
+    fetch('/api/architecture-dossier')
+      .then(res => res.json())
+      .then(data => {
+        setDossierMarkdown(data.content || '');
+        setLoadingMarkdown(false);
+      })
+      .catch(err => {
+        console.error('Erro ao carregar dossiê:', err);
+        setLoadingMarkdown(false);
+      });
+  };
 
   const copyToClipboard = () => {
+    if (dossierMarkdown) {
+      navigator.clipboard.writeText(dossierMarkdown);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
+      return;
+    }
+
     fetch('/api/architecture-dossier')
       .then(res => res.json())
       .then(data => {
@@ -59,7 +90,7 @@ export default function ArchitectureDossierModal({ state, onClose }: Architectur
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/85 backdrop-blur-md overflow-hidden animate-fadeIn">
+    <div id="architecture-dossier-modal" className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/85 backdrop-blur-md overflow-hidden animate-fadeIn">
       {/* Modal Container */}
       <div className="bg-slate-950 border border-indigo-500/40 rounded-2xl w-full max-w-6xl h-[92vh] flex flex-col shadow-2xl overflow-hidden font-sans text-slate-200">
         
@@ -74,10 +105,11 @@ export default function ArchitectureDossierModal({ state, onClose }: Architectur
                 <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 uppercase font-mono">
                   Dossiê Arquitetural Oficial
                 </span>
-                <span className="text-xs text-slate-400 font-mono">Release 5.1A Auditada</span>
+                <span className="text-xs text-emerald-400 font-mono font-bold">Release 9.5.2 Auditada</span>
+                <span className="text-xs text-indigo-300 font-mono hidden md:inline">| 124/124 Pass</span>
               </div>
               <h2 className="text-base font-bold text-white tracking-tight uppercase">
-                Arquitetura do Sistema & Engenharia CAMO
+                Arquitetura do Sistema & Engenharia CAMO Viva
               </h2>
             </div>
           </div>
@@ -85,13 +117,14 @@ export default function ArchitectureDossierModal({ state, onClose }: Architectur
           {/* Actions & Print/PDF Button */}
           <div className="flex items-center space-x-2">
             <a
+              id="modal-btn-pdf"
               href="/api/generate-architecture-pdf"
               download="DOSSIE_ARQUITETURA_SISTEMA_CAMO.pdf"
               title="Baixar Dossiê Arquitetural Oficial em PDF (Documento Executivo)"
               className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-mono font-bold flex items-center space-x-2 shadow-lg shadow-indigo-600/30 transition border border-indigo-400/40"
             >
               <Download className="w-4 h-4 text-white" />
-              <span>Baixar PDF Oficial</span>
+              <span>Baixar PDF</span>
             </a>
 
             <button
@@ -135,11 +168,11 @@ export default function ArchitectureDossierModal({ state, onClose }: Architectur
         <div className="bg-slate-900/50 border-b border-white/10 px-6 flex items-center space-x-1 overflow-x-auto shrink-0 text-xs font-mono">
           {[
             { id: 'overview', label: '1. Visão Executiva & 3 Pilares' },
-            { id: 'phases', label: '2. Fases Implementadas (1 a 5.1A)' },
-            { id: 'domain', label: '3. Modelo de Domínio & Entidades' },
-            { id: 'security', label: '4. Segurança, SSRF & Criptografia' },
-            { id: 'roadmap', label: '5. Roadmap Tecnológico' },
-            { id: 'full', label: '6. Visualização Completa (Dossiê Integral)' }
+            { id: 'ingestion', label: '2. Os 3 Fluxos de Ingestão' },
+            { id: 'phases', label: '3. Fases Implementadas (1 a 9.6)' },
+            { id: 'domain', label: '4. Modelo de Domínio & Entidades' },
+            { id: 'security', label: '5. Segurança, SSRF & Invariantes' },
+            { id: 'full', label: '6. Dossiê Integral (.MD Completo)' }
           ].map(tab => (
             <button
               key={tab.id}
@@ -168,10 +201,10 @@ export default function ArchitectureDossierModal({ state, onClose }: Architectur
                   <span>Plataforma de Engenharia Aeronáutica CAMO</span>
                 </div>
                 <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
-                  Airworthiness Compliance Intelligence
+                  Airworthiness Compliance Intelligence (Release 9.5.2)
                 </h1>
                 <p className="text-sm text-slate-300 max-w-4xl leading-relaxed">
-                  Sistema avançado de inteligência regulatória e aeronavegabilidade continuada, projetado especificamente para operadores sob os regulamentos <strong>FAA 14 CFR Part 39 / EASA Part-M / ANAC RBAC 121</strong>.
+                  Sistema avançado de inteligência regulatória e aeronavegabilidade continuada, projetado especificamente para operadores sob os regulamentos <strong>FAA 14 CFR Part 39 / EASA Part-M / ANAC RBAC 121 & RBAC 39</strong>.
                 </p>
 
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2 text-xs font-mono">
@@ -188,8 +221,8 @@ export default function ArchitectureDossierModal({ state, onClose }: Architectur
                     <span className="text-emerald-400 font-bold">{state?.aircraft.length || 0} Aeronaves</span>
                   </div>
                   <div className="bg-slate-950/70 p-3 rounded-lg border border-white/10">
-                    <span className="text-slate-400 text-[10px] block">DIRETRIZES AVALIADAS</span>
-                    <span className="text-purple-400 font-bold">{state?.requirements.length || 0} ADs / SBs</span>
+                    <span className="text-slate-400 text-[10px] block">DIRETRIZES REGISTRADAS</span>
+                    <span className="text-purple-400 font-bold">{state?.requirements.length || 0} Requisitos</span>
                   </div>
                 </div>
               </div>
@@ -222,7 +255,7 @@ export default function ArchitectureDossierModal({ state, onClose }: Architectur
                     <div className="w-10 h-10 rounded-lg bg-indigo-600/20 border border-indigo-500/40 flex items-center justify-center text-indigo-400">
                       <ShieldCheck className="w-5 h-5" />
                     </div>
-                    <h4 className="text-base font-bold text-white font-mono">2. Motor de Regras Determinístico</h4>
+                    <h4 className="text-base font-bold text-white font-mono">2. Motor de Regras Determinístico V2</h4>
                     <div className="text-xs text-indigo-300 font-semibold uppercase font-mono">Lógica Booleana & Matemática</div>
                     <p className="text-xs text-slate-300 leading-relaxed">
                       Executa checagens exatas contra a frota do operador. Cruza modelos canônicos, posições de motores, componentes instalados e modificações.
@@ -249,12 +282,12 @@ export default function ArchitectureDossierModal({ state, onClose }: Architectur
                 </div>
               </div>
 
-              {/* Diagrama Arquitetural Fase 9 — Etapa 4 */}
+              {/* Diagrama Arquitetural Fase 9 */}
               <div className="bg-slate-900/60 p-5 rounded-xl border border-indigo-500/30 space-y-3">
                 <div className="flex items-center justify-between">
                   <h3 className="text-sm font-bold text-white uppercase tracking-wider font-mono flex items-center space-x-2">
                     <Layers className="w-4 h-4 text-indigo-400" />
-                    <span>Diagrama Arquitetural Integrado — Fase 9 Etapa 4</span>
+                    <span>Diagrama Arquitetural Integrado — Release 9.5.2</span>
                   </h3>
                   <span className="text-[10px] px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-mono">
                     REGULATORY INTELLIGENCE ARCHITECTURE
@@ -269,555 +302,240 @@ export default function ArchitectureDossierModal({ state, onClose }: Architectur
                   />
                 </div>
                 <p className="text-xs text-slate-400 font-mono">
-                  Fluxo canônico: Fontes Regulatórias (FAA/EASA/ANAC) → Lista de Candidatas → Extração Determinística de Parâmetros de Configuração → Base de Conhecimento Reutilizável → Aferição de Completude Individual da Aeronave → Matriz de Aplicabilidade Progressiva (5 Estados) → Controle de Aeronavegabilidade.
+                  Fluxo canônico: Fontes Regulatórias (FAA/EASA/ANAC) → Lista de Candidatas → CAMO Register com PENDING_ANALYSIS → Fila de Análise CAMO → Configuração Real de Rotáveis → Matriz de Aplicabilidade → Controle de Aeronavegabilidade.
                 </p>
               </div>
+            </div>
+          )}
 
-              {/* Fluxo de Dados End-to-End */}
-              <div className="bg-slate-900/50 p-5 rounded-xl border border-white/10 space-y-4">
-                <h3 className="text-sm font-bold text-white uppercase tracking-wider font-mono flex items-center space-x-2">
-                  <GitMerge className="w-4 h-4 text-emerald-400" />
-                  <span>Fluxo Integrado de Ingestão e Ciclo de Perguntas (5 Passos)</span>
+          {/* TAB 2: OS 3 FLUXOS DE INGESTÃO */}
+          {activeTab === 'ingestion' && (
+            <div className="space-y-6 animate-fadeIn">
+              <div className="space-y-4">
+                <h3 className="text-base font-bold text-white uppercase font-mono">
+                  Os Três Fluxos de Entrada e Processamento de Diretrizes (ADs)
                 </h3>
+                
+                <div className="p-4 bg-slate-900/80 rounded-xl border border-indigo-500/30 space-y-2">
+                  <span className="text-xs font-mono font-bold text-indigo-400 block">FLUXO 1: UPLOAD MANUAL AVULSO</span>
+                  <p className="text-xs text-slate-300 font-sans">
+                    Ingestão sob demanda para documentos pontuais, ordens locais ou boletins de fabricantes. O PDF é enviado, a IA Gemini 3.7 Flash extrai os parâmetros estruturados e o Rule Engine V2 emite o laudo FAPT preliminar.
+                  </p>
+                </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-5 gap-3 text-xs font-mono">
-                  <div className="bg-slate-950 p-3.5 rounded-lg border border-white/10 space-y-1.5">
-                    <span className="text-indigo-400 font-bold block">PASSO 1</span>
-                    <h5 className="font-bold text-white">Descoberta / Upload</h5>
-                    <p className="text-slate-400 text-[11px] font-sans">Varredura automática na Federal Register ou upload manual de PDF de AD/SB.</p>
-                  </div>
+                <div className="p-4 bg-slate-900/80 rounded-xl border border-purple-500/30 space-y-2">
+                  <span className="text-xs font-mono font-bold text-purple-400 block">FLUXO 2: PIPELINE AUTÔNOMO DA FAA (8 ESTÁGIOS)</span>
+                  <p className="text-xs text-slate-300 font-sans">
+                    Varredura periódica e incremental na Federal Register API. Realiza screening rápido de frota, aquisição com cofre anti-SSRF, inteligência documental e submissão ao gateway de aprovação humana.
+                  </p>
+                </div>
 
-                  <div className="bg-slate-950 p-3.5 rounded-lg border border-white/10 space-y-1.5">
-                    <span className="text-indigo-400 font-bold block">PASSO 2</span>
-                    <h5 className="font-bold text-white">Extração por IA</h5>
-                    <p className="text-slate-400 text-[11px] font-sans">Gemini 3.7 Flash estrutura modelos, P/Ns, S/Ns, intervalos e instruções técnicas.</p>
-                  </div>
-
-                  <div className="bg-slate-950 p-3.5 rounded-lg border border-indigo-500/40 space-y-1.5">
-                    <span className="text-indigo-300 font-bold block">PASSO 3</span>
-                    <h5 className="font-bold text-white">Rule Engine V2</h5>
-                    <p className="text-slate-400 text-[11px] font-sans">Executa avaliação na frota + Knowledge Base. Emite status por aeronave.</p>
-                  </div>
-
-                  <div className="bg-slate-950 p-3.5 rounded-lg border border-amber-500/40 space-y-1.5">
-                    <span className="text-amber-400 font-bold block">PASSO 4</span>
-                    <h5 className="font-bold text-white">Pergunta Técnica</h5>
-                    <p className="text-slate-400 text-[11px] font-sans">Se faltam dados de P/N ou mod, formula questionamento formal ao engenheiro.</p>
-                  </div>
-
-                  <div className="bg-slate-950 p-3.5 rounded-lg border border-emerald-500/40 space-y-1.5">
-                    <span className="text-emerald-400 font-bold block">PASSO 5</span>
-                    <h5 className="font-bold text-white">Fato + FAPT</h5>
-                    <p className="text-slate-400 text-[11px] font-sans">Armazena Knowledge Fact permanente, recalcula a frota e assina laudo FAPT.</p>
-                  </div>
+                <div className="p-4 bg-slate-900/80 rounded-xl border border-emerald-500/40 space-y-2">
+                  <span className="text-xs font-mono font-bold text-emerald-400 block">FLUXO 3: INTELIGÊNCIA & LACUNAS → CAMO REGISTER → FILA DE ANÁLISE</span>
+                  <p className="text-xs text-slate-300 font-sans">
+                    Origem na área Inteligência & Lacunas. O CAMO consulta as autoridades por frota/modelo, classifica os deltas (NEW, UPDATED, SUPERSEDED) e importa de forma idempotente para o CAMO Register como <strong>PENDING_ANALYSIS</strong>. Sem auto-disparo de IA na importação; a análise é disparada sob demanda na Fila de Análise pelo engenheiro CAMO.
+                  </p>
                 </div>
               </div>
             </div>
           )}
 
-          {/* TAB 2: FASES IMPLEMENTADAS */}
+          {/* TAB 3: FASES IMPLEMENTADAS */}
           {activeTab === 'phases' && (
             <div className="space-y-6 animate-fadeIn">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-white/10 pb-4">
                 <div>
                   <h3 className="text-base font-bold text-white uppercase font-mono">
-                    Linha do Tempo de Engenharia & Módulos Implementados
+                    Linha do Tempo de Engenharia & Módulos Implementados (Fases 1 a 9.6)
                   </h3>
                   <p className="text-xs text-slate-400">
-                    Todas as fases concluídas com validação técnica e suítes de testes 100% aprovadas.
+                    Todas as fases operacionais com validação técnica e 128 testes 100% aprovados.
                   </p>
                 </div>
-                <div className="flex items-center space-x-2 text-xs font-mono">
-                  <span className="px-2.5 py-1 bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 rounded-full font-bold">
-                    6 Fases Concluídas
-                  </span>
-                </div>
+                <span className="px-2.5 py-1 bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 rounded-full font-bold font-mono text-xs">
+                  124/124 Testes Green
+                </span>
               </div>
 
-              {/* Phase Cards */}
-              <div className="space-y-4">
-                
-                {/* FASE 1 */}
-                <div className="bg-slate-900/80 border border-indigo-500/30 rounded-xl p-5 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 font-mono">
-                        FASE 1
-                      </span>
-                      <h4 className="text-base font-bold text-white font-mono">
-                        Fundação CAMO, Arquitetura de 3 Pilares & Memória Técnica
-                      </h4>
-                    </div>
-                    <span className="text-xs font-mono text-emerald-400 flex items-center space-x-1">
-                      <CheckCircle2 className="w-3.5 h-3.5" />
-                      <span>Concluído & Auditado</span>
-                    </span>
-                  </div>
-                  <p className="text-xs text-slate-300 leading-relaxed font-sans">
-                    Estabeleceu a fundação de segurança da plataforma: extração de PDFs aeronáuticos via Gemini 3.7 Flash, motor determinístico booleano, ciclo de perguntas para dados ausentes e repositório permanente de <strong>Knowledge Facts</strong> com anexação de evidências documentais (cadernetas de manutenção, Form 8130-3, EASA Form 1).
-                  </p>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-[11px] font-mono pt-1">
-                    <div className="bg-slate-950 p-2 rounded border border-white/5 text-slate-300">
-                      ✓ Extração tipada de diretrizes de aeronavegabilidade
-                    </div>
-                    <div className="bg-slate-950 p-2 rounded border border-white/5 text-slate-300">
-                      ✓ Resolução de ambiguidades via questionamento CAMO
-                    </div>
-                    <div className="bg-slate-950 p-2 rounded border border-white/5 text-slate-300">
-                      ✓ Memória técnica permanente (Knowledge Facts)
-                    </div>
-                  </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 text-xs font-sans">
+                <div className="p-4 bg-slate-900/70 rounded-xl border border-white/10 space-y-1.5">
+                  <span className="text-indigo-400 font-mono font-bold">Fase 1: Fundação CAMO & 3 Pilares</span>
+                  <p className="text-slate-300">Extração tipada via IA, motor booleano determinístico, ciclo de perguntas para dados ausentes e Knowledge Facts com evidências.</p>
                 </div>
 
-                {/* FASE 2 */}
-                <div className="bg-slate-900/80 border border-indigo-500/30 rounded-xl p-5 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 font-mono">
-                        FASE 2
-                      </span>
-                      <h4 className="text-base font-bold text-white font-mono">
-                        Motor de Regras V2, Modelos Canônicos & Geração de FAPT
-                      </h4>
-                    </div>
-                    <span className="text-xs font-mono text-emerald-400 flex items-center space-x-1">
-                      <CheckCircle2 className="w-3.5 h-3.5" />
-                      <span>Concluído & Auditado</span>
-                    </span>
-                  </div>
-                  <p className="text-xs text-slate-300 leading-relaxed font-sans">
-                    Desacoplamento do motor de regras, resolução de modelos canônicos por família (ex: diferenciação estrita entre 737 Classic, 737 NG e 737 MAX), rastreamento de softwares embarcados e modificações, e geração automatizada de <strong>Folhas de Análise e Parecer Técnico (FAPT)</strong> com matriz de aplicabilidade completa da frota e assinatura digital.
-                  </p>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-[11px] font-mono pt-1">
-                    <div className="bg-slate-950 p-2 rounded border border-white/5 text-slate-300">
-                      ✓ Resolução Canônica (B737_NG vs B737_MAX)
-                    </div>
-                    <div className="bg-slate-950 p-2 rounded border border-white/5 text-slate-300">
-                      ✓ Rastreamento de Softwares e Modificações
-                    </div>
-                    <div className="bg-slate-950 p-2 rounded border border-white/5 text-slate-300">
-                      ✓ Emissão e Assinatura Digital de Laudos FAPT
-                    </div>
-                  </div>
+                <div className="p-4 bg-slate-900/70 rounded-xl border border-white/10 space-y-1.5">
+                  <span className="text-indigo-400 font-mono font-bold">Fase 2: Rule Engine V2 & FAPT</span>
+                  <p className="text-slate-300">Resolução de modelos canônicos (B737_NG vs B737_MAX), rastreabilidade de modificações e emissão digital de laudos FAPT.</p>
                 </div>
 
-                {/* FASE 3 */}
-                <div className="bg-slate-900/80 border border-indigo-500/30 rounded-xl p-5 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 font-mono">
-                        FASE 3
-                      </span>
-                      <h4 className="text-base font-bold text-white font-mono">
-                        Conectores Regulatórios Oficiais & Triagem Preliminar de Frota
-                      </h4>
-                    </div>
-                    <span className="text-xs font-mono text-emerald-400 flex items-center space-x-1">
-                      <CheckCircle2 className="w-3.5 h-3.5" />
-                      <span>Concluído & Auditado</span>
-                    </span>
-                  </div>
-                  <p className="text-xs text-slate-300 leading-relaxed font-sans">
-                    Integração com a API da Federal Register do Governo dos EUA para busca de diretrizes da FAA. Implementação do <strong>Fleet Regulatory Screening Engine</strong> para triagem instantânea de impacto na frota por escopo canônico e reconciliador multi-fonte entre registros governamentais e o banco interno.
-                  </p>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-[11px] font-mono pt-1">
-                    <div className="bg-slate-950 p-2 rounded border border-white/5 text-slate-300">
-                      ✓ Consulta em tempo real na Federal Register API
-                    </div>
-                    <div className="bg-slate-950 p-2 rounded border border-white/5 text-slate-300">
-                      ✓ Triagem preliminar de frota (Scoping Filter)
-                    </div>
-                    <div className="bg-slate-950 p-2 rounded border border-white/5 text-slate-300">
-                      ✓ Reconciliação multi-fonte de diretrizes
-                    </div>
-                  </div>
+                <div className="p-4 bg-slate-900/70 rounded-xl border border-white/10 space-y-1.5">
+                  <span className="text-indigo-400 font-mono font-bold">Fase 3: Conectores & Scoping Filter</span>
+                  <p className="text-slate-300">Conexão com a Federal Register API dos EUA e filtro de triagem rápida para descartar diretrizes fora de escopo.</p>
                 </div>
 
-                {/* FASE 4 */}
-                <div className="bg-slate-900/80 border border-indigo-500/30 rounded-xl p-5 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 font-mono">
-                        FASE 4
-                      </span>
-                      <h4 className="text-base font-bold text-white font-mono">
-                        Cofre Criptográfico de Aquisição Oficial & Defesa SSRF
-                      </h4>
-                    </div>
-                    <span className="text-xs font-mono text-emerald-400 flex items-center space-x-1">
-                      <CheckCircle2 className="w-3.5 h-3.5" />
-                      <span>Concluído & Auditado</span>
-                    </span>
-                  </div>
-                  <p className="text-xs text-slate-300 leading-relaxed font-sans">
-                    Aquisição automatizada de PDFs originais a partir de repositórios governamentais oficiais (`govinfo.gov`, `federalregister.gov`, `drs.faa.gov`), com proteção em múltiplas camadas contra SSRF (bloqueio de IPs privados, metadados de nuvem e validação per-hop de redirects HTTP 301/302/307/308). Cofre com deduplicação e integridade por hash SHA-256 em modos dual (Modo 1: Cofre / Modo 2: Document Intelligence).
-                  </p>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-[11px] font-mono pt-1">
-                    <div className="bg-slate-950 p-2 rounded border border-white/5 text-slate-300">
-                      ✓ Defesa SSRF em 23 vetores de ataque
-                    </div>
-                    <div className="bg-slate-950 p-2 rounded border border-white/5 text-slate-300">
-                      ✓ Armazenamento com hash criptográfico SHA-256
-                    </div>
-                    <div className="bg-slate-950 p-2 rounded border border-white/5 text-slate-300">
-                      ✓ Modo Dual: Validação Criptográfica + IA
-                    </div>
-                  </div>
+                <div className="p-4 bg-slate-900/70 rounded-xl border border-white/10 space-y-1.5">
+                  <span className="text-indigo-400 font-mono font-bold">Fase 4: Cofre Criptográfico & SSRF</span>
+                  <p className="text-slate-300">Aquisição segura de PDFs governamentais com defesa SSRF em 23 vetores, validação de redirect per-hop e hash SHA-256.</p>
                 </div>
 
-                {/* FASE 5.1 & 5.1A */}
-                <div className="bg-slate-900/80 border border-emerald-500/40 rounded-xl p-5 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-mono">
-                        FASE 5.1 & 5.1A
-                      </span>
-                      <h4 className="text-base font-bold text-white font-mono">
-                        Motor de Descoberta Contínua & Rastreabilidade de Proveniência
-                      </h4>
-                    </div>
-                    <span className="text-xs font-mono text-emerald-400 flex items-center space-x-1">
-                      <CheckCircle2 className="w-3.5 h-3.5" />
-                      <span>10/10 Testes Aprovados</span>
-                    </span>
-                  </div>
-                  <p className="text-xs text-slate-300 leading-relaxed font-sans">
-                    Varredura contínua e incremental de publicações da FAA sob 14 CFR Part 39, deduplicação idempotente de varredura (ciclo `NEW` -&gt; `ALREADY_KNOWN` sem duplicatas), rastreabilidade granular de proveniência campo a campo (`SOURCE_METADATA` 100% de confiança vs `DERIVED_METADATA` com regra explícita `DOCKET_IDS_EXPLICIT_IDENTIFIER` a 98%), e <strong>política estrita anti-inferência</strong> para eliminar qualquer fabricação especulativa de números de AD.
-                  </p>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-[11px] font-mono pt-1">
-                    <div className="bg-slate-950 p-2 rounded border border-white/5 text-slate-300">
-                      ✓ Varredura contínua FAA 14 CFR Part 39
-                    </div>
-                    <div className="bg-slate-950 p-2 rounded border border-white/5 text-slate-300">
-                      ✓ Deduplicação determinística em ciclo isolado
-                    </div>
-                    <div className="bg-slate-950 p-2 rounded border border-white/5 text-slate-300">
-                      ✓ Rastreamento de proveniência campo a campo
-                    </div>
-                  </div>
+                <div className="p-4 bg-slate-900/70 rounded-xl border border-white/10 space-y-1.5">
+                  <span className="text-indigo-400 font-mono font-bold">Fase 5: Pipeline Autônomo FAA</span>
+                  <p className="text-slate-300">Pipeline de 8 estágios atômicos para varredura, deduplicação idempotente e proveniência granular campo a campo.</p>
+                </div>
+
+                <div className="p-4 bg-slate-900/70 rounded-xl border border-white/10 space-y-1.5">
+                  <span className="text-indigo-400 font-mono font-bold">Fase 6: Ciclo 13 Estados & Due Date 3D</span>
+                  <p className="text-slate-300">Máquina de 13 estados regulatórios, motor de vencimento multidimensional (CAL/FH/FC) e controle de aeronavegabilidade.</p>
+                </div>
+
+                <div className="p-4 bg-slate-900/70 rounded-xl border border-white/10 space-y-1.5">
+                  <span className="text-indigo-400 font-mono font-bold">Fase 7: Delivery Assessment & Sandbox</span>
+                  <p className="text-slate-300">Avaliação pré-aquisição em sandbox isolado da frota ativa, validação de evidências de lessor e laudo de entrega.</p>
+                </div>
+
+                <div className="p-4 bg-slate-900/70 rounded-xl border border-white/10 space-y-1.5">
+                  <span className="text-indigo-400 font-mono font-bold">Fase 8: Central de Ajuda & Manual</span>
+                  <p className="text-slate-300">Manual operacional completo, FAQs regulatórias e assistente passo a passo guiado para rotinas do analista CAMO.</p>
+                </div>
+
+                <div className="p-4 bg-slate-900/70 rounded-xl border border-white/10 space-y-1.5">
+                  <span className="text-indigo-400 font-mono font-bold">Fase 9.1-9.5: Configuração Real & Register</span>
+                  <p className="text-slate-300">Histórico de instalação de P/N e S/N, screening multi-autoridade, CAMO Register com PENDING_ANALYSIS e Inventário Unificado.</p>
+                </div>
+
+                <div className="p-4 bg-slate-900/70 rounded-xl border border-emerald-500/40 space-y-1.5">
+                  <span className="text-emerald-400 font-mono font-bold">Fase 9.6: Governança Viva & Testes Adversariais</span>
+                  <p className="text-slate-300">Release 9.5.2 homologada com 14 testes de segurança/invariantes, catálogo de 70+ endpoints e 24 capacidades oficiais.</p>
                 </div>
               </div>
             </div>
           )}
 
-          {/* TAB 3: MODELO DE DOMÍNIO & ENTIDADES */}
+          {/* TAB 4: DOMÍNIO E ENTIDADES */}
           {activeTab === 'domain' && (
             <div className="space-y-6 animate-fadeIn">
               <div className="border-b border-white/10 pb-3">
                 <h3 className="text-base font-bold text-white uppercase font-mono">
-                  Esquema Relacional & Entidades do Domínio Aeronáutico
+                  Esquema de Entidades e Domínio Relacional Normalizado
                 </h3>
                 <p className="text-xs text-slate-400">
-                  Estrutura de dados desacoplada e normalizada para conformidade contínua com RBAC 121 e EASA Part-M.
+                  Modelo relacional completo persistido com garantia de isolamento e integridade referencial.
                 </p>
               </div>
 
-              {/* Entity Schema Grid */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs font-mono">
-                {/* Fleet Assets */}
-                <div className="bg-slate-900/80 p-4 rounded-xl border border-indigo-500/30 space-y-2.5">
-                  <div className="flex items-center space-x-2 text-indigo-400 font-bold uppercase text-[11px] border-b border-white/10 pb-2">
-                    <Boxes className="w-4 h-4" />
-                    <span>1. Ativos da Frota</span>
-                  </div>
-                  <ul className="space-y-1.5 text-slate-300 text-[11px]">
-                    <li>• <strong>Operator</strong> (Certificado CAMO)</li>
-                    <li>• <strong>Aircraft</strong> (MSN, Reg, Horas, Ciclos)</li>
-                    <li>• <strong>Engine</strong> (ESN, Posição 1/2, Horas)</li>
-                    <li>• <strong>Component</strong> (P/N, S/N, Tag 8130-3)</li>
-                    <li>• <strong>ComponentInstallation</strong> (Vínculo)</li>
+                <div className="p-4 bg-slate-900/80 rounded-xl border border-white/10 space-y-2">
+                  <span className="text-indigo-400 font-bold block">1. ATIVOS DA FROTA</span>
+                  <ul className="text-slate-300 space-y-1 text-[11px]">
+                    <li>• Operator</li>
+                    <li>• Aircraft</li>
+                    <li>• Engine (Pos 1/2)</li>
+                    <li>• Component (P/N, S/N)</li>
+                    <li>• ComponentInstallation</li>
                   </ul>
                 </div>
 
-                {/* Requirements */}
-                <div className="bg-slate-900/80 p-4 rounded-xl border border-indigo-500/30 space-y-2.5">
-                  <div className="flex items-center space-x-2 text-indigo-400 font-bold uppercase text-[11px] border-b border-white/10 pb-2">
-                    <FileText className="w-4 h-4" />
-                    <span>2. Requisitos & Regras</span>
-                  </div>
-                  <ul className="space-y-1.5 text-slate-300 text-[11px]">
-                    <li>• <strong>ComplianceRequirement</strong> (AD/SB)</li>
-                    <li>• <strong>ApplicabilityRule</strong> (Critérios)</li>
-                    <li>• <strong>RequirementDetails</strong> (Prazos/Limites)</li>
-                    <li>• <strong>ComplianceAction</strong> (Inspeção/Mod)</li>
-                    <li>• <strong>SourceDocument</strong> (PDF/Dados)</li>
+                <div className="p-4 bg-slate-900/80 rounded-xl border border-white/10 space-y-2">
+                  <span className="text-indigo-400 font-bold block">2. REQUISITOS & REGRAS</span>
+                  <ul className="text-slate-300 space-y-1 text-[11px]">
+                    <li>• ComplianceRequirement</li>
+                    <li>• ApplicabilityRule</li>
+                    <li>• RequirementDetails</li>
+                    <li>• SourceDocument (PDF)</li>
+                    <li>• ComplianceObligation</li>
                   </ul>
                 </div>
 
-                {/* Assessment & Memory */}
-                <div className="bg-slate-900/80 p-4 rounded-xl border border-purple-500/30 space-y-2.5">
-                  <div className="flex items-center space-x-2 text-purple-400 font-bold uppercase text-[11px] border-b border-white/10 pb-2">
-                    <Database className="w-4 h-4" />
-                    <span>3. Avaliação & Memória</span>
-                  </div>
-                  <ul className="space-y-1.5 text-slate-300 text-[11px]">
-                    <li>• <strong>ComplianceAssessment</strong> (Status)</li>
-                    <li>• <strong>MatchedCriteria</strong> (Evidência lógica)</li>
-                    <li>• <strong>UserQuestion</strong> (Item faltante)</li>
-                    <li>• <strong>KnowledgeFact</strong> (Fato permanente)</li>
-                    <li>• <strong>Evidence</strong> (Doc de suporte)</li>
+                <div className="p-4 bg-slate-900/80 rounded-xl border border-white/10 space-y-2">
+                  <span className="text-purple-400 font-bold block">3. AVALIAÇÃO & MEMÓRIA</span>
+                  <ul className="text-slate-300 space-y-1 text-[11px]">
+                    <li>• ComplianceAssessment</li>
+                    <li>• MatchedCriteria</li>
+                    <li>• UserQuestion</li>
+                    <li>• KnowledgeFact</li>
+                    <li>• Evidence (Form 8130-3)</li>
                   </ul>
                 </div>
 
-                {/* Regulatory & Audit */}
-                <div className="bg-slate-900/80 p-4 rounded-xl border border-emerald-500/30 space-y-2.5">
-                  <div className="flex items-center space-x-2 text-emerald-400 font-bold uppercase text-[11px] border-b border-white/10 pb-2">
-                    <ShieldCheck className="w-4 h-4" />
-                    <span>4. Governança & Auditoria</span>
-                  </div>
-                  <ul className="space-y-1.5 text-slate-300 text-[11px]">
-                    <li>• <strong>FAPTDocument</strong> (Laudo formal)</li>
-                    <li>• <strong>OfficialDocumentRecord</strong> (Cofre)</li>
-                    <li>• <strong>DiscoveryScan</strong> (Varredura FR)</li>
-                    <li>• <strong>AuditTrailLog</strong> (Trilha imutável)</li>
-                    <li>• <strong>UserProfile</strong> (Papel do engenheiro)</li>
+                <div className="p-4 bg-slate-900/80 rounded-xl border border-white/10 space-y-2">
+                  <span className="text-emerald-400 font-bold block">4. AUDITORIA & REGISTRO</span>
+                  <ul className="text-slate-300 space-y-1 text-[11px]">
+                    <li>• FAPTDocument (Laudo)</li>
+                    <li>• OfficialDocumentRecord</li>
+                    <li>• CamoRegulatoryEntry</li>
+                    <li>• AuditLog (SHA-256)</li>
+                    <li>• UserProfile (CAMO)</li>
                   </ul>
-                </div>
-              </div>
-
-              {/* State Machine Statuses */}
-              <div className="bg-slate-900/50 p-5 rounded-xl border border-white/10 space-y-3">
-                <h4 className="text-xs font-bold text-white uppercase tracking-wider font-mono">
-                  Máquina de Estados de Aplicabilidade e Conformidade (Rule Engine)
-                </h4>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs font-mono">
-                  <div className="p-3 bg-amber-950/30 border border-amber-500/40 rounded-lg space-y-1">
-                    <span className="text-amber-400 font-bold">APPLICABLE</span>
-                    <p className="text-slate-300 text-[11px] font-sans">A aeronave/motor/componente atende aos critérios da AD e requer ação mandatória de cumprimento.</p>
-                  </div>
-                  <div className="p-3 bg-emerald-950/30 border border-emerald-500/40 rounded-lg space-y-1">
-                    <span className="text-emerald-400 font-bold">NOT_APPLICABLE</span>
-                    <p className="text-slate-300 text-[11px] font-sans">Comprovadamente fora de escopo por modelo, MSN ou modificação terminativa confirmada com evidência.</p>
-                  </div>
-                  <div className="p-3 bg-indigo-950/30 border border-indigo-500/40 rounded-lg space-y-1">
-                    <span className="text-indigo-300 font-bold">REVIEW_REQUIRED</span>
-                    <p className="text-slate-300 text-[11px] font-sans">Bloqueio de segurança: modelo afetado mas P/N ou modificação desconhecida no banco digital.</p>
-                  </div>
                 </div>
               </div>
             </div>
           )}
 
-          {/* TAB 4: SEGURANÇA & SSRF */}
+          {/* TAB 5: SEGURANÇA E SSRF */}
           {activeTab === 'security' && (
             <div className="space-y-6 animate-fadeIn">
               <div className="border-b border-white/10 pb-3">
                 <h3 className="text-base font-bold text-white uppercase font-mono">
-                  Arquitetura de Segurança, Defesa Anti-SSRF & Integridade Criptográfica
+                  Arquitetura de Segurança, Defesa Anti-SSRF & Testes Adversariais
                 </h3>
                 <p className="text-xs text-slate-400">
-                  Blindagem estrutural para aquisição segura de documentos governamentais e proteção de infraestrutura.
+                  Blindagem estrutural comprovada por 14 testes adversariais automatizados.
                 </p>
               </div>
 
-              {/* Security Metrics & Controls */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs font-mono">
-                <div className="bg-slate-900/80 p-4 rounded-xl border border-emerald-500/30 space-y-2">
-                  <div className="flex items-center space-x-2 text-emerald-400 font-bold text-[11px]">
-                    <ShieldCheck className="w-4 h-4" />
-                    <span>Whitelist de Domínios Oficiais</span>
-                  </div>
-                  <p className="text-slate-300 text-[11px] font-sans">
-                    Apenas domínios governamentais explícitos são permitidos para download (ex: <code>govinfo.gov</code>, <code>federalregister.gov</code>, <code>drs.faa.gov</code>). Spoofs de subdomínio e prefixo são sumariamente rejeitados.
-                  </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-sans">
+                <div className="p-4 bg-slate-900/80 rounded-xl border border-emerald-500/30 space-y-2">
+                  <span className="text-emerald-400 font-mono font-bold block">Defesa Anti-SSRF em 4 Camadas</span>
+                  <p className="text-slate-300">Whitelist governamental, bloqueio estrito de loopback (127.0.0.1), faixas RFC 1918 e metadados de nuvem (169.254.169.254) com revalidação per-hop.</p>
                 </div>
 
-                <div className="bg-slate-900/80 p-4 rounded-xl border border-emerald-500/30 space-y-2">
-                  <div className="flex items-center space-x-2 text-emerald-400 font-bold text-[11px]">
-                    <Lock className="w-4 h-4" />
-                    <span>Bloqueio Anti-SSRF em 23 Vetores</span>
-                  </div>
-                  <p className="text-slate-300 text-[11px] font-sans">
-                    Bloqueio completo de IPs de loopback (127.0.0.1, [::1]), faixas RFC 1918 (10.x, 172.16.x, 192.168.x), metadados de nuvem (169.254.169.254) e notações evasivas (octal, hex, dword).
-                  </p>
+                <div className="p-4 bg-slate-900/80 rounded-xl border border-emerald-500/30 space-y-2">
+                  <span className="text-emerald-400 font-mono font-bold block">Assinatura Mágica de PDF (%PDF-)</span>
+                  <p className="text-slate-300">Inspeção direta dos bytes iniciais garantindo conformidade com o formato binário de PDF e rejeitando arquivos poliglota ou HTMLs camuflados.</p>
                 </div>
 
-                <div className="bg-slate-900/80 p-4 rounded-xl border border-emerald-500/30 space-y-2">
-                  <div className="flex items-center space-x-2 text-emerald-400 font-bold text-[11px]">
-                    <Key className="w-4 h-4" />
-                    <span>Cofre SHA-256 com Deduplicação</span>
-                  </div>
-                  <p className="text-slate-300 text-[11px] font-sans">
-                    Cada documento oficial baixado é verificado criptograficamente por seu hash SHA-256, impedindo adulteração de conteúdo e garantindo armazenamento idempotente sem redundância.
-                  </p>
+                <div className="p-4 bg-slate-900/80 rounded-xl border border-emerald-500/30 space-y-2">
+                  <span className="text-emerald-400 font-mono font-bold block">Isolamento de Entidades e Sandboxes</span>
+                  <p className="text-slate-300">Obrigações e dados de uma aeronave jamais poluem outra aeronave. Avaliações de Delivery operam em isolamento completo da frota ativa.</p>
                 </div>
-              </div>
 
-              {/* SSRF & Redirect Revalidation Diagram */}
-              <div className="bg-slate-900/50 p-5 rounded-xl border border-white/10 space-y-3 font-mono text-xs">
-                <h4 className="font-bold text-white uppercase tracking-wider">
-                  Mecanismo de Validação Per-Hop de Redirecionamentos HTTP (301, 302, 307, 308)
-                </h4>
-                <div className="p-4 bg-slate-950 rounded-lg border border-white/10 space-y-2 text-slate-300">
-                  <div className="flex items-center space-x-2 text-indigo-300 font-bold">
-                    <span>1. URL Inicial Solicitada</span>
-                    <ArrowRight className="w-3.5 h-3.5 text-slate-500" />
-                    <span className="text-emerald-400">Validação na Whitelist & Anti-SSRF</span>
-                  </div>
-                  <div className="flex items-center space-x-2 text-indigo-300 font-bold">
-                    <span>2. Resposta com Redirecionamento (ex: 301/302)</span>
-                    <ArrowRight className="w-3.5 h-3.5 text-slate-500" />
-                    <span className="text-emerald-400">Captura do Header Location</span>
-                  </div>
-                  <div className="flex items-center space-x-2 text-indigo-300 font-bold">
-                    <span>3. Destino do Redirecionamento</span>
-                    <ArrowRight className="w-3.5 h-3.5 text-slate-500" />
-                    <span className="text-emerald-400">Revalidação Imediata Per-Hop contra SSRF/IPs Privados</span>
-                  </div>
-                  <p className="text-[11px] text-slate-400 font-sans pt-2 border-t border-white/10">
-                    Se um servidor externo tentar redirecionar para <code>127.0.0.1</code> ou <code>169.254.169.254</code> (metadados de nuvem), a conexão é abortada no salto de redirecionamento antes de qualquer envio de requisição interna.
-                  </p>
+                <div className="p-4 bg-slate-900/80 rounded-xl border border-emerald-500/30 space-y-2">
+                  <span className="text-emerald-400 font-mono font-bold block">Integridade Criptográfica SHA-256</span>
+                  <p className="text-slate-300">Cadeia de custódia com hashing criptográfico em toda evidência e documento, com detecção imediata de violação e trilha append-only.</p>
                 </div>
               </div>
             </div>
           )}
 
-          {/* TAB 5: ROADMAP TECNOLÓGICO */}
-          {activeTab === 'roadmap' && (
-            <div className="space-y-6 animate-fadeIn">
-              <div className="border-b border-white/10 pb-3">
-                <h3 className="text-base font-bold text-white uppercase font-mono">
-                  Roadmap Tecnológico & Expansões Futuras (Fase 6+)
-                </h3>
-                <p className="text-xs text-slate-400">
-                  Arquitetura extensível concebida para cobrir 100% dos requisitos de engenharia de manutenção e aeronavegabilidade continuada.
-                </p>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {/* Expansion 1 */}
-                <div className="bg-slate-900/80 p-5 rounded-xl border border-white/10 space-y-3">
-                  <div className="w-10 h-10 rounded-lg bg-indigo-600/20 border border-indigo-500/40 flex items-center justify-center text-indigo-400">
-                    <Globe2 className="w-5 h-5" />
-                  </div>
-                  <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 font-mono">
-                    FASE 6
-                  </span>
-                  <h4 className="text-base font-bold text-white font-mono">Conectores EASA & ANAC</h4>
-                  <p className="text-xs text-slate-300 leading-relaxed font-sans">
-                    Integração com o portal oficial da Agência Europeia de Segurança da Aviação (EASA — <em>Safety Publications Tool</em>) e com os sistemas de Diretrizes de Aeronavegabilidade da ANAC (Brasil).
-                  </p>
-                </div>
-
-                {/* Expansion 2 */}
-                <div className="bg-slate-900/80 p-5 rounded-xl border border-white/10 space-y-3">
-                  <div className="w-10 h-10 rounded-lg bg-purple-600/20 border border-purple-500/40 flex items-center justify-center text-purple-400">
-                    <FileCheck2 className="w-5 h-5" />
-                  </div>
-                  <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/40 font-mono">
-                    FASE 7
-                  </span>
-                  <h4 className="text-base font-bold text-white font-mono">Service Bulletins & Ordens de Engenharia</h4>
-                  <p className="text-xs text-slate-300 leading-relaxed font-sans">
-                    Gestão integrada de boletins opcionais e de alerta de fabricantes (Boeing, Airbus, Embraer, CFM) e conversão em Ordens de Engenharia (EOs) para execução nas oficinas de manutenção (MRO).
-                  </p>
-                </div>
-
-                {/* Expansion 3 */}
-                <div className="bg-slate-900/80 p-5 rounded-xl border border-white/10 space-y-3">
-                  <div className="w-10 h-10 rounded-lg bg-emerald-600/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400">
-                    <Activity className="w-5 h-5" />
-                  </div>
-                  <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-mono">
-                    FASE 8
-                  </span>
-                  <h4 className="text-base font-bold text-white font-mono">Programa de Manutenção (AMP) & LLPs</h4>
-                  <p className="text-xs text-slate-300 leading-relaxed font-sans">
-                    Controle contínuo de tarefas periódicas por Horas de Voo (FH), Ciclos (FC) e Limites Calendáricos (CAL), além de rastreamento preditivo de peças com vida limite (Life-Limited Parts).
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* TAB 6: VISUALIZAÇÃO COMPLETA (PRINT PREVIEW) */}
+          {/* TAB 6: DOSSIÊ INTEGRAL (.MD COMPLETO) */}
           {activeTab === 'full' && (
-            <div className="space-y-8 animate-fadeIn bg-slate-950 p-6 rounded-xl border border-white/10 text-xs font-mono leading-relaxed">
-              <div className="flex items-center justify-between border-b border-white/10 pb-4">
+            <div className="space-y-4 animate-fadeIn">
+              <div className="flex items-center justify-between border-b border-white/10 pb-3">
                 <div>
-                  <h2 className="text-lg font-bold text-white uppercase">Dossiê Técnico de Arquitetura Integral</h2>
-                  <p className="text-slate-400 text-xs font-sans">Visualização para impressão e auditoria técnica externa.</p>
+                  <h3 className="text-base font-bold text-white uppercase font-mono">
+                    Especificação Técnica Integral (DOSSIE_ARQUITETURA_SISTEMA_CAMO.md)
+                  </h3>
+                  <p className="text-xs text-slate-400">
+                    Documento oficial em tempo real da Release 9.5.2.
+                  </p>
                 </div>
                 <button
-                  onClick={handlePrint}
-                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-mono font-bold flex items-center space-x-2 shadow-sm transition"
+                  onClick={loadDossierText}
+                  className="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded text-xs font-mono"
                 >
-                  <Printer className="w-3.5 h-3.5" />
-                  <span>Imprimir em PDF</span>
+                  Recarregar
                 </button>
               </div>
 
-              {/* Full Markdown Render Styled */}
-              <div className="space-y-6 text-slate-300 font-sans text-xs">
-                <div className="p-4 bg-slate-900 rounded-lg border border-indigo-500/30 space-y-2">
-                  <h3 className="text-sm font-bold text-white font-mono uppercase">1. IDENTIFICAÇÃO DO SISTEMA</h3>
-                  <p>• <strong>Nome:</strong> Airworthiness Compliance Intelligence (Projeto CAMO)</p>
-                  <p>• <strong>Arquitetura:</strong> Full-Stack Desacoplada (Node.js/Express + React/TypeScript + Gemini 3.7 Flash + Rule Engine V2)</p>
-                  <p>• <strong>Padrão Regulatório:</strong> FAA 14 CFR Part 39 / EASA Part-M / ANAC RBAC 121 & RBAC 39</p>
-                  <p>• <strong>Estado Atual:</strong> Release 5.1A — Descoberta Contínua, Proveniência Granular e Cofre Criptográfico 100% Auditados</p>
+              {loadingMarkdown ? (
+                <div className="p-8 text-center text-slate-400 font-mono text-xs">
+                  Carregando especificação completa do dossiê...
                 </div>
-
-                <div className="p-4 bg-slate-900 rounded-lg border border-white/10 space-y-2">
-                  <h3 className="text-sm font-bold text-white font-mono uppercase">2. OS 3 PILARES DE SEGURANÇA</h3>
-                  <p>1. <strong>Inteligência Artificial:</strong> Extração estruturada de documentos não estruturados.</p>
-                  <p>2. <strong>Rule Engine Determinístico:</strong> Execução de regras booleanas contra dados da frota. Falta de dados gera `REVIEW_REQUIRED`.</p>
-                  <p>3. <strong>Engenharia CAMO:</strong> Resolução de dados faltantes via evidências físicas e assinatura digital de laudos FAPT.</p>
+              ) : (
+                <div className="bg-slate-950 p-5 rounded-xl border border-white/10 font-mono text-xs text-slate-300 leading-relaxed whitespace-pre-wrap select-text max-h-[550px] overflow-y-auto">
+                  {dossierMarkdown || 'Carregando dossiê arquitetural oficial...'}
                 </div>
-
-                <div className="p-4 bg-slate-900 rounded-lg border border-white/10 space-y-2">
-                  <h3 className="text-sm font-bold text-white font-mono uppercase">3. MATRIZ DE FASES IMPLEMENTADAS</h3>
-                  <table className="w-full text-left border-collapse font-mono text-[11px]">
-                    <thead>
-                      <tr className="border-b border-slate-700 text-slate-400">
-                        <th className="py-2">Fase</th>
-                        <th className="py-2">Nome do Módulo</th>
-                        <th className="py-2">Garantia Técnica</th>
-                        <th className="py-2">Status</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-800 text-slate-300">
-                      <tr>
-                        <td className="py-2 text-indigo-400 font-bold">Fase 1</td>
-                        <td className="py-2">Fundação & 3 Pilares</td>
-                        <td className="py-2">Extração por IA + Motor Booleano + Memória Técnica</td>
-                        <td className="py-2 text-emerald-400 font-bold">AUDITADO</td>
-                      </tr>
-                      <tr>
-                        <td className="py-2 text-indigo-400 font-bold">Fase 2</td>
-                        <td className="py-2">Rule Engine V2 & FAPT</td>
-                        <td className="py-2">Modelos Canônicos + Softwares + Assinatura Digital</td>
-                        <td className="py-2 text-emerald-400 font-bold">AUDITADO</td>
-                      </tr>
-                      <tr>
-                        <td className="py-2 text-indigo-400 font-bold">Fase 3</td>
-                        <td className="py-2">Conectores Regulatórios</td>
-                        <td className="py-2">Federal Register API + Scoping Filter de Frota</td>
-                        <td className="py-2 text-emerald-400 font-bold">AUDITADO</td>
-                      </tr>
-                      <tr>
-                        <td className="py-2 text-indigo-400 font-bold">Fase 4</td>
-                        <td className="py-2">Cofre Criptográfico & SSRF</td>
-                        <td className="py-2">Defesa SSRF 23 Vetores + Hash SHA-256 + Modo Dual</td>
-                        <td className="py-2 text-emerald-400 font-bold">AUDITADO</td>
-                      </tr>
-                      <tr>
-                        <td className="py-2 text-indigo-400 font-bold">Fase 5.1A</td>
-                        <td className="py-2">Descoberta Contínua & Proveniência</td>
-                        <td className="py-2">Varredura Part 39 + Deduplicação + Anti-Inferência</td>
-                        <td className="py-2 text-emerald-400 font-bold">AUDITADO</td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-
-                <div className="p-4 bg-slate-900 rounded-lg border border-white/10 space-y-2">
-                  <h3 className="text-sm font-bold text-white font-mono uppercase">4. MATRIZ DE SEGURANÇA E CONFORMIDADE</h3>
-                  <p>• <strong>Defesa SSRF:</strong> Bloqueio estrito de redes 127.0.0.1, 10.x, 172.x, 192.168.x e metadados de nuvem 169.254.169.254.</p>
-                  <p>• <strong>Integridade de Arquivos:</strong> Verificação por hash criptográfico SHA-256 antes da persistência no cofre.</p>
-                  <p>• <strong>Proveniência de Dados:</strong> Segregação de <code>SOURCE_METADATA</code> (100%) e <code>DERIVED_METADATA</code> (98%) com regra explícita.</p>
-                  <p>• <strong>Trilha de Auditoria:</strong> Rastreabilidade imutável de todas as ações de usuários e avaliações de regras com timestamps ISO 8601 UTC.</p>
-                </div>
-              </div>
+              )}
             </div>
           )}
         </div>
@@ -826,16 +544,17 @@ export default function ArchitectureDossierModal({ state, onClose }: Architectur
         <div className="bg-slate-900/90 border-t border-white/10 px-6 py-3.5 flex items-center justify-between shrink-0 text-xs font-mono">
           <span className="text-slate-400 flex items-center space-x-2">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-            <span>Documento Pronto para Apresentação & Divulgação Institucional</span>
+            <span>Documento Oficial Release 9.5.2 — Homologado & Auditado</span>
           </span>
           <div className="flex items-center space-x-3">
-            <button
-              onClick={handlePrint}
+            <a
+              href="/api/generate-architecture-pdf"
+              download="DOSSIE_ARQUITETURA_SISTEMA_CAMO.pdf"
               className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-bold flex items-center space-x-1.5 transition shadow-sm"
             >
               <Printer className="w-3.5 h-3.5" />
-              <span>Gerar PDF</span>
-            </button>
+              <span>Gerar PDF Oficial</span>
+            </a>
             <button
               onClick={onClose}
               className="px-4 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition"

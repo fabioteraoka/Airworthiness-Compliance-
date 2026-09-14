@@ -1,9 +1,9 @@
 # CAPABILITY REGISTRY — CAMO AIRWORTHINESS COMPLIANCE INTELLIGENCE
 ## Registro Formal de Capacidades do Sistema de Engenharia CAMO
-**Versão do Registro:** Release 9.5.1 (Homologada após Fase 9 Etapas 5 e 5.1)  
+**Versão do Registro:** Release 9.5.2 (Homologada após Fase 9 Etapa 6.3 Governança Viva & Fleet CRUD)  
 **Data da Emissão:** 14 de Setembro de 2026  
 **Autoridade de Governança:** Diretoria Técnica de Engenharia & Governança CAMO  
-**Status do Registro:** VIVO • HOMOLOGADO • SINCRONIZADO COM CÓDIGO-FONTE  
+**Status do Registro:** VIVO • HOMOLOGADO • SINCRONIZADO COM CÓDIGO-FONTE (128/128 TESTES VERDES)  
 
 ---
 
@@ -427,6 +427,40 @@ Este documento constitui o catálogo oficial, versionado e independente de capac
 
 ---
 
+### CAP-025: Fleet Asset Management CRUD, Inactivation & Safe Decommissioning
+* **NAME:** Gestão Cadastral da Frota, Edição, Transição de Status e Descomissionamento Seguro
+* **DESCRIPTION:** Capacidade de edição cadastral em tempo real de células de aeronaves (matrícula, MSN, horas TSN, ciclos CSN, pousos, notas), transição formal de status operacional (inutilização, estocagem, preservação, manutenção, descarte) com registro obrigatório de justificativa técnica e exclusão segura com desassociação em cascata de motores para status STORED e marcação de componentes como REMOVED, gerando registros indeléveis no Livro de Auditoria.
+* **STATUS:** `IMPLEMENTED`
+* **VERSION:** 9.5.2
+* **MODULES:** `server.ts`, `server/dataStore.ts`, `src/components/FleetView.tsx`
+* **ENDPOINTS:** `PUT /api/fleet/aircraft/:id`, `PATCH /api/fleet/aircraft/:id/status`, `DELETE /api/fleet/aircraft/:id`
+* **DEPENDENCIES:** `server/dataStore.ts`, `server/camoEngine/fleetAirworthinessControlEngine.ts`
+* **TESTS:** `test/phase9-aircraft-crud.test.ts`
+* **SECURITY:** Validação estrita de unicidade de matrícula/MSN, obrigatoriedade de justificativa técnica para inativação e desvinculação em cascata impedindo registros órfãos.
+* **ARCHITECTURE:** Gestão do ciclo de vida de ativos físicos com sincronização direta no motor de avaliação de aeronavegabilidade sem quebras operacionais.
+* **DOCUMENTATION:** `DOSSIE_ARQUITETURA_SISTEMA_CAMO.md` (Seção 4.14), `PRODUCT_VISION_ROADMAP.md` (Seção 3).
+* **ROADMAP:** Integração com portais de registro aeronáutico (RAB ANAC / FAA Registry).
+* **LIMITATIONS:** Exclusão definitiva permitida apenas para correções de cadastros incorretos; aeronaves com histórico de voo operacional devem utilizar o status `DECOMMISSIONED`.
+
+---
+
+### CAP-026: Living Governance, Product Vision, Strategic Roadmap & AI Dev Guide
+* **NAME:** Governança Viva, Memória Estratégica Independente e Contrato de Desenvolvimento para IA
+* **DESCRIPTION:** Estrutura documental canônica e viva no repositório, garantindo continuidade autônoma do produto sem dependência de janelas de contexto de chat. Inclui Visão de Longo Prazo integrada PCM + CAMO (`PRODUCT_VISION_ROADMAP.md`), Contrato Operacional Inegociável para Agentes de IA (`AI_DEVELOPMENT_GUIDE.md`), Catálogo de Capacidades Auditadas (`CAPABILITY_REGISTRY.md`) e Dossiê Arquitetural Completo (`DOSSIE_ARQUITETURA_SISTEMA_CAMO.md`), acessíveis e exportáveis diretamente pela interface web da plataforma.
+* **STATUS:** `IMPLEMENTED`
+* **VERSION:** 9.5.2
+* **MODULES:** `server.ts`, `src/components/ArchitectureView.tsx`, `src/components/ArchitectureDossierModal.tsx`, `PRODUCT_VISION_ROADMAP.md`, `AI_DEVELOPMENT_GUIDE.md`
+* **ENDPOINTS:** `GET /api/system/capabilities`, `GET /api/system/audit`, `GET /api/system/product-vision`, `GET /api/system/ai-development-guide`, `GET /api/architecture-dossier`
+* **DEPENDENCIES:** Sistema de arquivos e integridade Markdown em UTF-8.
+* **TESTS:** `test/phase9-governance-docs.test.ts`
+* **SECURITY:** Rastreabilidade estrita de versões, validação de invariantes regulatórios e bloqueio de criação de arquiteturas paralelas.
+* **ARCHITECTURE:** Cadeia integrada de governança: README (resumo) ➔ Product Vision (direção estratégica) ➔ Capability Registry (capacidades) ➔ Dossiê (arquitetura técnica) ➔ AI Dev Guide (regras de evolução).
+* **DOCUMENTATION:** `DOSSIE_ARQUITETURA_SISTEMA_CAMO.md`, `AI_DEVELOPMENT_GUIDE.md`, `PRODUCT_VISION_ROADMAP.md`.
+* **ROADMAP:** Validação de conformidade de código em tempo de commit contra os invariantes do AI Dev Guide via linter customizado.
+* **LIMITATIONS:** Documentação mantida em sincronia manual disciplinada por agentes e desenvolvedores durante cada pull request ou etapa de desenvolvimento.
+
+---
+
 ## 2. MATRIZ DE RASTREABILIDADE DE CAPACIDADES
 
 | CAP-ID | Nome Curto | Status | Versão | Módulos Centrais | Cobertura de Teste |
@@ -455,6 +489,8 @@ Este documento constitui o catálogo oficial, versionado e independente de capac
 | **CAP-022** | Multi-Step Terminating Action | `PLANNED` | 10.0.0 | `complianceObligationService.ts` | Planejado |
 | **CAP-023** | Partial Supersedence Matrix | `PLANNED` | 10.0.0 | `complianceObligationService.ts`, `ruleEngine.ts` | Planejado |
 | **CAP-024** | SBs & Engineering Orders (EO) | `FUTURE_EXPLORATORY` | 11.0.0 | A definir | Exploratório |
+| **CAP-025** | Fleet CRUD & Decommissioning | `IMPLEMENTED` | 9.5.2 | `server.ts`, `FleetView.tsx`, `dataStore.ts` | PASS (100%) |
+| **CAP-026** | Living Governance & AI Guide | `IMPLEMENTED` | 9.5.2 | `PRODUCT_VISION_ROADMAP.md`, `AI_DEVELOPMENT_GUIDE.md` | PASS (100%) |
 
 ---
 *Capability Registry homologado pela Engenharia de Confiabilidade & Governança CAMO.*

@@ -128,7 +128,45 @@ async function startServer() {
     }
   });
 
-  // Capability Registry Endpoint (CAP-001 to CAP-024)
+  // Product Vision & Strategic Roadmap Endpoint
+  app.get('/api/system/product-vision', (req, res) => {
+    try {
+      const filePath = path.join(process.cwd(), 'PRODUCT_VISION_ROADMAP.md');
+      if (!fs.existsSync(filePath)) {
+        return res.status(404).json({ error: 'Arquivo PRODUCT_VISION_ROADMAP.md não encontrado.' });
+      }
+      const content = fs.readFileSync(filePath, 'utf-8');
+      res.json({
+        system: 'Airworthiness Compliance Intelligence & Maintenance Control',
+        release: '9.5.2',
+        fileName: 'PRODUCT_VISION_ROADMAP.md',
+        content
+      });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // AI Development Guide Endpoint (Operational Contract)
+  app.get('/api/system/ai-development-guide', (req, res) => {
+    try {
+      const filePath = path.join(process.cwd(), 'AI_DEVELOPMENT_GUIDE.md');
+      if (!fs.existsSync(filePath)) {
+        return res.status(404).json({ error: 'Arquivo AI_DEVELOPMENT_GUIDE.md não encontrado.' });
+      }
+      const content = fs.readFileSync(filePath, 'utf-8');
+      res.json({
+        system: 'CAMO AI Autonomous Development Contract',
+        release: '9.5.2',
+        fileName: 'AI_DEVELOPMENT_GUIDE.md',
+        content
+      });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // Capability Registry Endpoint (CAP-001 to CAP-026)
   app.get('/api/system/capabilities', (req, res) => {
     try {
       const filePath = path.join(process.cwd(), 'CAPABILITY_REGISTRY.md');
@@ -138,14 +176,44 @@ async function startServer() {
       const markdown = fs.readFileSync(filePath, 'utf-8');
       res.json({
         system: 'Airworthiness Compliance Intelligence',
-        release: '9.5.1',
+        release: '9.5.2',
         releaseStatus: 'GREEN_OPERATIONAL_AUDITED',
-        totalCapabilities: 24,
-        testPassingRate: '124/124 PASSED (100% GREEN)',
-        markdown
+        totalCapabilities: 26,
+        testPassingRate: '128/128 PASSED (100% GREEN)',
+        markdown,
+        content: markdown,
+        fileName: 'CAPABILITY_REGISTRY.md'
       });
     } catch (err: any) {
       res.status(500).json({ error: err.message });
+    }
+  });
+
+  // Generic and Direct Governance Document Downloader
+  app.get('/api/download-governance-doc/:docId', (req, res) => {
+    try {
+      const docMap: Record<string, string> = {
+        'dossier': 'DOSSIE_ARQUITETURA_SISTEMA_CAMO.md',
+        'roadmap': 'PRODUCT_VISION_ROADMAP.md',
+        'product-vision': 'PRODUCT_VISION_ROADMAP.md',
+        'capabilities': 'CAPABILITY_REGISTRY.md',
+        'ai-guide': 'AI_DEVELOPMENT_GUIDE.md',
+        'audit': 'SYSTEM_CURRENT_STATE_AUDIT.md',
+        'readme': 'README.md'
+      };
+      const fileName = docMap[req.params.docId];
+      if (!fileName) {
+        return res.status(400).send('Documento de governança inválido.');
+      }
+      const filePath = path.join(process.cwd(), fileName);
+      if (!fs.existsSync(filePath)) {
+        return res.status(404).send(`Arquivo ${fileName} não encontrado.`);
+      }
+      res.setHeader('Content-Type', 'text/markdown; charset=utf-8');
+      res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+      fs.createReadStream(filePath).pipe(res);
+    } catch (err: any) {
+      res.status(500).send('Erro ao baixar documento de governança: ' + err.message);
     }
   });
 
@@ -159,11 +227,13 @@ async function startServer() {
       const markdown = fs.readFileSync(filePath, 'utf-8');
       res.json({
         auditDate: '2026-09-14',
-        release: '9.5.1',
+        release: '9.5.2',
         viewsCount: 27,
-        endpointsCount: 70,
+        endpointsCount: 75,
         submodulesCount: 14,
-        markdown
+        markdown,
+        content: markdown,
+        fileName: 'SYSTEM_CURRENT_STATE_AUDIT.md'
       });
     } catch (err: any) {
       res.status(500).json({ error: err.message });

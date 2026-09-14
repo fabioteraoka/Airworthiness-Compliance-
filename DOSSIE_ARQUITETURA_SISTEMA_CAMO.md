@@ -45,6 +45,56 @@ O sistema é matematicamente proibido de inferir ou presumir dados não atestado
 * Na ausência de regra explícita ou disposição humana, o sistema adota o estado fail-safe seguro `NOT_DETERMINED` com `canFly: null`.
 * O cumprimento da frota segue o **Princípio da Não-Diluição**: uma única aeronave não conforme impede a frota de ser declarada em conformidade integral (`FLEET_CRITICAL_NON_COMPLIANT`).
 
+### 1.6 Modelo de Governança Viva & Cadeia Documental
+A evolução sustentável da engenharia de software da plataforma apoia-se em uma cadeia documental viva, canônica e auditável, onde cada documento cumpre uma função complementar específica:
+
+* **`README.md`** ➔ **Visão Rápida:** Apresentação institucional, problema solucionado, visão de produto e instruções de instalação/execução.
+* **`PRODUCT_VISION_ROADMAP.md`** ➔ **Direção Estratégica:** Visão unificada de longo prazo (Maintenance Control + CAMO), limites de escopo e roadmap priorizado (P0/P1/P2/FUTURE).
+* **`CAPABILITY_REGISTRY.md`** ➔ **Catálogo Canônico de Capacidades:** Registro formal de cada capacidade (`CAP-001` a `CAP-026`), com versões, status real auditado, submódulos e cobertura de testes (incluindo `CAP-025: Fleet Asset Management CRUD` e `CAP-026: Living Governance Chain`).
+* **`DOSSIE_ARQUITETURA_SISTEMA_CAMO.md`** ➔ **Arquitetura e Comportamento:** Especificação técnica profunda, topologia de submódulos, catálogo de endpoints REST e invariantes de missão crítica (Release 9.5.2).
+* **`AI_DEVELOPMENT_GUIDE.md`** ➔ **Regras para Evolução e Contrato com IA:** Diretrizes operacionais obrigatórias para agentes autônomos, proibindo arquitetura paralela e mantendo rastreabilidade estrita.
+
+### 1.7 Mapa Visual de Direção do Produto & Maintenance Control
+
+```
+CAMO ENGINE (Plataforma Integrada de Engenharia e Confiabilidade)
+│
+├── REGULATORY INTELLIGENCE
+│   ├── Discovery (Descoberta Aberta & Multi-Fonte) ...................... [IMPLEMENTED]
+│   ├── Register (CAMO Regulatory Register & Ledger) ..................... [IMPLEMENTED]
+│   ├── Analysis (Fila de Análise Técnica de Engenharia) ................. [IMPLEMENTED]
+│   └── Knowledge (Knowledge Facts & Memória Reutilizável) ............... [IMPLEMENTED]
+│
+├── COMPLIANCE
+│   ├── Requirement (Extração Estruturada de Parágrafos Mandatórios) ..... [IMPLEMENTED]
+│   ├── Applicability (Motor Booleano de 4 Níveis) ....................... [IMPLEMENTED]
+│   ├── Obligation (Máquina de 13 Estados de Ciclo de Vida) .............. [IMPLEMENTED]
+│   ├── Due Date (Motor 3D de Vencimento: FH, FC e Calendário Exato) ..... [IMPLEMENTED]
+│   └── Evidence (Verificação Probatória de 4 Dimensões & SHA-256) ....... [IMPLEMENTED]
+│
+├── AIRWORTHINESS
+│   ├── Compliance Status (Folhas de Análise e Pareceres FAPT) ........... [IMPLEMENTED]
+│   └── Operational Airworthiness (Controle da Frota & Não-Diluição) ..... [IMPLEMENTED]
+│
+├── FLEET
+│   ├── Aircraft (Inventário, Edição, Inativação e Descomissionamento) ... [IMPLEMENTED]
+│   ├── Configuration (Hierarquia Célula, Modificações e Softwares) ...... [IMPLEMENTED]
+│   ├── Engines (Posições 1, 2, APU e Desassociação em Cascata) .......... [IMPLEMENTED]
+│   └── Components (Rotáveis P/N, S/N e Histórico de Instalação) ......... [IMPLEMENTED]
+│
+├── MAINTENANCE CONTROL (PCM / MRO — Controle de Manutenção)
+│   ├── Maintenance Program (Programa de Manutenção Aprovado - AMP/MPD) .. [PLANNED]
+│   ├── Tasks (Catálogo de Tarefas Preventivas, GVI, DET e Lubrificação) . [PLANNED]
+│   ├── Work Orders (Ciclo de Vida de Ordens de Serviço de Manutenção) ... [PLANNED]
+│   ├── Records (Diários de Bordo e e-Logbook Integrado) ................. [PLANNED]
+│   └── Planning (Alocação de Aeronaves e Planejamento de Hangar) ........ [PLANNED]
+│
+└── INTEGRATED CAMO
+    ├── Maintenance ↔ Compliance (Liquidação de ADs por Eventos no Hangar) [PLANNED]
+    ├── Delivery (Sandbox de Reconciliação com Lessors & Selo Digital) .... [IMPLEMENTED]
+    └── Operational Airworthiness (Despacho Diário e Prevenção de AOG) ... [IMPLEMENTED]
+```
+
 ---
 
 ## 2. MAPA EVOLUTIVO DAS FASES E CAPACIDADES IMPLEMENTADAS

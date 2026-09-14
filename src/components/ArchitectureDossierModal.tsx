@@ -44,22 +44,42 @@ export default function ArchitectureDossierModal({ onClose, state }: Architectur
   const [dossierMarkdown, setDossierMarkdown] = useState<string>('');
   const [loadingMarkdown, setLoadingMarkdown] = useState<boolean>(false);
 
-  useEffect(() => {
-    if (activeTab === 'full' && !dossierMarkdown) {
-      loadDossierText();
-    }
-  }, [activeTab]);
+  type GovernanceDocId = 'dossier' | 'roadmap' | 'capabilities' | 'ai_guide';
+  const [selectedDoc, setSelectedDoc] = useState<GovernanceDocId>('dossier');
+  const [docCache, setDocCache] = useState<Record<string, string>>({});
 
-  const loadDossierText = () => {
+  const governanceDocs = [
+    { id: 'dossier' as const, name: 'Dossiê Técnico', file: 'DOSSIE_ARQUITETURA_SISTEMA_CAMO.md', endpoint: '/api/architecture-dossier' },
+    { id: 'roadmap' as const, name: 'Roadmap & Visão', file: 'PRODUCT_VISION_ROADMAP.md', endpoint: '/api/system/product-vision' },
+    { id: 'capabilities' as const, name: 'Capabilities', file: 'CAPABILITY_REGISTRY.md', endpoint: '/api/system/capabilities' },
+    { id: 'ai_guide' as const, name: 'Guia IA', file: 'AI_DEVELOPMENT_GUIDE.md', endpoint: '/api/system/ai-development-guide' }
+  ];
+
+  useEffect(() => {
+    if (activeTab === 'full') {
+      loadDocument(selectedDoc);
+    }
+  }, [activeTab, selectedDoc]);
+
+  const loadDocument = (docId: GovernanceDocId) => {
+    if (docCache[docId]) {
+      setDossierMarkdown(docCache[docId]);
+      return;
+    }
+    const docMeta = governanceDocs.find(d => d.id === docId);
+    if (!docMeta) return;
+
     setLoadingMarkdown(true);
-    fetch('/api/architecture-dossier')
+    fetch(docMeta.endpoint)
       .then(res => res.json())
       .then(data => {
-        setDossierMarkdown(data.content || '');
+        const text = data.content || data.markdown || '';
+        setDocCache(prev => ({ ...prev, [docId]: text }));
+        setDossierMarkdown(text);
         setLoadingMarkdown(false);
       })
       .catch(err => {
-        console.error('Erro ao carregar dossiê:', err);
+        console.error('Erro ao carregar documento:', err);
         setLoadingMarkdown(false);
       });
   };
@@ -72,17 +92,20 @@ export default function ArchitectureDossierModal({ onClose, state }: Architectur
       return;
     }
 
-    fetch('/api/architecture-dossier')
-      .then(res => res.json())
-      .then(data => {
-        navigator.clipboard.writeText(data.content || '');
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2500);
-      })
-      .catch(() => {
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2500);
-      });
+    const docMeta = governanceDocs.find(d => d.id === selectedDoc);
+    if (docMeta) {
+      fetch(docMeta.endpoint)
+        .then(res => res.json())
+        .then(data => {
+          navigator.clipboard.writeText(data.content || data.markdown || '');
+          setCopied(true);
+          setTimeout(() => setCopied(false), 2500);
+        })
+        .catch(() => {
+          setCopied(true);
+          setTimeout(() => setCopied(false), 2500);
+        });
+    }
   };
 
   const handlePrint = () => {
@@ -510,30 +533,58 @@ export default function ArchitectureDossierModal({ onClose, state }: Architectur
           {/* TAB 6: DOSSIÊ INTEGRAL (.MD COMPLETO) */}
           {activeTab === 'full' && (
             <div className="space-y-4 animate-fadeIn">
-              <div className="flex items-center justify-between border-b border-white/10 pb-3">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-white/10 pb-3">
                 <div>
                   <h3 className="text-base font-bold text-white uppercase font-mono">
-                    Especificação Técnica Integral (DOSSIE_ARQUITETURA_SISTEMA_CAMO.md)
+                    {governanceDocs.find(d => d.id === selectedDoc)?.name} ({governanceDocs.find(d => d.id === selectedDoc)?.file})
                   </h3>
                   <p className="text-xs text-slate-400">
-                    Documento oficial em tempo real da Release 9.5.2.
+                    Cadeia de Governança Viva • Release 9.5.2 auditada
                   </p>
                 </div>
-                <button
-                  onClick={loadDossierText}
-                  className="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded text-xs font-mono"
-                >
-                  Recarregar
-                </button>
+                <div className="flex items-center space-x-2">
+                  <a
+                    href={`/api/download-governance-doc/${selectedDoc}`}
+                    download={governanceDocs.find(d => d.id === selectedDoc)?.file}
+                    className="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded text-xs font-mono flex items-center space-x-1"
+                  >
+                    <Download className="w-3 h-3" />
+                    <span>Baixar .MD</span>
+                  </a>
+                  <button
+                    onClick={() => loadDocument(selectedDoc)}
+                    className="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded text-xs font-mono"
+                  >
+                    Recarregar
+                  </button>
+                </div>
+              </div>
+
+              {/* Quick Document Picker */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 bg-slate-900/60 p-1.5 rounded-lg border border-white/5">
+                {governanceDocs.map(doc => {
+                  const isSel = selectedDoc === doc.id;
+                  return (
+                    <button
+                      key={doc.id}
+                      onClick={() => setSelectedDoc(doc.id)}
+                      className={`px-2.5 py-1.5 rounded text-xs font-mono truncate transition text-center ${
+                        isSel ? 'bg-indigo-600 text-white font-bold' : 'text-slate-400 hover:text-white hover:bg-white/5'
+                      }`}
+                    >
+                      {doc.name}
+                    </button>
+                  );
+                })}
               </div>
 
               {loadingMarkdown ? (
                 <div className="p-8 text-center text-slate-400 font-mono text-xs">
-                  Carregando especificação completa do dossiê...
+                  Carregando especificação viva do documento...
                 </div>
               ) : (
                 <div className="bg-slate-950 p-5 rounded-xl border border-white/10 font-mono text-xs text-slate-300 leading-relaxed whitespace-pre-wrap select-text max-h-[550px] overflow-y-auto">
-                  {dossierMarkdown || 'Carregando dossiê arquitetural oficial...'}
+                  {dossierMarkdown || 'Carregando especificação técnica...'}
                 </div>
               )}
             </div>

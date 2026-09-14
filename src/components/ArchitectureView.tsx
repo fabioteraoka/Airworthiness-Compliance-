@@ -49,22 +49,71 @@ export default function ArchitectureView({ onOpenDossier }: ArchitectureViewProp
   const [capabilityFilter, setCapabilityFilter] = useState<string>('all');
   const [searchCapability, setSearchCapability] = useState<string>('');
 
-  useEffect(() => {
-    if (activeTab === 'live_dossier' && !dossierText) {
-      loadDossierContent();
-    }
-  }, [activeTab]);
+  // Multi-Document Living Governance State
+  type GovernanceDocId = 'dossier' | 'roadmap' | 'capabilities' | 'ai_guide';
+  const [selectedDoc, setSelectedDoc] = useState<GovernanceDocId>('dossier');
+  const [docCache, setDocCache] = useState<Record<string, string>>({});
 
-  const loadDossierContent = () => {
+  const governanceDocs: { id: GovernanceDocId; name: string; file: string; role: string; endpoint: string; downloadId: string }[] = [
+    {
+      id: 'dossier',
+      name: 'Dossiê Técnico de Arquitetura',
+      file: 'DOSSIE_ARQUITETURA_SISTEMA_CAMO.md',
+      role: 'Topologia, submódulos, endpoints REST e invariantes de missão crítica.',
+      endpoint: '/api/architecture-dossier',
+      downloadId: 'dossier'
+    },
+    {
+      id: 'roadmap',
+      name: 'Visão do Produto & Roadmap',
+      file: 'PRODUCT_VISION_ROADMAP.md',
+      role: 'Direção estratégica integrada PCM + CAMO, limites de escopo e esteira P0/P1/P2/FUTURE.',
+      endpoint: '/api/system/product-vision',
+      downloadId: 'roadmap'
+    },
+    {
+      id: 'capabilities',
+      name: 'Capability Registry Oficial',
+      file: 'CAPABILITY_REGISTRY.md',
+      role: 'Catálogo canônico das 26 capacidades regulatórias auditadas (CAP-001 a CAP-026).',
+      endpoint: '/api/system/capabilities',
+      downloadId: 'capabilities'
+    },
+    {
+      id: 'ai_guide',
+      name: 'Guia de Desenvolvimento para IA',
+      file: 'AI_DEVELOPMENT_GUIDE.md',
+      role: 'Contrato inegociável, 12 regras de ouro e ciclo de 7 passos para evolução autônoma.',
+      endpoint: '/api/system/ai-development-guide',
+      downloadId: 'ai-guide'
+    }
+  ];
+
+  useEffect(() => {
+    if (activeTab === 'live_dossier') {
+      loadDocumentContent(selectedDoc);
+    }
+  }, [activeTab, selectedDoc]);
+
+  const loadDocumentContent = (docId: GovernanceDocId) => {
+    if (docCache[docId]) {
+      setDossierText(docCache[docId]);
+      return;
+    }
+    const docMeta = governanceDocs.find(d => d.id === docId);
+    if (!docMeta) return;
+
     setLoadingDossier(true);
-    fetch('/api/architecture-dossier')
+    fetch(docMeta.endpoint)
       .then(res => res.json())
       .then(data => {
-        setDossierText(data.content || '');
+        const text = data.content || data.markdown || '';
+        setDocCache(prev => ({ ...prev, [docId]: text }));
+        setDossierText(text);
         setLoadingDossier(false);
       })
       .catch(err => {
-        console.error('Erro ao carregar dossiê:', err);
+        console.error(`Erro ao carregar documento ${docId}:`, err);
         setLoadingDossier(false);
       });
   };
@@ -77,20 +126,23 @@ export default function ArchitectureView({ onOpenDossier }: ArchitectureViewProp
       return;
     }
 
-    fetch('/api/architecture-dossier')
-      .then(res => res.json())
-      .then(data => {
-        navigator.clipboard.writeText(data.content || '');
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2500);
-      })
-      .catch(() => {
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2500);
-      });
+    const docMeta = governanceDocs.find(d => d.id === selectedDoc);
+    if (docMeta) {
+      fetch(docMeta.endpoint)
+        .then(res => res.json())
+        .then(data => {
+          navigator.clipboard.writeText(data.content || data.markdown || '');
+          setCopied(true);
+          setTimeout(() => setCopied(false), 2500);
+        })
+        .catch(() => {
+          setCopied(true);
+          setTimeout(() => setCopied(false), 2500);
+        });
+    }
   };
 
-  // 24 Canonical Capabilities
+  // 26 Canonical Capabilities (Release 9.5.2)
   const capabilities = [
     { id: 'CAP-001', name: 'Extração Estruturada com Gemini 3.7 Flash', domain: 'Ingestão & Extração', submodule: 'server/geminiService.ts', desc: 'Ingestão de PDFs regulatórios aeronáuticos e mapeamento estrito para esquema JSON tipado.' },
     { id: 'CAP-002', name: 'Normalização Tipada de Requisitos e Ações', domain: 'Ingestão & Extração', submodule: 'server/camoEngine/camoRuleEngineV2.ts', desc: 'Conversão de termos aeronáuticos textuais em estruturas padronizadas de inspeção e prazos.' },
@@ -115,7 +167,9 @@ export default function ArchitectureView({ onOpenDossier }: ArchitectureViewProp
     { id: 'CAP-021', name: 'Screening Multi-Autoridade por Frota e Modelo', domain: 'Inteligência Regulatória', submodule: 'server/camoEngine/regulatoryIntelligenceEngine.ts', desc: 'Consulta às autoridades (FAA, EASA, ANAC) por família com reconciliação de deltas.' },
     { id: 'CAP-022', name: 'CAMO Regulatory Register com Fila de Análise', domain: 'Inteligência Regulatória', submodule: 'server/camoEngine/camoRegulatoryRegisterService.ts', desc: 'Registro interno com importação idempotente PENDING_ANALYSIS e Fila de Análise sem Auto-Gemini.' },
     { id: 'CAP-023', name: 'Inventário Unificado de ADs da Frota', domain: 'Inteligência Regulatória', submodule: 'server/camoEngine/camoRegulatoryRegisterService.ts', desc: 'Visão consolidada de todas as ADs descobertas por modelo com contadores de aplicabilidade.' },
-    { id: 'CAP-024', name: 'Governança Viva e Testes Adversariais Automatizados', domain: 'Governança & Suporte', submodule: 'test/phase9-stage6-security-architecture.test.ts', desc: 'Bateria de testes adversariais para segurança, SSRF, invariantes de estado e integridade criptográfica.' }
+    { id: 'CAP-024', name: 'Governança Viva e Testes Adversariais Automatizados', domain: 'Governança & Suporte', submodule: 'test/phase9-stage6-security-architecture.test.ts', desc: 'Bateria de testes adversariais para segurança, SSRF, invariantes de estado e integridade criptográfica.' },
+    { id: 'CAP-025', name: 'Gestão Cadastral da Frota, Edição & Descomissionamento', domain: 'Operações & Frota', submodule: 'server.ts, FleetView.tsx', desc: 'Edição cadastral em tempo real de células, inativação com justificativa e exclusão com desvinculação em cascata.' },
+    { id: 'CAP-026', name: 'Governança Viva, Memória Estratégica & Guia para IA', domain: 'Governança & Suporte', submodule: 'PRODUCT_VISION_ROADMAP.md, AI_DEVELOPMENT_GUIDE.md', desc: 'Cadeia documental canônica: Product Vision (PCM + CAMO), Contrato com IA e Registro de Capacidades vivos.' }
   ];
 
   const domains = ['all', 'Ingestão & Extração', 'Motor Determinístico', 'Memória Técnica', 'Conectores Oficiais', 'Segurança & Cofre', 'Pipeline Autônomo', 'Ciclo de Vida', 'Evidências & Auditoria', 'Operações & Frota', 'Configuração Real', 'Inteligência Regulatória', 'Governança & Suporte'];
@@ -145,10 +199,10 @@ export default function ArchitectureView({ onOpenDossier }: ArchitectureViewProp
                 Release 9.5.2 Auditada
               </span>
               <span className="px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-[10px] font-bold">
-                124/124 Testes Green
+                128/128 Testes Green
               </span>
               <span className="px-2 py-0.5 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30 text-[10px] font-bold">
-                24 Capacidades Ativas
+                26 Capacidades Ativas
               </span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight uppercase">
@@ -210,15 +264,15 @@ export default function ArchitectureView({ onOpenDossier }: ArchitectureViewProp
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-3 border-t border-white/10 text-xs font-mono">
           <div className="bg-slate-950/60 p-2.5 rounded-lg border border-white/5">
             <span className="text-slate-400 text-[10px] block">VERSÃO HOMOLOGADA</span>
-            <span className="text-white font-bold">Release 9.5.2 (Active Living)</span>
+            <span className="text-white font-bold">Release 9.5.2 (Living Governance)</span>
           </div>
           <div className="bg-slate-950/60 p-2.5 rounded-lg border border-white/5">
             <span className="text-slate-400 text-[10px] block">SUÍTE REGULATÓRIA</span>
-            <span className="text-emerald-400 font-bold">124/124 Pass (11 Suítes)</span>
+            <span className="text-emerald-400 font-bold">128/128 Pass (12 Suítes)</span>
           </div>
           <div className="bg-slate-950/60 p-2.5 rounded-lg border border-white/5">
             <span className="text-slate-400 text-[10px] block">INFRAESTRUTURA</span>
-            <span className="text-indigo-300 font-bold">14 Módulos | 27 Visões | 70+ APIs</span>
+            <span className="text-indigo-300 font-bold">14 Módulos | 27 Visões | 75+ APIs</span>
           </div>
           <div className="bg-slate-950/60 p-2.5 rounded-lg border border-white/5">
             <span className="text-slate-400 text-[10px] block">SEGURANÇA & ISOLAMENTO</span>
@@ -233,10 +287,10 @@ export default function ArchitectureView({ onOpenDossier }: ArchitectureViewProp
           { id: 'overview', label: '1. Visão Executiva & 3 Pilares', icon: ShieldCheck },
           { id: 'ingestion', label: '2. Os 3 Fluxos de Ingestão de ADs', icon: Workflow },
           { id: 'phases', label: '3. Mapa Completo de Fases (1 a 9.6)', icon: GitMerge },
-          { id: 'capabilities', label: '4. Capability Registry (24 Caps)', icon: Boxes },
+          { id: 'capabilities', label: '4. Capability Registry (26 Caps)', icon: Boxes },
           { id: 'submodules_api', label: '5. Catálogo de APIs & 14 Módulos', icon: Server },
           { id: 'security', label: '6. Segurança & Invariantes', icon: Lock },
-          { id: 'live_dossier', label: '7. Leitor do Dossiê (.MD)', icon: FileText }
+          { id: 'live_dossier', label: '7. Governança Viva & Documentação (.MD)', icon: FileText }
         ].map(tab => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -839,26 +893,78 @@ export default function ArchitectureView({ onOpenDossier }: ArchitectureViewProp
         </div>
       )}
 
-      {/* TAB 7: LEITOR DO DOSSIÊ COMPLETO (.MD) */}
+      {/* TAB 7: LEITOR DE GOVERNANÇA VIVA & DOCUMENTOS CANÔNICOS (.MD) */}
       {activeTab === 'live_dossier' && (
         <div className="space-y-6 animate-fadeIn">
+          {/* Document Switcher Bar */}
+          <div className="bg-slate-900/90 border border-white/10 rounded-xl p-3 space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+              <div className="flex items-center space-x-2">
+                <BookOpen className="w-4 h-4 text-indigo-400" />
+                <span className="text-xs font-mono font-bold text-white uppercase tracking-wider">
+                  Cadeia Documental de Governança Viva (Release 9.5.2)
+                </span>
+              </div>
+              <span className="text-[11px] font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded">
+                Sincronização Código ↔ Docs Ativa
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+              {governanceDocs.map(doc => {
+                const isSelected = selectedDoc === doc.id;
+                return (
+                  <button
+                    key={doc.id}
+                    id={`btn-select-doc-${doc.id}`}
+                    onClick={() => setSelectedDoc(doc.id)}
+                    className={`p-3 rounded-xl border text-left transition ${
+                      isSelected
+                        ? 'bg-indigo-600/20 border-indigo-500 text-white shadow-md shadow-indigo-600/20'
+                        : 'bg-slate-950/60 border-white/5 text-slate-300 hover:bg-slate-800/60 hover:text-white'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-xs font-bold font-mono truncate">{doc.name}</span>
+                      {isSelected && <span className="w-2 h-2 rounded-full bg-indigo-400 animate-pulse"></span>}
+                    </div>
+                    <code className="text-[10px] text-indigo-300 block truncate">{doc.file}</code>
+                    <p className="text-[10px] text-slate-400 mt-1 line-clamp-2 leading-tight font-sans">
+                      {doc.role}
+                    </p>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
           <div className="glass-panel rounded-xl p-6 shadow-sm space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-white/10 pb-4">
               <div>
                 <div className="flex items-center space-x-2">
                   <FileText className="w-5 h-5 text-indigo-400" />
                   <h2 className="text-base font-bold text-white uppercase tracking-wider font-mono">
-                    Leitor em Tempo Real do Dossiê Arquitetural Oficial
+                    {governanceDocs.find(d => d.id === selectedDoc)?.name}
                   </h2>
                 </div>
-                <p className="text-xs text-slate-400 mt-1">
-                  Exibição direta do arquivo canônico <code>DOSSIE_ARQUITETURA_SISTEMA_CAMO.md</code> (Release 9.5.2).
+                <p className="text-xs text-slate-400 mt-1 font-mono">
+                  Arquivo físico: <code>{governanceDocs.find(d => d.id === selectedDoc)?.file}</code> • Endpoint: <code>{governanceDocs.find(d => d.id === selectedDoc)?.endpoint}</code>
                 </p>
               </div>
 
-              <div className="flex items-center space-x-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <a
+                  id="btn-download-selected-doc"
+                  href={`/api/download-governance-doc/${selectedDoc}`}
+                  download={governanceDocs.find(d => d.id === selectedDoc)?.file}
+                  className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-white/10 rounded-lg text-xs font-mono flex items-center space-x-1.5 transition"
+                  title="Baixar este arquivo Markdown"
+                >
+                  <Download className="w-3.5 h-3.5 text-slate-400" />
+                  <span>Baixar .MD</span>
+                </a>
                 <button
-                  onClick={loadDossierContent}
+                  onClick={() => loadDocumentContent(selectedDoc)}
                   disabled={loadingDossier}
                   className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-white/10 rounded-lg text-xs font-mono flex items-center space-x-1"
                 >
@@ -879,7 +985,7 @@ export default function ArchitectureView({ onOpenDossier }: ArchitectureViewProp
               <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
               <input
                 type="text"
-                placeholder="Pesquisar termo no dossiê de arquitetura..."
+                placeholder={`Pesquisar termo em ${governanceDocs.find(d => d.id === selectedDoc)?.file}...`}
                 value={dossierSearch}
                 onChange={(e) => setDossierSearch(e.target.value)}
                 className="w-full pl-9 pr-4 py-2 bg-slate-950/80 border border-white/10 rounded-lg text-xs font-mono text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
@@ -889,11 +995,11 @@ export default function ArchitectureView({ onOpenDossier }: ArchitectureViewProp
             {/* Dossier Content Body */}
             {loadingDossier ? (
               <div className="p-12 text-center text-slate-400 font-mono text-xs">
-                Carregando especificação arquitetural viva...
+                Carregando especificação documental viva...
               </div>
             ) : (
-              <div className="bg-slate-950/90 border border-white/10 rounded-xl p-6 max-h-[600px] overflow-y-auto font-mono text-xs text-slate-300 leading-relaxed whitespace-pre-wrap select-text">
-                {dossierText || 'Nenhum conteúdo retornado para DOSSIE_ARQUITETURA_SISTEMA_CAMO.md.'}
+              <div className="bg-slate-950/90 border border-white/10 rounded-xl p-6 max-h-[650px] overflow-y-auto font-mono text-xs text-slate-300 leading-relaxed whitespace-pre-wrap select-text">
+                {dossierText || 'Nenhum conteúdo retornado para o documento selecionado.'}
               </div>
             )}
           </div>

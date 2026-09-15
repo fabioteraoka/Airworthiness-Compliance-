@@ -670,9 +670,9 @@ export class RegulatoryIntelligenceEngine {
 
     const normalized = normalizeAeronauticalQuery(rawParams);
     const targetAuthority = rawParams.authority || 'ALL';
-    const perPage = Math.min(Math.max(Number(rawParams.perPage) || 25, 5), 100);
+    const perPage = Math.min(Math.max(Number(rawParams.perPage) || 100, 5), 1000);
     const requestedPage = Math.max(Number(rawParams.page) || 1, 1);
-    const maxPages = Math.min(Math.max(Number(rawParams.maxPages) || (rawParams.autoPaginate ? 3 : 1), 1), 10);
+    const maxPages = Math.min(Math.max(Number(rawParams.maxPages) || (rawParams.autoPaginate ? 50 : 1), 1), 200);
 
     const sourcesConsulted = [
       'Federal Register Public API v1 (FAA) — 14 CFR Part 39 Feed',
@@ -897,22 +897,32 @@ export class RegulatoryIntelligenceEngine {
         if (!tokenMatch) return false;
       }
 
-      // Specific Model Filter if provided
+      // Specific Model Filter if provided — use as a soft filter, not a hard exclusion.
+      // A family-level search (e.g. "737") should return ALL ADs for that family,
+      // including variants the user didn't explicitly type (737-700, 737-900, 737 MAX, etc.).
       if (searchModel) {
         const exactModelMatches = c.modelScope.some(m => matchesModel(m, [searchModel])) ||
           cTitle.includes(searchModel) ||
           cApplicability.includes(searchModel);
-        if (!exactModelMatches) return false;
+        const familyLevelMatch = !searchFamily || searchFamily === 'OPEN_MODEL' ||
+          cFamily.includes(searchFamily) || cTitle.includes(searchFamily) ||
+          cApplicability.includes(searchFamily) ||
+          (c.modelScope && c.modelScope.some(m => m.toUpperCase().includes(searchFamily)));
+        if (!exactModelMatches && !familyLevelMatch) return false;
       }
 
-      // Text Query filter if provided
+      // Text Query filter if provided — match on ANY keyword from the query, not the entire string verbatim.
+      // This ensures "Boeing 737-800" matches ADs containing "Boeing" or "737" rather than requiring the exact full string.
       if (rawParams.query) {
-        const qClean = rawParams.query.toUpperCase().trim();
-        const textMatches = cTitle.includes(qClean) ||
-          cApplicability.includes(qClean) ||
-          cAdNumber.includes(qClean) ||
-          cDocket.includes(qClean) ||
-          (c.modelScope && c.modelScope.some(m => m.toUpperCase().includes(qClean)));
+        const qTokens = rawParams.query.toUpperCase().trim().split(/[\s,]+/).filter(t => t.length >= 3);
+        const textMatches = qTokens.some(token =>
+          cTitle.includes(token) ||
+          cApplicability.includes(token) ||
+          cAdNumber.includes(token) ||
+          cDocket.includes(token) ||
+          (c.modelScope && c.modelScope.some(m => m.toUpperCase().includes(token))) ||
+          (c.manufacturer && c.manufacturer.toUpperCase().includes(token))
+        );
         if (!textMatches) return false;
       }
 

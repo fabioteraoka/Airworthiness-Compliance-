@@ -120,7 +120,9 @@ export default function RegulatoryIntelligenceView({
           engine,
           authority,
           query: searchContext || `${manufacturer} ${model}`,
-          autoPaginate: true
+          autoPaginate: true,
+          perPage: 100,
+          maxPages: 100
         })
       });
 

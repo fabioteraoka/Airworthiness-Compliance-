@@ -224,6 +224,14 @@ export class FederalRegisterConnector implements IRegulatoryConnector {
     const params = new URLSearchParams();
     
     params.append('conditions[agencies][]', 'federal-aviation-administration');
+
+    // Always filter by 14 CFR Part 39 (Airworthiness Directives) unless explicitly overridden
+    const cfrTitle = options?.cfrTitle !== undefined ? options.cfrTitle : 14;
+    const cfrPart = options?.cfrPart !== undefined ? options.cfrPart : '39';
+    if (cfrPart !== 'ALL') {
+      params.append('conditions[cfr][title]', String(cfrTitle));
+      params.append('conditions[cfr][part]', String(cfrPart));
+    }
     
     if (options?.type === 'PROPOSED_RULE') {
       params.append('conditions[type][]', 'PRORULE');

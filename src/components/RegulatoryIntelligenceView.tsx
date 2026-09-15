@@ -1057,11 +1057,33 @@ export default function RegulatoryIntelligenceView({
               Relatório em tempo real de latência, status de conectores e telemetria de requisições às autoridades.
             </p>
 
-            {searchResult?.diagnostic ? (
+          {searchResult?.diagnostic ? (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                {(['FAA', 'EASA', 'ANAC'] as const).map((source) => {
+                  const item = searchResult.diagnostic.authorities[source];
+                  return (
+                    <div key={source} className="rounded-lg border border-slate-800 bg-slate-950/70 p-3">
+                      <div className="flex items-center justify-between text-xs font-semibold text-white">
+                        <span>{source}</span>
+                        <span className="text-slate-400">{item.finalCandidates} filtradas</span>
+                      </div>
+                      <p className="mt-1 text-[11px] text-slate-400">
+                        {item.rawRetrieved} recebidas · {item.pagesScanned || 0} páginas
+                      </p>
+                      <p className="mt-1 text-[11px] text-slate-500">{item.notes}</p>
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 p-3 text-xs text-amber-200">
+                O total da FAA é o inventário retornado pela API antes do filtro da frota. EASA e ANAC permanecem limitadas aos repositórios curados configurados até que conectores de inventário ao vivo sejam habilitados.
+              </div>
               <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 font-mono text-xs text-slate-300 max-h-96 overflow-y-auto">
                 <pre className="whitespace-pre-wrap">{JSON.stringify(searchResult.diagnostic, null, 2)}</pre>
               </div>
-            ) : (
+            </>
+          ) : (
               <div className="p-6 text-center text-xs text-slate-500 bg-slate-950/40 rounded-lg border border-slate-800">
                 Execute uma busca na aba 1 para gerar o diagnóstico em tempo real das APIs da FAA, EASA e ANAC.
               </div>

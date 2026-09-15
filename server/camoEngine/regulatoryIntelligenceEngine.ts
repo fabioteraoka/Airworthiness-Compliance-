@@ -763,23 +763,34 @@ export class RegulatoryIntelligenceEngine {
       try {
         const frConnector = regulatorySourceRegistry.getFederalRegisterConnector();
         if (frConnector) {
-          const primarySearchTerm = normalized.searchTerms[0] || normalized.family || 'Airbus A320';
+          // Inventory queries must not search only for the first textual term (for example,
+          // "Boeing 737"). Older ADs often omit the exact fleet name from the indexed title.
           let currentPageToFetch = requestedPage;
           let pagesFetched = 0;
+          let sourceTotalPages = 0;
+          const seenDocumentNumbers = new Set<string>();
 
           while (pagesFetched < maxPages) {
             diagnosticFAA.pagesScanned = (diagnosticFAA.pagesScanned || 0) + 1;
-            const liveResponse = await frConnector.searchFAARegulatoryDocuments(primarySearchTerm, {
+            const liveResponse = await frConnector.searchFAARegulatoryDocuments('', {
               page: currentPageToFetch,
               perPage,
               type: 'RULE',
-              order: 'newest'
+              order: 'newest',
+              includeTerm: false
             });
+            sourceTotalPages = liveResponse.totalPages || sourceTotalPages;
 
             if (liveResponse && Array.isArray(liveResponse.results)) {
               diagnosticFAA.rawRetrieved += liveResponse.results.length;
 
               for (const r of liveResponse.results) {
+                const recordKey = (r.adNumber || r.documentNumber || r.title).toUpperCase().trim();
+                if (seenDocumentNumbers.has(recordKey)) {
+                  diagnosticFAA.duplicatesRemoved++;
+                  continue;
+                }
+                seenDocumentNumbers.add(recordKey);
                 diagnosticFAA.normalized++;
                 const adNum = r.adNumber || `FAA AD ${r.documentNumber}`;
                 const newCand: RegulatoryAdCandidate = {
@@ -804,8 +815,11 @@ export class RegulatoryIntelligenceEngine {
                 faaNewCandidates.push(newCand);
               }
 
-              // Check if more pages exist
-              if (liveResponse.results.length < perPage || (liveResponse.totalCount && diagnosticFAA.rawRetrieved >= liveResponse.totalCount)) {
+              // Prefer the API metadata. Only use page length as a fallback when metadata is absent.
+              const hasMorePages = sourceTotalPages > 0
+                ? currentPageToFetch < sourceTotalPages
+                : liveResponse.results.length >= perPage;
+              if (!hasMorePages || (liveResponse.totalCount > 0 && diagnosticFAA.rawRetrieved >= liveResponse.totalCount)) {
                 break;
               }
             } else {
@@ -815,6 +829,11 @@ export class RegulatoryIntelligenceEngine {
             currentPageToFetch++;
             pagesFetched++;
           }
+
+          const sourceWasTruncated = sourceTotalPages > 0 && diagnosticFAA.pagesScanned < sourceTotalPages;
+          diagnosticFAA.notes = sourceWasTruncated
+            ? `Inventário FAA truncado pelo limite maxPages=${maxPages}: ${diagnosticFAA.pagesScanned}/${sourceTotalPages} páginas consultadas.`
+            : `Inventário histórico FAA consultado sem filtro textual; ${sourceTotalPages || diagnosticFAA.pagesScanned} páginas disponíveis/consultadas.`;
 
           // Persist discovered FAA candidates to database
           if (faaNewCandidates.length > 0) {

@@ -33,7 +33,8 @@ import {
   ChevronRight,
   Shield,
   FileSearch,
-  ListFilter
+  ListFilter,
+  BookOpen
 } from 'lucide-react';
 
 interface ArchitectureViewProps {

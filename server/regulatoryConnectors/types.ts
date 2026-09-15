@@ -18,6 +18,9 @@ export interface RegulatorySearchOptions {
   fields?: string[];
   cfrTitle?: number;
   cfrPart?: string;
+  /** Omit the textual term for complete historical inventories. */
+  includeTerm?: boolean;
+  term?: string;
 }
 
 export interface RegulatorySearchResponse {
@@ -29,6 +32,7 @@ export interface RegulatorySearchResponse {
   results: RegulatorySourceRecord[];
   retrievedAt: string;
   executionTimeMs: number;
+  totalPages?: number;
   sourceDisclaimer?: string;
 }
 

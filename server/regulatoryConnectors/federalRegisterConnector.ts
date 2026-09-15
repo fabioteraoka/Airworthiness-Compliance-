@@ -242,10 +242,10 @@ export class FederalRegisterConnector implements IRegulatoryConnector {
       params.append('conditions[type][]', 'RULE');
     }
 
-    if (query && query.trim()) {
-      params.append('conditions[term]', query.trim());
-    } else {
-      params.append('conditions[term]', 'Airworthiness Directives');
+    const shouldIncludeTerm = options?.includeTerm !== false;
+    const term = options?.term ?? query;
+    if (shouldIncludeTerm) {
+      params.append('conditions[term]', term && term.trim() ? term.trim() : 'Airworthiness Directives');
     }
 
     params.append('order', options?.order === 'oldest' ? 'oldest' : 'newest');
@@ -287,7 +287,8 @@ export class FederalRegisterConnector implements IRegulatoryConnector {
     return {
       source: this.sourceType,
       query,
-      totalCount: rawData.count || results.length,
+      totalCount: typeof rawData.count === 'number' ? rawData.count : results.length,
+      totalPages: typeof rawData.total_pages === 'number' ? rawData.total_pages : undefined,
       page: options?.page || 1,
       perPage: options?.perPage || 15,
       results,

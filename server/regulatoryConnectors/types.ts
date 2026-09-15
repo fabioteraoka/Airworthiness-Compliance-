@@ -24,6 +24,7 @@ export interface RegulatorySearchResponse {
   source: RegulatorySourceType;
   query: string;
   totalCount: number;
+  totalPages?: number;
   page: number;
   perPage: number;
   results: RegulatorySourceRecord[];

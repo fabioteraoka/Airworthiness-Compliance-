@@ -180,15 +180,17 @@ export function normalizeAeronauticalQuery(params: CandidateSearchParams): Norma
     } else {
       // Open / User-specified family: retain user value or fallback to primary search term, stripping duplicate manufacturer if present
       let rawFamily = (params.family || params.model || params.query || 'OPEN_MODEL').trim();
-      if (detectedManufacturer && rawFamily.toUpperCase().startsWith(detectedManufacturer.toUpperCase())) {
-        rawFamily = rawFamily.substring(detectedManufacturer.length).trim() || rawFamily;
+      if (detectedManufacturer && rawFamily.toUpperCase() === detectedManufacturer.toUpperCase()) {
+        rawFamily = '';
+      } else if (detectedManufacturer && rawFamily.toUpperCase().startsWith(detectedManufacturer.toUpperCase())) {
+        rawFamily = rawFamily.substring(detectedManufacturer.length).trim();
       }
-      detectedFamily = rawFamily;
+      detectedFamily = rawFamily || 'OPEN_MODEL';
     }
   }
 
   // Model & Variant extraction if not provided
-  if (!detectedModel && detectedFamily) {
+  if (!detectedModel && detectedFamily && detectedFamily !== 'OPEN_MODEL') {
     const modelMatch = rawInput.match(/\b(A3[0-9]{2}(?:-[0-9]{3}[A-Z]?)?|7[0-9]{2}(?:-[0-9]{1,3}[A-Z]?)?|E1[79][05](?:-E2)?|ATR[ -]?(?:42|72)(?:-[0-9]{3})?|PC-[0-9]{2}(?:\/[0-9]{2})?)\b/i);
     if (modelMatch) {
       detectedModel = modelMatch[1].toUpperCase();
@@ -197,16 +199,18 @@ export function normalizeAeronauticalQuery(params: CandidateSearchParams): Norma
 
   // Build targeted terms for external regulatory APIs (e.g. FAA Federal Register)
   const searchTerms: string[] = [];
-  if (detectedManufacturer && detectedFamily && detectedFamily !== 'OPEN_MODEL') {
+  if (detectedManufacturer && detectedFamily && detectedFamily !== 'OPEN_MODEL' && detectedFamily.toUpperCase() !== detectedManufacturer.toUpperCase()) {
     searchTerms.push(`${detectedManufacturer} ${detectedFamily}`);
+  } else if (detectedManufacturer) {
+    searchTerms.push(detectedManufacturer);
   }
-  if (detectedModel) {
+  if (detectedModel && !searchTerms.includes(detectedModel)) {
     searchTerms.push(detectedModel);
   }
-  if (detectedFamily && detectedFamily !== 'OPEN_MODEL') {
+  if (detectedFamily && detectedFamily !== 'OPEN_MODEL' && !searchTerms.includes(detectedFamily)) {
     searchTerms.push(detectedFamily);
   }
-  if (params.query) {
+  if (params.query && !searchTerms.includes(params.query.trim())) {
     searchTerms.push(params.query.trim());
   }
   if (searchTerms.length === 0) {
@@ -662,6 +666,9 @@ export class RegulatoryIntelligenceEngine {
       perPage: number;
       totalPages: number;
       totalDiscovered: number;
+      authorityTotalCount?: number;
+      authorityTotalPages?: number;
+      fetchedInCurrentBatch?: number;
     };
   }> {
     const rawParams: CandidateSearchParams = typeof paramsOrFamily === 'string'
@@ -670,9 +677,9 @@ export class RegulatoryIntelligenceEngine {
 
     const normalized = normalizeAeronauticalQuery(rawParams);
     const targetAuthority = rawParams.authority || 'ALL';
-    const perPage = Math.min(Math.max(Number(rawParams.perPage) || 100, 5), 1000);
+    const perPage = Math.min(Math.max(Number(rawParams.perPage) || 25, 5), 100);
     const requestedPage = Math.max(Number(rawParams.page) || 1, 1);
-    const maxPages = Math.min(Math.max(Number(rawParams.maxPages) || (rawParams.autoPaginate ? 50 : 1), 1), 200);
+    const maxPages = Math.min(Math.max(Number(rawParams.maxPages) || (rawParams.autoPaginate ? 3 : 1), 1), 20);
 
     const sourcesConsulted = [
       'Federal Register Public API v1 (FAA) — 14 CFR Part 39 Feed',
@@ -759,6 +766,9 @@ export class RegulatoryIntelligenceEngine {
 
     // 1. DISCOVERY PIPELINE: FAA (Live Federal Register API Query + Pagination)
     const faaNewCandidates: RegulatoryAdCandidate[] = [];
+    let liveAuthorityTotalCount = 0;
+    let liveAuthorityTotalPages = 1;
+
     if (targetAuthority === 'ALL' || targetAuthority === 'FAA') {
       try {
         const frConnector = regulatorySourceRegistry.getFederalRegisterConnector();
@@ -777,6 +787,10 @@ export class RegulatoryIntelligenceEngine {
             });
 
             if (liveResponse && Array.isArray(liveResponse.results)) {
+              if (liveResponse.totalCount) {
+                liveAuthorityTotalCount = liveResponse.totalCount;
+                liveAuthorityTotalPages = liveResponse.totalPages || Math.ceil(liveResponse.totalCount / perPage) || 1;
+              }
               diagnosticFAA.rawRetrieved += liveResponse.results.length;
 
               for (const r of liveResponse.results) {
@@ -814,6 +828,12 @@ export class RegulatoryIntelligenceEngine {
 
             currentPageToFetch++;
             pagesFetched++;
+          }
+
+          if (liveAuthorityTotalCount > 0) {
+            diagnosticFAA.totalAuthorityRecords = liveAuthorityTotalCount;
+            diagnosticFAA.authorityTotalPages = liveAuthorityTotalPages;
+            diagnosticFAA.notes = `Live REST API connection active. Official Federal Register catalog contains ${liveAuthorityTotalCount} regulatory documents (${liveAuthorityTotalPages} pages).`;
           }
 
           // Persist discovered FAA candidates to database
@@ -878,7 +898,7 @@ export class RegulatoryIntelligenceEngine {
       });
 
       // Family match
-      const familyMatches = !searchFamily || searchFamily === 'OPEN_MODEL' ||
+      const familyMatches = !searchFamily || searchFamily === 'OPEN_MODEL' || searchFamily === searchManuf ||
         cFamily.includes(searchFamily) || searchFamily.includes(cFamily) ||
         (searchFamily === 'A320' && (cFamily.includes('320') || cTitle.includes('A320') || cTitle.includes('A319') || cTitle.includes('A321'))) ||
         (searchFamily === '737' && (cFamily.includes('737') || cTitle.includes('737'))) ||
@@ -897,33 +917,38 @@ export class RegulatoryIntelligenceEngine {
         if (!tokenMatch) return false;
       }
 
-      // Specific Model Filter if provided — use as a soft filter, not a hard exclusion.
-      // A family-level search (e.g. "737") should return ALL ADs for that family,
-      // including variants the user didn't explicitly type (737-700, 737-900, 737 MAX, etc.).
+      // Specific Model Filter if provided
       if (searchModel) {
         const exactModelMatches = c.modelScope.some(m => matchesModel(m, [searchModel])) ||
           cTitle.includes(searchModel) ||
-          cApplicability.includes(searchModel);
-        const familyLevelMatch = !searchFamily || searchFamily === 'OPEN_MODEL' ||
-          cFamily.includes(searchFamily) || cTitle.includes(searchFamily) ||
-          cApplicability.includes(searchFamily) ||
-          (c.modelScope && c.modelScope.some(m => m.toUpperCase().includes(searchFamily)));
-        if (!exactModelMatches && !familyLevelMatch) return false;
+          cApplicability.includes(searchModel) ||
+          (searchModel.includes('-') && cTitle.includes(searchModel.substring(searchModel.indexOf('-')))); // e.g. -800
+        if (!exactModelMatches) return false;
       }
 
-      // Text Query filter if provided — match on ANY keyword from the query, not the entire string verbatim.
-      // This ensures "Boeing 737-800" matches ADs containing "Boeing" or "737" rather than requiring the exact full string.
-      if (rawParams.query) {
-        const qTokens = rawParams.query.toUpperCase().trim().split(/[\s,]+/).filter(t => t.length >= 3);
-        const textMatches = qTokens.some(token =>
-          cTitle.includes(token) ||
-          cApplicability.includes(token) ||
-          cAdNumber.includes(token) ||
-          cDocket.includes(token) ||
-          (c.modelScope && c.modelScope.some(m => m.toUpperCase().includes(token))) ||
-          (c.manufacturer && c.manufacturer.toUpperCase().includes(token))
-        );
-        if (!textMatches) return false;
+      // Text Query filter if provided
+      if (rawParams.query && rawParams.query.trim()) {
+        const qClean = rawParams.query.toUpperCase().trim();
+        const exactMatches = cTitle.includes(qClean) ||
+          cApplicability.includes(qClean) ||
+          cAdNumber.includes(qClean) ||
+          cDocket.includes(qClean) ||
+          (c.modelScope && c.modelScope.some(m => m.toUpperCase().includes(qClean)));
+
+        if (!exactMatches) {
+          // Token-based matching: all non-trivial tokens must be present across metadata fields
+          const tokens = qClean.split(/\s+/).filter(t => t.length > 1);
+          const searchableBlob = `${cTitle} ${cApplicability} ${cAdNumber} ${cDocket} ${(c.modelScope || []).join(' ')} ${cManuf} ${cFamily}`.toUpperCase();
+          const allTokensFound = tokens.every(tok => {
+            if (searchableBlob.includes(tok)) return true;
+            if (tok.includes('-')) {
+              const subparts = tok.split('-');
+              return subparts.every(sp => searchableBlob.includes(sp));
+            }
+            return false;
+          });
+          if (!allTokensFound) return false;
+        }
       }
 
       return true;
@@ -1000,13 +1025,16 @@ export class RegulatoryIntelligenceEngine {
     ];
 
     // Build Totals
+    const totalAuthorityRecords = (diagnosticFAA.totalAuthorityRecords || 0) + (diagnosticEASA.totalAuthorityRecords || 0) + (diagnosticANAC.totalAuthorityRecords || 0);
+
     const totals = {
       rawRetrieved: diagnosticFAA.rawRetrieved + diagnosticEASA.rawRetrieved + diagnosticANAC.rawRetrieved,
       normalized: diagnosticFAA.normalized + diagnosticEASA.normalized + diagnosticANAC.normalized,
       candidatesBeforeFilter: diagnosticFAA.candidatesBeforeFilter + diagnosticEASA.candidatesBeforeFilter + diagnosticANAC.candidatesBeforeFilter,
       candidatesAfterFilter: diagnosticFAA.candidatesAfterFilter + diagnosticEASA.candidatesAfterFilter + diagnosticANAC.candidatesAfterFilter,
       duplicatesRemoved: diagnosticFAA.duplicatesRemoved + diagnosticEASA.duplicatesRemoved + diagnosticANAC.duplicatesRemoved,
-      finalCandidates: finalCandidatesList.length
+      finalCandidates: finalCandidatesList.length,
+      totalAuthorityRecords: totalAuthorityRecords > 0 ? totalAuthorityRecords : undefined
     };
 
     const diagnostic: RegulatoryDiscoveryDiagnostic = {
@@ -1026,6 +1054,9 @@ export class RegulatoryIntelligenceEngine {
 
     diagnostic.diagnosticReportText = this.generateDiagnosticReportText(diagnostic);
 
+    const authorityTotalCount = liveAuthorityTotalCount || totalAuthorityRecords || finalCandidatesList.length;
+    const authorityTotalPages = liveAuthorityTotalPages || Math.max(1, Math.ceil(authorityTotalCount / perPage));
+
     return {
       candidates: finalCandidatesList,
       totalCount: finalCandidatesList.length,
@@ -1043,8 +1074,11 @@ export class RegulatoryIntelligenceEngine {
       pagination: {
         page: requestedPage,
         perPage,
-        totalPages: Math.max(1, Math.ceil(finalCandidatesList.length / perPage)),
-        totalDiscovered: finalCandidatesList.length
+        totalPages: Math.max(authorityTotalPages, Math.ceil(finalCandidatesList.length / perPage)),
+        totalDiscovered: Math.max(authorityTotalCount, finalCandidatesList.length),
+        authorityTotalCount,
+        authorityTotalPages,
+        fetchedInCurrentBatch: finalCandidatesList.length
       }
     };
   }
@@ -2179,7 +2213,12 @@ export class RegulatoryIntelligenceEngine {
       }
     }
 
-    const totalCount = enrichedCandidates.length;
+    const authorityTotalCount = discoveryResult.pagination?.authorityTotalCount || discoveryResult.pagination?.totalDiscovered || enrichedCandidates.length;
+    const authorityTotalPages = discoveryResult.pagination?.authorityTotalPages || Math.max(1, Math.ceil(authorityTotalCount / (params.perPage || 25)));
+    const authorityCurrentPage = params.page || 1;
+    const authorityPerPage = params.perPage || 25;
+    const downloadedCount = enrichedCandidates.length;
+
     const importedCount = enrichedCandidates.filter(c => c.inRegister).length;
     const notImportedCount = enrichedCandidates.filter(c => !c.inRegister).length;
     const pendingAnalysisCount = enrichedCandidates.filter(c => c.registerAnalysisStatus === 'PENDING_ANALYSIS').length;
@@ -2192,12 +2231,17 @@ export class RegulatoryIntelligenceEngine {
       action: 'REGULATORY_SEARCH_EXECUTED',
       entityType: 'RegulatorySearch',
       entityId: `search-${Date.now()}`,
-      details: `Pesquisa regulatória executada para frota: ${params.manufacturer || ''} ${params.family || ''} ${params.model || ''}. ${enrichedCandidates.length} ADs retornadas (${newCount} novas, ${unchangedCount} inalteradas, ${updatedCount} atualizadas). Fontes: ${discoveryResult.sourcesConsulted.join(', ')}.`
+      details: `Pesquisa regulatória executada para frota: ${params.manufacturer || ''} ${params.family || ''} ${params.model || ''}. ${enrichedCandidates.length} ADs retornadas de ${authorityTotalCount} catalogadas na autoridade (${newCount} novas, ${unchangedCount} inalteradas, ${updatedCount} atualizadas). Fontes: ${discoveryResult.sourcesConsulted.join(', ')}.`
     });
 
     return {
       candidates: enrichedCandidates,
-      totalCount,
+      totalCount: authorityTotalCount,
+      authorityTotalCount,
+      authorityTotalPages,
+      authorityCurrentPage,
+      authorityPerPage,
+      downloadedCount,
       importedCount,
       notImportedCount,
       pendingAnalysisCount,

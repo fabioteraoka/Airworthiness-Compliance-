@@ -2742,6 +2742,8 @@ export interface AuthorityDiscoveryDiagnostic {
   duplicatesRemoved: number;
   finalCandidates: number;
   pagesScanned?: number;
+  totalAuthorityRecords?: number;
+  authorityTotalPages?: number;
   notes?: string;
 }
 
@@ -2763,6 +2765,7 @@ export interface RegulatoryDiscoveryDiagnostic {
     candidatesAfterFilter: number;
     duplicatesRemoved: number;
     finalCandidates: number;
+    totalAuthorityRecords?: number;
   };
   diagnosticReportText: string;
 }
@@ -2876,6 +2879,11 @@ export interface FleetRegulatoryIntakeParams {
 export interface FleetRegulatoryIntakeResult {
   candidates: DiscoveredRegulatoryAd[];
   totalCount: number;
+  authorityTotalCount?: number;
+  authorityTotalPages?: number;
+  authorityCurrentPage?: number;
+  authorityPerPage?: number;
+  downloadedCount?: number;
   importedCount?: number;
   notImportedCount?: number;
   pendingAnalysisCount?: number;

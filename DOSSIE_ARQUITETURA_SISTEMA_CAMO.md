@@ -466,18 +466,18 @@ A conformidade do sistema frente a ataques e falhas operacionais foi validada fo
 
 ---
 
-## 9. MATRIZ DE VERIFICAÇÃO E AUDITORIA DE TESTES (124/124 GREEN)
+## 9. MATRIZ DE VERIFICAÇÃO E AUDITORIA DE TESTES (134/134 GREEN)
 
-O sistema conta com 124 testes unitários, integrados e adversariais automatizados com **100% de aprovação (0 falhas)**:
+O sistema conta com 134 testes unitários, integrados e adversariais automatizados com **100% de aprovação (0 falhas)**:
 
 ```
-Test Files  11 passed (11)
-Tests       124 passed (124)
-Duration    ~9.89s
+Test Files  13 passed (13)
+Tests       134 passed (134)
+Duration    ~11.4s
 Status      GREEN (100% PASS)
 ```
 
-### Detalhamento das 11 Suítes de Testes:
+### Detalhamento das 13 Suítes de Testes:
 1. `test/phase9-stage6-security-architecture.test.ts` (14/14 PASS) — Segurança adversarial, anti-SSRF, isolamento de entidades, invariantes de estado, drift-free, resiliência a corrupção.
 2. `test/phase9-stage5-1-fleet-inventory.test.ts` (5/5 PASS) — Inventário unificado de ADs da frota, busca por B737-800, grandes volumes (300+ ADs), isolamento entre frotas e integração com Delivery.
 3. `test/phase9-stage5-register.test.ts` (5/5 PASS) — Screening por frota, CAMO Register, status compulsório `PENDING_ANALYSIS` sem IA automática, idempotência e fila de análise.
@@ -489,6 +489,8 @@ Status      GREEN (100% PASS)
 9. `test/phase9-e2e-integration.test.ts` (11/11 PASS) — Teste ponta a ponta: ingestão, extração, avaliação de regras, resolução de perguntas e emissão de FAPT.
 10. `test/phase8-help-center.test.ts` (22/22 PASS) — Central de ajuda, base de conhecimento regulatório e fluxo guiado de operações CAMO.
 11. `test/retry-extraction.test.ts` (3/3 PASS) — Retentativas com backoff defensivo e resiliência a indisponibilidade de extração.
+12. `test/phase9-aircraft-crud.test.ts` (4/4 PASS) — Gestão cadastral de frota, edição de células, inativação (`DECOMMISSIONED`, `STORED`) e desassociação em cascata.
+13. `test/phase9-stage6-3-governance-docs.test.ts` (6/6 PASS) — Cadeia de governança viva, visão estratégica, regras de IA e catálogo de capacidades.
 
 ---
 

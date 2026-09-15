@@ -3,7 +3,7 @@
 **Data da Auditoria:** 14 de Setembro de 2026  
 **Versão do Sistema Auditado:** Release 9.5.2 (Fleet Management CRUD, Inactivation & Decommissioning Engine)  
 **Auditor:** Agente Autônomo de Governança e Arquitetura CAMO  
-**Status da Auditoria:** AUDITADO • OPERACIONAL • 100% GREEN NOS TESTES REGULAMENTARES (128 TESTES PASSANDO)
+**Status da Auditoria:** AUDITADO • OPERACIONAL • 100% GREEN NOS TESTES REGULAMENTARES (134 TESTES PASSANDO)
 
 ---
 
@@ -15,7 +15,7 @@ Esta auditoria representa uma **fotografia confiável, exaustiva e factual** da 
 * **Frontend:** 27 componentes principais em React 18 + Tailwind CSS + Lucide Icons.
 * **Backend:** Servidor Express com mais de 73 endpoints REST especializados.
 * **Motores de Domínio:** 14 módulos especializados em `server/camoEngine/` e `server/regulatoryConnectors/`.
-* **Suíte de Testes Automatizados:** 12 arquivos de teste no Vitest, **128 testes unitários, de integração e de máquina de estados — 100% PASSING**.
+* **Suíte de Testes Automatizados:** 13 arquivos de teste no Vitest, **134 testes unitários, de integração e de máquina de estados — 100% PASSING**.
 * **Integridade TypeScript / Linter:** 0 erros (`tsc --noEmit` limpo).
 * **Compilação de Produção:** 100% aprovada via Vite + esbuild (`compile_applet` verde).
 
@@ -248,6 +248,7 @@ Esta auditoria representa uma **fotografia confiável, exaustiva e factual** da 
   10. `test/phase9-stage3-configuration.test.ts` (16 testes) — PASS
   11. `test/phase8-help-center.test.ts` (22 testes) — PASS
   12. `test/retry-extraction.test.ts` (3 testes) — PASS
+  13. `test/phase9-stage6-3-governance-docs.test.ts` (6 testes) — PASS
 
 ### 4.4. Smoke Test das Principais Rotas HTTP
 * `GET /api/health` ➔ HTTP 200 `{"status":"ok"}`
@@ -266,7 +267,7 @@ Esta auditoria representa uma **fotografia confiável, exaustiva e factual** da 
 
 O CAMO Airworthiness Compliance Intelligence Platform encontra-se em estado **estruturalmente sólido, operacional e em total conformidade com os princípios da engenharia de aeronavegabilidade**. 
 
-Todas as capacidades essenciais das fases anteriores estão ativas, o sistema compila sem nenhuma falha e todos os 128 testes automatizados passam com louvor. A governança do projeto está estruturada na cadeia documental viva composta por `README.md`, `PRODUCT_VISION_ROADMAP.md`, `CAPABILITY_REGISTRY.md`, `DOSSIE_ARQUITETURA_SISTEMA_CAMO.md` e `AI_DEVELOPMENT_GUIDE.md`.
+Todas as capacidades essenciais das fases anteriores estão ativas, o sistema compila sem nenhuma falha e todos os 134 testes automatizados passam com louvor. A governança do projeto está estruturada na cadeia documental viva composta por `README.md`, `PRODUCT_VISION_ROADMAP.md`, `CAPABILITY_REGISTRY.md`, `DOSSIE_ARQUITETURA_SISTEMA_CAMO.md` e `AI_DEVELOPMENT_GUIDE.md`.
 
 ### Declaração Formal de Aceite:
 # **PARECER: PASS**

@@ -249,9 +249,10 @@ export class FederalRegisterConnector implements IRegulatoryConnector {
     }
 
     params.append('order', options?.order === 'oldest' ? 'oldest' : 'newest');
-    params.append('per_page', String(options?.perPage || 15));
+    const safePerPage = Math.min(Math.max(Number(options?.perPage) || 20, 1), 100);
+    params.append('per_page', String(safePerPage));
     if (options?.page) {
-      params.append('page', String(options.page));
+      params.append('page', String(Math.max(Number(options.page) || 1, 1)));
     }
 
     // Explicitly request all relevant metadata fields
@@ -273,8 +274,9 @@ export class FederalRegisterConnector implements IRegulatoryConnector {
         source: this.sourceType,
         query,
         totalCount: 0,
+        totalPages: 0,
         page: options?.page || 1,
-        perPage: options?.perPage || 15,
+        perPage: safePerPage,
         results: [],
         retrievedAt: new Date().toISOString(),
         executionTimeMs,
@@ -283,13 +285,18 @@ export class FederalRegisterConnector implements IRegulatoryConnector {
     }
 
     const results = rawData.results.map((item: any) => this.mapFederalRegisterDocumentToRecord(item));
+    const totalCount = typeof rawData.count === 'number' ? rawData.count : results.length;
+    const totalPages = typeof rawData.total_pages === 'number' 
+      ? rawData.total_pages 
+      : (Math.ceil(totalCount / safePerPage) || 1);
 
     return {
       source: this.sourceType,
       query,
-      totalCount: rawData.count || results.length,
-      page: options?.page || 1,
-      perPage: options?.perPage || 15,
+      totalCount,
+      totalPages,
+      page: Number(options?.page) || 1,
+      perPage: safePerPage,
       results,
       retrievedAt: new Date().toISOString(),
       executionTimeMs,

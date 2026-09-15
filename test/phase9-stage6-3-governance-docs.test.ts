@@ -39,10 +39,10 @@ describe('Phase 9 Stage 6.3: Living Governance, Product Vision, Roadmap & AI Dev
     expect(content).toContain('DEPRECATED');
 
     // Strategic Horizons
-    expect(content).toContain('P0 — FUNDAÇÃO CRÍTICA');
-    expect(content).toContain('P1 — CONFIABILIDADE & PRONTIDÃO OPERACIONAL');
-    expect(content).toContain('P2 — MATURIDADE OPERACIONAL');
-    expect(content).toContain('FUTURE — DIFERENCIAIS ESTRATÉGICOS');
+    expect(content).toContain('P0 — Fundamentos / Críticos');
+    expect(content).toContain('P1 — Próxima Evolução');
+    expect(content).toContain('P2 — Evolução Posterior');
+    expect(content).toContain('FUTURE — Visão de Longo Prazo');
 
     // Integration and Out-of-scope boundaries
     expect(content).toContain('MATRIZ FORMAL DE DEPENDÊNCIAS DE CAPACIDADES');

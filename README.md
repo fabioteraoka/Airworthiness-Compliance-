@@ -100,7 +100,7 @@ A arquitetura do CAMO Engine é desacoplada, orientada a eventos e estritamente 
 ## 5. ESTADO ATUAL (RELEASE 9.5.2)
 
 * **Versão Canônica:** `Release 9.5.2` (Active Living Architecture)
-* **Suíte de Testes Automatizados:** 12 arquivos de teste no Vitest, **128 testes unitários, de integração e de máquinas de estado — 100% PASSING**.
+* **Suíte de Testes Automatizados:** 13 arquivos de teste no Vitest, **134 testes unitários, de integração e de máquinas de estado — 100% PASSING**.
 * **Frontend:** 27 Visões de cockpit executivo e engenharia em React 18, Tailwind CSS e Lucide Icons.
 * **Backend:** Servidor Express com **73+ endpoints REST especializados** e 14 submódulos de domínio.
 * **Integridade TypeScript & Linter:** 0 erros no compilador (`tsc --noEmit`), compilação de produção aprovada via Vite + esbuild.
@@ -133,7 +133,7 @@ O roadmap priorizado define o sequenciamento técnico por dependência arquitetu
 
 ## 8. PRÓXIMOS PASSOS IMEDIATOS
 
-1. Conectar a esteira de CI/CD para validação automática dos 128 testes a cada push.
+1. Conectar a esteira de CI/CD para validação automática dos 134 testes a cada push.
 2. Expandir a suite de conectores oficiais com o protótipo do conector EASA Safety Publications Tool (SPT).
 3. Implementar a interface de estruturação de tarefas recorrentes do Programa de Manutenção da Aeronave (AMP).
 

@@ -81,13 +81,20 @@ export default function RegulatoryIntelligenceView({
     pendingCount?: number;
   } | null>(null);
 
-  // Pagination for Discovery Table
+  // Pagination for Discovery Table (Local Table Pagination)
   const [discoveryPage, setDiscoveryPage] = useState<number>(1);
   const [discoveryPageSize, setDiscoveryPageSize] = useState<number>(25);
 
+  // Authority Live Pagination (Remote Catalog Pagination from FAA/EASA/ANAC)
+  const [authorityPage, setAuthorityPage] = useState<number>(1);
+  const [authorityPerPage, setAuthorityPerPage] = useState<number>(50);
+  const [authorityJumpPage, setAuthorityJumpPage] = useState<string>('1');
+
   // Quick Fleet Presets
   const FLEET_PRESETS = [
+    { label: 'Boeing (Frota Ampla / Todas as ADs)', manufacturer: 'Boeing', family: '', model: '', engine: '', query: 'Boeing' },
     { label: 'Boeing 737-800 (NG)', manufacturer: 'Boeing', family: '737', model: '737-800', engine: 'CFM56-7B', query: 'Boeing 737-800' },
+    { label: 'Airbus (Frota Ampla / Todas as ADs)', manufacturer: 'Airbus', family: '', model: '', engine: '', query: 'Airbus' },
     { label: 'Airbus A320ceo', manufacturer: 'Airbus', family: 'A320', model: 'A320-200', engine: 'CFM56-5B4', query: 'Airbus A320' },
     { label: 'Airbus A320neo', manufacturer: 'Airbus', family: 'A320', model: 'A320-271N', engine: 'PW1100G', query: 'Airbus A320neo' },
     { label: 'Embraer E195-E2', manufacturer: 'Embraer', family: 'E-Jets', model: 'ERJ 190-400', engine: 'PW1900G', query: 'Embraer E195' },
@@ -100,29 +107,45 @@ export default function RegulatoryIntelligenceView({
     setModel(preset.model);
     setEngine(preset.engine);
     setSearchContext(preset.query);
+    setAuthorityPage(1);
+    setAuthorityJumpPage('1');
   };
 
-  // Execute Search Across Authorities
-  const handleSearchAuthorities = async () => {
+  // Execute Search Across Authorities with Remote Authority Pagination
+  const handleSearchAuthorities = async (targetPage?: unknown, customPerPage?: number, customMaxPages?: number) => {
     setIsSearching(true);
     setImportFeedback(null);
     setSelectedCandidateIds(new Set());
     setDiscoveryPage(1);
+
+    // Guard strictly against event objects (e.g. MouseEvent, SyntheticEvent) passed via onClick
+    const safeTargetPage = typeof targetPage === 'number' && Number.isFinite(targetPage) && targetPage >= 1 
+      ? Math.floor(targetPage) 
+      : undefined;
+    const safePerPage = typeof customPerPage === 'number' && Number.isFinite(customPerPage) && customPerPage >= 1 
+      ? Math.floor(customPerPage) 
+      : (typeof authorityPerPage === 'number' && authorityPerPage >= 1 ? authorityPerPage : 50);
+    const safeMaxPages = typeof customMaxPages === 'number' && Number.isFinite(customMaxPages) && customMaxPages >= 1 
+      ? Math.floor(customMaxPages) 
+      : 3;
+
+    const activePage = safeTargetPage !== undefined ? safeTargetPage : (typeof authorityPage === 'number' && authorityPage >= 1 ? authorityPage : 1);
 
     try {
       const res = await fetch('/api/intel/fleet-search', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          manufacturer,
-          family,
-          model,
-          engine,
-          authority,
-          query: searchContext || `${manufacturer} ${model}`,
-          autoPaginate: true,
-          perPage: 100,
-          maxPages: 100
+          manufacturer: String(manufacturer || '').trim(),
+          family: String(family || '').trim(),
+          model: String(model || '').trim(),
+          engine: String(engine || '').trim(),
+          authority: String(authority || 'ALL').trim(),
+          query: searchContext || (model ? `${manufacturer} ${model}` : (family ? `${manufacturer} ${family}` : manufacturer)),
+          page: activePage,
+          perPage: safePerPage,
+          maxPages: safeMaxPages,
+          autoPaginate: true
         })
       });
 
@@ -131,6 +154,11 @@ export default function RegulatoryIntelligenceView({
         setSearchResult({
           candidates: data.candidates || [],
           totalCount: data.totalCount || 0,
+          authorityTotalCount: data.authorityTotalCount || data.totalCount || 0,
+          authorityTotalPages: data.authorityTotalPages || 1,
+          authorityCurrentPage: data.authorityCurrentPage || activePage,
+          authorityPerPage: data.authorityPerPage || safePerPage,
+          downloadedCount: data.downloadedCount || (data.candidates || []).length,
           newCount: data.newCount || 0,
           unchangedCount: data.unchangedCount || 0,
           updatedCount: data.updatedCount || 0,
@@ -142,6 +170,11 @@ export default function RegulatoryIntelligenceView({
           sourcesConsulted: data.sourcesConsulted || ['FAA', 'EASA', 'ANAC'],
           diagnostic: data.diagnostic
         });
+
+        if (safeTargetPage !== undefined) {
+          setAuthorityPage(safeTargetPage);
+          setAuthorityJumpPage(String(safeTargetPage));
+        }
 
         if (data.state) {
           onRefreshState(data.state);
@@ -584,7 +617,7 @@ export default function RegulatoryIntelligenceView({
               </div>
 
               <button
-                onClick={handleSearchAuthorities}
+                onClick={() => handleSearchAuthorities()}
                 disabled={isSearching}
                 className="w-full sm:w-auto px-6 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-lg text-xs transition flex items-center justify-center gap-2 shadow-md shadow-blue-600/20 disabled:opacity-50 shrink-0"
               >
@@ -637,26 +670,38 @@ export default function RegulatoryIntelligenceView({
           {searchResult && (
             <div className="space-y-4">
               {/* Header Card: RESULTADO DA INTELIGÊNCIA REGULATÓRIA */}
-              <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-lg">
+              <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-lg space-y-4">
                 <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                   <div>
-                    <span className="text-[11px] font-bold text-blue-400 uppercase tracking-wider block">
-                      Resultado da Inteligência Regulatória
-                    </span>
-                    <h2 className="text-xl font-bold text-white mt-0.5">
-                      Frota: {manufacturer} {model} {family ? `(${family})` : ''}
-                    </h2>
-                    <div className="flex flex-wrap items-center gap-2 mt-2 text-xs text-slate-400">
-                      <span className="flex items-center gap-1">
-                        <Globe className="w-3.5 h-3.5 text-slate-400" />
-                        <span>Fontes consultadas: <strong>{searchResult.sourcesConsulted.join(', ')}</strong></span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[11px] font-bold text-blue-400 uppercase tracking-wider block">
+                        Resultado da Inteligência Regulatória
                       </span>
-                      <span>•</span>
-                      <span>Total encontradas: <strong className="text-white">{searchResult.totalCount}</strong></span>
-                      <span>•</span>
-                      <span>Não importadas: <strong className="text-amber-300">{searchResult.notImportedCount ?? 0}</strong></span>
-                      <span>•</span>
-                      <span>Já no CAMO: <strong className="text-emerald-300">{searchResult.importedCount ?? 0}</strong></span>
+                      {searchResult.authorityTotalCount && searchResult.authorityTotalCount > 1000 && (
+                        <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-semibold uppercase">
+                          Acervo Oficial Completo
+                        </span>
+                      )}
+                    </div>
+                    <h2 className="text-xl font-bold text-white mt-0.5">
+                      Frota: {manufacturer} {model ? model : 'Todos os Modelos'} {family ? `(${family})` : ''}
+                    </h2>
+                    
+                    {/* Catalog Metrics Badges */}
+                    <div className="flex flex-wrap items-center gap-2.5 mt-2 text-xs">
+                      <div className="px-2.5 py-1 rounded-md bg-blue-500/10 border border-blue-500/20 text-blue-300 font-medium flex items-center gap-1.5">
+                        <Globe className="w-3.5 h-3.5 text-blue-400" />
+                        <span>Acervo Oficial na Autoridade: <strong className="text-white font-bold">{searchResult.authorityTotalCount?.toLocaleString('pt-BR') || searchResult.totalCount.toLocaleString('pt-BR')}</strong> ADs</span>
+                      </div>
+                      <div className="px-2.5 py-1 rounded-md bg-slate-800 border border-slate-700 text-slate-300 font-medium">
+                        Lote Carregado: <strong className="text-white font-bold">{searchResult.candidates.length}</strong>
+                      </div>
+                      <div className="px-2.5 py-1 rounded-md bg-amber-500/10 border border-amber-500/20 text-amber-300 font-medium">
+                        Não Importadas: <strong className="text-amber-200 font-bold">{searchResult.notImportedCount ?? 0}</strong>
+                      </div>
+                      <div className="px-2.5 py-1 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 font-medium">
+                        Já no CAMO: <strong className="text-emerald-200 font-bold">{searchResult.importedCount ?? 0}</strong>
+                      </div>
                     </div>
                   </div>
 
@@ -699,6 +744,85 @@ export default function RegulatoryIntelligenceView({
                           <span>📥 IMPORTAR TODAS ({searchResult.candidates.length}) PARA O CAMO</span>
                         </>
                       )}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Remote Authority Pagination Bar */}
+                <div className="pt-3 border-t border-slate-800/80 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 text-xs bg-slate-950/40 p-3 rounded-lg border border-slate-800">
+                  <div className="flex flex-wrap items-center gap-2 text-slate-300">
+                    <span className="font-semibold text-slate-200">Navegação no Acervo Oficial (FAA / EASA / ANAC):</span>
+                    <span className="font-mono bg-blue-950/60 text-blue-300 border border-blue-800/50 px-2 py-0.5 rounded text-[11px]">
+                      Página {authorityPage} de {searchResult.authorityTotalPages || 1}
+                    </span>
+                    <span className="text-slate-400 text-[11px]">
+                      ({(searchResult.authorityTotalCount || searchResult.totalCount).toLocaleString('pt-BR')} ADs publicadas)
+                    </span>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      onClick={() => {
+                        const prev = Math.max(1, authorityPage - 1);
+                        handleSearchAuthorities(prev);
+                      }}
+                      disabled={isSearching || authorityPage <= 1}
+                      className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded text-xs font-medium transition disabled:opacity-40 flex items-center gap-1"
+                    >
+                      <ChevronLeft className="w-3.5 h-3.5" />
+                      <span>Página Anterior</span>
+                    </button>
+
+                    <div className="flex items-center gap-1">
+                      <span className="text-slate-400 text-[11px]">Ir para:</span>
+                      <input
+                        type="number"
+                        min={1}
+                        max={searchResult.authorityTotalPages || 100}
+                        value={authorityJumpPage}
+                        onChange={(e) => setAuthorityJumpPage(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            const p = parseInt(authorityJumpPage, 10);
+                            if (!isNaN(p) && p >= 1) handleSearchAuthorities(p);
+                          }
+                        }}
+                        className="w-14 bg-slate-800 border border-slate-700 rounded px-1.5 py-1 text-center font-mono text-xs text-white"
+                      />
+                      <button
+                        onClick={() => {
+                          const p = parseInt(authorityJumpPage, 10);
+                          if (!isNaN(p) && p >= 1) handleSearchAuthorities(p);
+                        }}
+                        disabled={isSearching}
+                        className="px-2 py-1 bg-slate-700 hover:bg-slate-600 text-white rounded text-xs transition"
+                      >
+                        Ir
+                      </button>
+                    </div>
+
+                    <button
+                      onClick={() => {
+                        const next = authorityPage + 1;
+                        handleSearchAuthorities(next);
+                      }}
+                      disabled={isSearching || (searchResult.authorityTotalPages ? authorityPage >= searchResult.authorityTotalPages : false)}
+                      className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded text-xs font-medium transition disabled:opacity-40 flex items-center gap-1"
+                    >
+                      <span>Próxima Página</span>
+                      <ChevronRight className="w-3.5 h-3.5" />
+                    </button>
+
+                    <div className="h-4 w-px bg-slate-700 mx-1 hidden sm:block" />
+
+                    {/* Batch Fetch Button */}
+                    <button
+                      onClick={() => handleSearchAuthorities(authorityPage, 100, 3)}
+                      disabled={isSearching}
+                      className="px-3 py-1.5 bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 border border-blue-500/30 rounded text-xs font-semibold transition flex items-center gap-1.5"
+                    >
+                      <Layers className="w-3.5 h-3.5" />
+                      <span>Varredura Profunda (+100 ADs)</span>
                     </button>
                   </div>
                 </div>

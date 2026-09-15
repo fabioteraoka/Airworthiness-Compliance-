@@ -2784,9 +2784,55 @@ export type RegulatoryDeltaClassification =
 
 export type RegulatoryRegisterAnalysisStatus =
   | 'PENDING_ANALYSIS'
-  | 'ANALYZED'
+  | 'ANALYSIS_IN_PROGRESS'
+  | 'ANALYSIS_FAILED'
   | 'REVIEW_REQUIRED'
+  | 'ANALYZED'
   | 'FAILED';
+
+export type AnalysisStepKey =
+  | 'IDENTIFICATION'
+  | 'DOCUMENT_RETRIEVAL'
+  | 'EXTRACTION_INTELLIGENCE'
+  | 'APPLICABILITY_STRUCTURING'
+  | 'MANDATED_ACTIONS'
+  | 'KNOWLEDGE_COMPILATION'
+  | 'FLEET_EVALUATION'
+  | 'AUDIT_LINKAGE';
+
+export type AnalysisStepStatus =
+  | 'SUCCESS'
+  | 'RUNNING'
+  | 'FAILED'
+  | 'ERROR'
+  | 'INCOMPLETE'
+  | 'REVIEW_REQUIRED'
+  | 'PENDING';
+
+export interface AnalysisStepEvaluation {
+  stepKey: AnalysisStepKey;
+  stepName: string;
+  isMandatory: boolean;
+  status: AnalysisStepStatus;
+  message: string;
+  error?: string;
+  completedAt?: string;
+  details?: Record<string, any>;
+}
+
+export interface AnalysisCompletenessResult {
+  isComplete: boolean;
+  effectiveStatus: RegulatoryRegisterAnalysisStatus;
+  summary: string;
+  completedStepsCount: number;
+  totalMandatorySteps: number;
+  steps: AnalysisStepEvaluation[];
+  failedSteps: AnalysisStepEvaluation[];
+  reviewSteps: AnalysisStepEvaluation[];
+  missingRequirement: boolean;
+  canTransitionToAnalyzed: boolean;
+  evaluatedAt: string;
+}
 
 export interface RegulatoryRegisterVersionHistory {
   version: number;
@@ -2835,6 +2881,10 @@ export interface CamoRegulatoryRecord {
   versionHistory?: RegulatoryRegisterVersionHistory[];
   deltaStatus?: RegulatoryDeltaClassification;
   analysisStatus: RegulatoryRegisterAnalysisStatus; // Default strictly PENDING_ANALYSIS
+  analysisCompleteness?: AnalysisCompletenessResult;
+  analysisError?: string;
+  analysisStartedAt?: string;
+  analysisCompletedAt?: string;
   analysisId?: string; // ComplianceRequirement ID when analyzed
   analyzedRequirementId?: string;
   knowledgeId?: string; // RegulatoryKnowledgeItem ID when analyzed

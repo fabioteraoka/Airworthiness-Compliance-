@@ -441,6 +441,130 @@ Comply with this AD within the compliance times specified, unless already done.
     }
   };
 
+  const sampleAd2Id = 'req-faa-2020-24-02';
+  const sampleAd2: ComplianceRequirement = {
+    id: sampleAd2Id,
+    sourceType: 'AD',
+    issuingAuthority: 'FAA',
+    sourceNumber: '2020-24-02',
+    title: 'Boeing 737 Main Landing Gear (MLG) Actuator Beam Outboard Pin Cracking and Corrosion Inspection',
+    effectiveDate: '2021-01-05',
+    applicabilityCriteria: [
+      {
+        id: 'crit-2020-01',
+        type: 'MODEL',
+        operator: 'IN',
+        values: ['737-600', '737-700', '737-700C', '737-800', '737-900', '737-900ER'],
+        description: 'Aircraft Model must be 737-600, -700, -700C, -800, -900, or -900ER series'
+      }
+    ],
+    applicabilityRule: {
+      aircraftManufacturers: ['Boeing'],
+      aircraftModels: ['737-600', '737-700', '737-700C', '737-800', '737-900', '737-900ER'],
+      engineManufacturers: [],
+      engineModels: [],
+      componentPartNumbers: ['65-49200-1', '65-49200-2'],
+      affectedConfiguration: 'Aircraft equipped with Main Landing Gear Actuator Beam Outboard Pins.',
+      rawText: 'Applicability: The Boeing Company Model 737-600, -700, -700C, -800, -900, and -900ER series airplanes, certificated in any category.'
+    },
+    requirementDetails: {
+      initialThreshold: 'Within 36 months or 4,500 flight cycles after effective date of AD.',
+      complianceTime: '36 Months / 4,500 FC threshold',
+      repetitiveInterval: 'Repetitive ultrasonic or eddy current inspection every 36 months or 4,500 flight cycles.',
+      requiredInspection: 'Perform repetitive ultrasonic or high frequency eddy current (HFEC) inspections of the MLG actuator beam outboard pins for cracking and corrosion.',
+      modification: 'If cracking or corrosion is found, replace affected outboard pin before further flight with approved terminating pin.',
+      replacement: 'Replace cracked pins prior to further flight.',
+      optionalMethod: 'AMOC approved by FAA Seattle ACO Branch.',
+      terminatingAction: 'Installation of corrosion resistant stainless steel outboard pin terminates repetitive inspections.',
+      requiredParts: ['P/N 65-49200-5 (Terminating Stainless Pin)'],
+      requiredDocumentation: 'Record compliance in Aircraft Tech Log; retain NDT inspection report.'
+    },
+    sourceDocument: {
+      fileName: 'FAA_AD_2020-24-02.pdf',
+      fileSize: 24500,
+      mimeType: 'application/pdf',
+      documentHash: '9f83a241b77382d56a04871e84a29a3a93c72b83a049d978a3c4839c09931b23',
+      rawExtractedText: `Federal Register / Vol. 85, No. 231 / Tuesday, December 1, 2020 / Rules and Regulations
+FAA AD 2020-24-02: Airworthiness Directives; The Boeing Company Model 737-600, -700, -700C, -800, -900, and -900ER Series Airplanes
+Applicability: This AD applies to The Boeing Company Model 737-600, -700, -700C, -800, -900, and -900ER series airplanes, certificated in any category.
+Unsafe Condition: This AD was prompted by reports of cracked and corroded MLG actuator beam outboard pins.
+Compliance: Within 36 months or 4,500 flight cycles, perform repetitive ultrasonic inspection of pins.`
+    }
+  };
+
+  const sampleKbItems: RegulatoryKnowledgeItem[] = [
+    {
+      id: 'kb-faa-2024-12-05',
+      requirementId: sampleAd1Id,
+      adNumber: '2024-12-05',
+      authority: 'FAA',
+      title: 'Boeing 737 Angle of Attack (AOA) Sensor and Wire Harness Separation Inspection',
+      effectiveDate: '2024-07-19',
+      manufacturer: 'Boeing',
+      family: '737',
+      modelScope: ['737-700', '737-800', '737-900', '737-900ER'],
+      requiredConfigurationData: [
+        {
+          parameterId: 'param-elevator-pushrod-pn',
+          parameterName: 'Elevator Tab Pushrod Part Number',
+          category: 'PART_NUMBER',
+          scope: 'AIRCRAFT',
+          dataType: 'STRING',
+          targetEntityPath: 'components.partNumber',
+          description: 'P/N of the installed elevator tab pushrod assembly',
+          isMandatoryForEvaluation: true,
+          validationRule: 'Must match 12345-01 or 12345-02'
+        }
+      ],
+      complianceThresholdSummary: 'Within 500 flight hours or 6 months after effective date',
+      isRepetitive: true,
+      hasTerminatingAction: true,
+      applicabilityRuleSummary: 'Model 737-700, 737-800, 737-900, 737-900ER with pushrod P/N 12345-01 or 12345-02',
+      analyzedAt: '2024-06-15T15:00:00.000Z',
+      documentSha256: 'c4e5a973d8bf4215901844bdfc6f7ae924c16f39185a81e35d10529d84bf4df0',
+      provenance: {
+        source: 'FEDERAL_REGISTER',
+        citation: 'Docket No. FAA-2024-1205',
+        documentNumber: 'reg-faa-2024-12-05'
+      }
+    },
+    {
+      id: 'kb-faa-2020-24-02',
+      requirementId: sampleAd2Id,
+      adNumber: '2020-24-02',
+      authority: 'FAA',
+      title: 'Boeing 737 Main Landing Gear (MLG) Actuator Beam Outboard Pin Cracking and Corrosion Inspection',
+      effectiveDate: '2021-01-05',
+      manufacturer: 'Boeing',
+      family: '737',
+      modelScope: ['737-600', '737-700', '737-700C', '737-800', '737-900', '737-900ER'],
+      requiredConfigurationData: [
+        {
+          parameterId: 'param-mlg-pin-pn',
+          parameterName: 'MLG Actuator Beam Pin Part Number',
+          category: 'PART_NUMBER',
+          scope: 'AIRCRAFT',
+          dataType: 'STRING',
+          targetEntityPath: 'components.partNumber',
+          description: 'P/N of the installed MLG actuator beam pin',
+          isMandatoryForEvaluation: true,
+          validationRule: 'Must match 65-49200-1 or 65-49200-2'
+        }
+      ],
+      complianceThresholdSummary: 'Within 36 months or 4,500 flight cycles',
+      isRepetitive: true,
+      hasTerminatingAction: true,
+      applicabilityRuleSummary: 'Model 737-600, -700, -700C, -800, -900, and -900ER series airplanes',
+      analyzedAt: '2024-01-15T11:00:00.000Z',
+      documentSha256: '9f83a241b77382d56a04871e84a29a3a93c72b83a049d978a3c4839c09931b23',
+      provenance: {
+        source: 'FEDERAL_REGISTER',
+        citation: 'FAA-2020-0466',
+        documentNumber: 'reg-faa-2020-24-02'
+      }
+    }
+  ];
+
   const sampleAssessments: ComplianceAssessment[] = [
     {
       id: 'ass-01',
@@ -676,7 +800,7 @@ Comply with this AD within the compliance times specified, unless already done.
     installations,
     installedSoftware: [],
     actionAccomplishments: [],
-    requirements: [sampleAd1],
+    requirements: [sampleAd1, sampleAd2],
     assessments: sampleAssessments,
     obligations: [],
     evidence: [],
@@ -690,7 +814,7 @@ Comply with this AD within the compliance times specified, unless already done.
     pipelineExecutions: [],
     deliveryAssessments: [],
     adCandidates: [],
-    regulatoryKnowledgeBase: [],
+    regulatoryKnowledgeBase: sampleKbItems,
     configurationAssessments: [],
     camoRegulatoryRegister: getInitialRegulatoryRegister()
   };

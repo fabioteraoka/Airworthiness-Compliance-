@@ -3718,7 +3718,7 @@ async function startServer() {
     }
   });
 
-  // 15.4. Execute Individual AD Analysis in Queue (PENDING_ANALYSIS -> ANALYZED)
+  // 15.4. Execute Individual AD Analysis in Queue (PENDING_ANALYSIS -> ANALYZED | REVIEW_REQUIRED | ANALYSIS_FAILED)
   app.post('/api/intel/register/analyze', async (req, res) => {
     try {
       const { recordId, actor } = req.body;
@@ -3728,12 +3728,55 @@ async function startServer() {
 
       const result = await regulatoryIntelligenceEngine.analyzeRegisterRecord(recordId, actor);
       res.json({
-        success: true,
+        success: result.success,
         ...result,
         state: camoDb.getState()
       });
     } catch (err: any) {
       res.status(400).json({ error: err.message });
+    }
+  });
+
+  // 15.5. Get Analysis Completeness Evaluation for a Record
+  app.get('/api/intel/register/:id/completeness', (req, res) => {
+    try {
+      const completeness = regulatoryIntelligenceEngine.isAnalysisComplete(req.params.id);
+      res.json({
+        success: true,
+        recordId: req.params.id,
+        completeness
+      });
+    } catch (err: any) {
+      res.status(400).json({ error: err.message });
+    }
+  });
+
+  // 15.6. Retry or Re-analyze AD Record (from ANALYSIS_FAILED, REVIEW_REQUIRED, or on-demand)
+  app.post('/api/intel/register/:id/retry', async (req, res) => {
+    try {
+      const { actor } = req.body || {};
+      const result = await regulatoryIntelligenceEngine.analyzeRegisterRecord(req.params.id, actor);
+      res.json({
+        success: result.success,
+        ...result,
+        state: camoDb.getState()
+      });
+    } catch (err: any) {
+      res.status(400).json({ error: err.message });
+    }
+  });
+
+  // 15.7. Run Register Integrity Sanitizer manually
+  app.post('/api/intel/register/sanitize', (req, res) => {
+    try {
+      const result = regulatoryIntelligenceEngine.sanitizeRegulatoryRegisterCompleteness();
+      res.json({
+        success: true,
+        ...result,
+        state: camoDb.getState()
+      });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
     }
   });
 
@@ -3828,6 +3871,16 @@ async function startServer() {
     app.get('*', (req, res) => {
       res.sendFile(path.join(distPath, 'index.html'));
     });
+  }
+
+  try {
+    const sanitizeResult = regulatoryIntelligenceEngine.sanitizeRegulatoryRegisterCompleteness();
+    console.log(`[CAMO Startup] Regulatory Register completeness sanitized: ${sanitizeResult.inspectedCount} inspected, ${sanitizeResult.correctedCount} corrected, ${sanitizeResult.recoveredCount} recovered.`);
+    if (sanitizeResult.details.length > 0) {
+      console.log(`[CAMO Startup] Sanitizer details:`, sanitizeResult.details);
+    }
+  } catch (e: any) {
+    console.error('[CAMO Startup] Error sanitizing regulatory register completeness:', e);
   }
 
   app.listen(PORT, '0.0.0.0', () => {

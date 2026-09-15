@@ -26,7 +26,11 @@ import {
   ImportToRegisterResult,
   RegulatoryDeltaClassification,
   RegulatoryRegisterAnalysisStatus,
-  RegulatoryRegisterVersionHistory
+  RegulatoryRegisterVersionHistory,
+  AnalysisStepKey,
+  AnalysisStepStatus,
+  AnalysisStepEvaluation,
+  AnalysisCompletenessResult
 } from '../../src/types';
 import { camoDb } from '../dataStore';
 import { 
@@ -1153,13 +1157,6 @@ export class RegulatoryIntelligenceEngine {
 
     // 4. Update state atomically
     camoDb.update(draft => {
-      // Update candidate analysis status
-      const candIdx = (draft.adCandidates || []).findIndex(c => c.id === candidate.id);
-      if (candIdx >= 0) {
-        draft.adCandidates![candIdx].analysisStatus = 'ANALYZED';
-        draft.adCandidates![candIdx].analyzedRequirementId = requirement!.id;
-      }
-
       // Add or replace in Regulatory Knowledge Base
       if (!draft.regulatoryKnowledgeBase) draft.regulatoryKnowledgeBase = [];
       const kbIdx = draft.regulatoryKnowledgeBase.findIndex(k => k.id === knowledgeItemId || k.adNumber === candidate.adNumber);
@@ -1170,6 +1167,18 @@ export class RegulatoryIntelligenceEngine {
       }
     });
 
+    // Evaluate completeness
+    const completeness = this.isAnalysisComplete(requirement, { actor });
+    const candidateStatus = completeness.isComplete ? 'ANALYZED' : (completeness.effectiveStatus === 'REVIEW_REQUIRED' ? 'PENDING_ANALYSIS' : 'FAILED');
+
+    camoDb.update(draft => {
+      const candIdx = (draft.adCandidates || []).findIndex(c => c.id === candidate.id);
+      if (candIdx >= 0) {
+        draft.adCandidates![candIdx].analysisStatus = candidateStatus;
+        draft.adCandidates![candIdx].analyzedRequirementId = requirement!.id;
+      }
+    });
+
     // 5. Audit Log (Preserves audit integrity and explains why the rule exists)
     camoDb.logAudit({
       user: actor || state.currentUser.name,
@@ -1177,11 +1186,11 @@ export class RegulatoryIntelligenceEngine {
       action: 'REGULATORY_KNOWLEDGE_COMPILED',
       entityType: 'RegulatoryKnowledgeItem',
       entityId: knowledgeItemId,
-      details: `Conhecimento regulatório consolidado para ${candidate.adNumber} (${candidate.authority}) na família ${candidate.family}. Derivados ${requiredParameters.length} parâmetros de configuração requeridos para aferição individual de aeronaves.`
+      details: `Conhecimento regulatório consolidado para ${candidate.adNumber} (${candidate.authority}) na família ${candidate.family}. Status: ${candidateStatus}. Derivados ${requiredParameters.length} parâmetros de configuração requeridos.`
     });
 
     return {
-      candidate: { ...candidate, analysisStatus: 'ANALYZED', analyzedRequirementId: requirement.id },
+      candidate: { ...candidate, analysisStatus: candidateStatus, analyzedRequirementId: requirement.id },
       knowledgeItem,
       requirement,
       requiredConfigurationParameters: requiredParameters
@@ -2236,7 +2245,7 @@ export class RegulatoryIntelligenceEngine {
 
     return {
       candidates: enrichedCandidates,
-      totalCount: authorityTotalCount,
+      totalCount: enrichedCandidates.length,
       authorityTotalCount,
       authorityTotalPages,
       authorityCurrentPage,
@@ -2465,9 +2474,455 @@ export class RegulatoryIntelligenceEngine {
   }
 
   /**
+   * Deterministic Analysis Completeness Evaluator (Phase 9 Stage 5.3):
+   * Serves as the central domain authority determining whether an AD's technical
+   * analysis is truly complete, valid, audit-ready, and qualified for 'ANALYZED' status.
+   *
+   * Invariant:
+   * 'ANALYZED' status can ONLY be granted if every mandatory analysis step
+   * evaluated to 'SUCCESS'. If any step is FAILED, ERROR, INCOMPLETE, MISSING,
+   * or REVIEW_REQUIRED, 'ANALYZED' is strictly prohibited.
+   */
+  public isAnalysisComplete(
+    targetInput: string | CamoRegulatoryRecord | ComplianceRequirement,
+    context?: {
+      state?: any;
+      aircraftList?: Aircraft[];
+      actor?: string;
+    }
+  ): AnalysisCompletenessResult {
+    const state = context?.state || camoDb.getState();
+    const now = new Date().toISOString();
+
+    let record: CamoRegulatoryRecord | undefined;
+    let requirement: ComplianceRequirement | undefined;
+    let knowledgeItem: RegulatoryKnowledgeItem | undefined;
+
+    // 1. Resolve Target Record and Target Requirement
+    if (typeof targetInput === 'string') {
+      const q = targetInput.trim().toLowerCase();
+      // Search in register
+      record = (state.camoRegulatoryRegister || []).find((r: CamoRegulatoryRecord) => 
+        r.id.toLowerCase() === q ||
+        r.adNumber.toLowerCase() === q ||
+        r.canonicalAdId?.toLowerCase() === q ||
+        (r.adNumber.replace(/[^a-zA-Z0-9]/g, '').toLowerCase() === q.replace(/[^a-zA-Z0-9]/g, ''))
+      );
+
+      // Search in requirements
+      requirement = (state.requirements || []).find((req: ComplianceRequirement) => 
+        req.id.toLowerCase() === q ||
+        req.sourceNumber.toLowerCase() === q ||
+        (req.sourceNumber.replace(/[^a-zA-Z0-9]/g, '').toLowerCase() === q.replace(/[^a-zA-Z0-9]/g, ''))
+      );
+
+      if (record && !requirement) {
+        const reqId = record.analyzedRequirementId || record.analysisId;
+        if (reqId) {
+          requirement = (state.requirements || []).find((r: ComplianceRequirement) => r.id === reqId || r.sourceNumber.toLowerCase() === record!.adNumber.toLowerCase());
+        }
+      }
+      if (requirement && !record) {
+        record = (state.camoRegulatoryRegister || []).find((r: CamoRegulatoryRecord) => 
+          r.analyzedRequirementId === requirement!.id || 
+          r.analysisId === requirement!.id ||
+          r.adNumber.toLowerCase() === requirement!.sourceNumber.toLowerCase()
+        );
+      }
+    } else if ('sourceType' in targetInput && 'applicabilityRule' in targetInput) {
+      // It's a ComplianceRequirement
+      requirement = targetInput as ComplianceRequirement;
+      record = (state.camoRegulatoryRegister || []).find((r: CamoRegulatoryRecord) => 
+        r.analyzedRequirementId === requirement!.id || 
+        r.analysisId === requirement!.id ||
+        r.adNumber.toLowerCase() === requirement!.sourceNumber.toLowerCase()
+      );
+    } else {
+      // It's a CamoRegulatoryRecord
+      record = targetInput as CamoRegulatoryRecord;
+      const reqId = record.analyzedRequirementId || record.analysisId;
+      if (reqId) {
+        requirement = (state.requirements || []).find((r: ComplianceRequirement) => r.id === reqId || r.sourceNumber.toLowerCase() === record!.adNumber.toLowerCase());
+      } else {
+        requirement = (state.requirements || []).find((r: ComplianceRequirement) => r.sourceNumber.toLowerCase() === record!.adNumber.toLowerCase());
+      }
+    }
+
+    const authority = record?.authority || requirement?.issuingAuthority || 'FAA';
+    const adNumber = record?.adNumber || requirement?.sourceNumber || (typeof targetInput === 'string' ? targetInput : 'UNKNOWN');
+    const title = record?.title || requirement?.title || '';
+    const manufacturer = record?.manufacturer || requirement?.applicabilityRule?.aircraftManufacturers?.[0] || 'Unknown';
+    const family = record?.family || '';
+    const modelScope = record?.modelScope || requirement?.applicabilityRule?.aircraftModels || [];
+
+    // Find knowledge base item
+    const knowledgeId = record?.knowledgeId || (requirement ? `kb-${authority.toLowerCase()}-${adNumber.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase()}` : '');
+    knowledgeItem = (state.regulatoryKnowledgeBase || []).find((k: RegulatoryKnowledgeItem) => 
+      (knowledgeId && k.id === knowledgeId) || 
+      (requirement && k.requirementId === requirement.id) ||
+      k.adNumber.toLowerCase() === adNumber.toLowerCase()
+    );
+
+    const steps: AnalysisStepEvaluation[] = [];
+
+    // STEP 1: IDENTIFICATION & METADATA
+    const hasValidAdNumber = Boolean(adNumber && adNumber.trim().length > 0 && adNumber !== 'UNKNOWN');
+    const hasValidAuthority = Boolean(authority && authority.trim().length > 0);
+    const hasValidTitle = Boolean(title && title.trim().length > 0);
+    const hasIdentifiedScope = Boolean(modelScope.length > 0 || (family && family.trim().length > 0));
+
+    if (hasValidAdNumber && hasValidAuthority && hasValidTitle && hasIdentifiedScope) {
+      steps.push({
+        stepKey: 'IDENTIFICATION',
+        stepName: 'Identificação e Metadados Regulatórios',
+        isMandatory: true,
+        status: 'SUCCESS',
+        message: `Identificador oficial (${adNumber}), autoridade (${authority}) e escopo de modelos (${modelScope.join(', ') || family}) validados.`
+      });
+    } else {
+      steps.push({
+        stepKey: 'IDENTIFICATION',
+        stepName: 'Identificação e Metadados Regulatórios',
+        isMandatory: true,
+        status: 'FAILED',
+        message: 'Metadados identificadores incompletos.',
+        error: `Dados obrigatórios ausentes: ${[!hasValidAdNumber && 'Número da AD', !hasValidAuthority && 'Autoridade', !hasValidTitle && 'Título', !hasIdentifiedScope && 'Escopo de Modelos/Família'].filter(Boolean).join(', ')}.`
+      });
+    }
+
+    // STEP 2: DOCUMENT RETRIEVAL & INTEGRITY
+    const sourceText = record?.rawApplicabilityText || requirement?.sourceDocument?.rawExtractedText || '';
+    const hasSourceText = Boolean(sourceText && sourceText.trim().length > 0);
+    const hasHash = Boolean(record?.sha256 || requirement?.sourceDocument?.documentHash);
+
+    if (hasSourceText && hasHash) {
+      steps.push({
+        stepKey: 'DOCUMENT_RETRIEVAL',
+        stepName: 'Aquisição e Integridade Documental',
+        isMandatory: true,
+        status: 'SUCCESS',
+        message: `Documento oficial íntegro com hash SHA-256 verificado (${(record?.sha256 || requirement?.sourceDocument?.documentHash || '').substring(0, 12)}...).`
+      });
+    } else {
+      steps.push({
+        stepKey: 'DOCUMENT_RETRIEVAL',
+        stepName: 'Aquisição e Integridade Documental',
+        isMandatory: true,
+        status: 'FAILED',
+        message: 'Documento regulatório de origem ou hash de integridade ausente.',
+        error: !hasSourceText ? 'Texto oficial da diretriz não foi capturado.' : 'Hash SHA-256 criptográfico ausente.'
+      });
+    }
+
+    // STEP 3: EXTRACTION & ENTITY INTELLIGENCE
+    if (!requirement) {
+      steps.push({
+        stepKey: 'EXTRACTION_INTELLIGENCE',
+        stepName: 'Inteligência Documental e Extração de Entidades',
+        isMandatory: true,
+        status: 'FAILED',
+        message: 'Requisito de cumprimento (ComplianceRequirement) não foi gerado ou está ausente no banco.',
+        error: 'ComplianceRequirement ausente no repositório de requisitos.'
+      });
+    } else {
+      const docStatus = (requirement as any).documentProcessingStatus;
+      const extStatus = (requirement as any).extractionStatus;
+      const extractionError = (requirement as any).extractionError || (record as any)?.analysisError;
+      const missingFields = requirement.missingFields || [];
+
+      if (docStatus === 'EXTRACTION_FAILED' || extStatus === 'EXTRACTION_FAILED') {
+        steps.push({
+          stepKey: 'EXTRACTION_INTELLIGENCE',
+          stepName: 'Inteligência Documental e Extração de Entidades',
+          isMandatory: true,
+          status: 'FAILED',
+          message: 'Extração documental falhou.',
+          error: extractionError || 'Falha crítica no processamento ou extração dos parâmetros técnicos da diretriz.'
+        });
+      } else if (docStatus === 'EXTRACTION_REVIEW_REQUIRED' || extStatus === 'EXTRACTION_REVIEW_REQUIRED' || missingFields.length > 0) {
+        steps.push({
+          stepKey: 'EXTRACTION_INTELLIGENCE',
+          stepName: 'Inteligência Documental e Extração de Entidades',
+          isMandatory: true,
+          status: 'REVIEW_REQUIRED',
+          message: `Extração requer revisão de engenharia CAMO. Campos críticos pendentes: ${missingFields.join(', ')}.`
+        });
+      } else {
+        steps.push({
+          stepKey: 'EXTRACTION_INTELLIGENCE',
+          stepName: 'Inteligência Documental e Extração de Entidades',
+          isMandatory: true,
+          status: 'SUCCESS',
+          message: 'Parâmetros técnicos e cláusulas contratuais/regulatórias extraídos com sucesso.'
+        });
+      }
+    }
+
+    // STEP 4: APPLICABILITY STRUCTURING
+    if (!requirement || !requirement.applicabilityRule) {
+      steps.push({
+        stepKey: 'APPLICABILITY_STRUCTURING',
+        stepName: 'Regras de Aplicabilidade e Configuração',
+        isMandatory: true,
+        status: 'FAILED',
+        message: 'Regra de aplicabilidade estruturada inexistente.',
+        error: 'Requisito não possui objeto applicabilityRule estruturado.'
+      });
+    } else {
+      const rule = requirement.applicabilityRule;
+      const hasModels = (rule.aircraftModels || []).length > 0;
+      const hasPn = (rule.componentPartNumbers || []).length > 0;
+      const hasEngine = (rule.engineModels || []).length > 0;
+      const hasRaw = Boolean(rule.rawText && rule.rawText.trim().length > 10);
+      const hasAffected = Boolean(rule.affectedConfiguration && rule.affectedConfiguration.trim().length > 5);
+
+      if (hasModels || hasPn || hasEngine || hasRaw || hasAffected) {
+        steps.push({
+          stepKey: 'APPLICABILITY_STRUCTURING',
+          stepName: 'Regras de Aplicabilidade e Configuração',
+          isMandatory: true,
+          status: 'SUCCESS',
+          message: `Regra de aplicabilidade estruturada com modelos (${rule.aircraftModels?.join(', ') || 'N/A'}) e critérios físicos.`
+        });
+      } else {
+        steps.push({
+          stepKey: 'APPLICABILITY_STRUCTURING',
+          stepName: 'Regras de Aplicabilidade e Configuração',
+          isMandatory: true,
+          status: 'FAILED',
+          message: 'Regra de aplicabilidade vazia.',
+          error: 'Nenhum modelo de aeronave, motor, part number ou texto de aplicabilidade válido na regra.'
+        });
+      }
+    }
+
+    // STEP 5: MANDATED ACTIONS & COMPLIANCE THRESHOLDS
+    if (!requirement) {
+      steps.push({
+        stepKey: 'MANDATED_ACTIONS',
+        stepName: 'Ações Mandatórias e Limiares de Cumprimento',
+        isMandatory: true,
+        status: 'FAILED',
+        message: 'Requisito ausente.',
+        error: 'ComplianceRequirement ausente para validação de ações mandatórias.'
+      });
+    } else {
+      const det = requirement.requirementDetails || {} as any;
+      const hasThreshold = Boolean(det.initialThreshold && det.initialThreshold.trim().length > 0);
+      const hasComplianceTime = Boolean(det.complianceTime && det.complianceTime.trim().length > 0);
+      const hasInspection = Boolean(det.requiredInspection && det.requiredInspection.trim().length > 0);
+      const hasModification = Boolean(det.modification && det.modification.trim().length > 0);
+      const hasReplacement = Boolean(det.replacement && det.replacement.trim().length > 0);
+      const hasRepetitive = Boolean(det.repetitiveInterval && det.repetitiveInterval.trim().length > 0);
+      const hasTerminating = Boolean(det.terminatingAction && det.terminatingAction.trim().length > 0);
+      const hasSoftware = (requirement.softwareRequirements || []).length > 0;
+      const hasActions = (requirement.actions || []).length > 0 || ((requirement as any).mandatedActions || []).length > 0;
+
+      if (hasThreshold || hasComplianceTime || hasInspection || hasModification || hasReplacement || hasRepetitive || hasTerminating || hasSoftware || hasActions) {
+        steps.push({
+          stepKey: 'MANDATED_ACTIONS',
+          stepName: 'Ações Mandatórias e Limiares de Cumprimento',
+          isMandatory: true,
+          status: 'SUCCESS',
+          message: 'Limiares de cumprimento, inspeções ou ações modificativas estruturados.'
+        });
+      } else {
+        steps.push({
+          stepKey: 'MANDATED_ACTIONS',
+          stepName: 'Ações Mandatórias e Limiares de Cumprimento',
+          isMandatory: true,
+          status: 'FAILED',
+          message: 'Ausência de limiares operacionais ou ações mandatórias.',
+          error: 'Nenhum limiar inicial (initialThreshold), tempo de cumprimento ou ação corretiva estruturada.'
+        });
+      }
+    }
+
+    // STEP 6: KNOWLEDGE BASE COMPILATION
+    if (!knowledgeItem) {
+      steps.push({
+        stepKey: 'KNOWLEDGE_COMPILATION',
+        stepName: 'Compilação da Base de Conhecimento Regulatório',
+        isMandatory: true,
+        status: 'FAILED',
+        message: 'Item de conhecimento não compilado.',
+        error: 'Item correspondente não encontrado na Base de Conhecimento do CAMO (regulatoryKnowledgeBase).'
+      });
+    } else {
+      const hasConfig = (knowledgeItem.requiredConfigurationData || []).length >= 0;
+      const hasSummary = Boolean(knowledgeItem.applicabilityRuleSummary && knowledgeItem.applicabilityRuleSummary.trim().length > 0);
+      if (hasConfig && hasSummary) {
+        steps.push({
+          stepKey: 'KNOWLEDGE_COMPILATION',
+          stepName: 'Compilação da Base de Conhecimento Regulatório',
+          isMandatory: true,
+          status: 'SUCCESS',
+          message: `Conhecimento consolidado com ${knowledgeItem.requiredConfigurationData?.length || 0} parâmetros de configuração requeridos.`
+        });
+      } else {
+        steps.push({
+          stepKey: 'KNOWLEDGE_COMPILATION',
+          stepName: 'Compilação da Base de Conhecimento Regulatório',
+          isMandatory: true,
+          status: 'INCOMPLETE',
+          message: 'Item de conhecimento regulatório com resumo de aplicabilidade ausente.',
+          error: 'Resumo da regra de aplicabilidade não preenchido na base de conhecimento.'
+        });
+      }
+    }
+
+    // STEP 7: FLEET APPLICABILITY EVALUATION
+    const fleetAircraft = context?.aircraftList || state.aircraft || [];
+    const matchingAircraft = fleetAircraft.filter((ac: Aircraft) => {
+      const mfgMatch = !manufacturer || ac.manufacturer.toLowerCase().includes(manufacturer.toLowerCase()) || manufacturer.toLowerCase().includes(ac.manufacturer.toLowerCase());
+      const famMatch = !family || ac.family?.toLowerCase() === family.toLowerCase();
+      const modelMatch = modelScope.length === 0 || matchesModel(ac.model, modelScope);
+      return mfgMatch && (famMatch || modelMatch);
+    });
+
+    if (matchingAircraft.length === 0) {
+      steps.push({
+        stepKey: 'FLEET_EVALUATION',
+        stepName: 'Avaliação de Aplicabilidade na Frota',
+        isMandatory: true,
+        status: 'SUCCESS',
+        message: 'Nenhuma aeronave na frota ativa enquadrada no modelo desta diretriz (avaliação determinística concluída).'
+      });
+    } else {
+      // Check if there are assessments or pending engineering questions
+      const questions = (state.questions || []).filter((q: any) => 
+        (requirement && q.complianceRequirementId === requirement.id) ||
+        (q.adNumber && q.adNumber.toLowerCase() === adNumber.toLowerCase())
+      );
+      const pendingQuestions = questions.filter((q: any) => q.status === 'PENDING');
+
+      if (pendingQuestions.length > 0) {
+        steps.push({
+          stepKey: 'FLEET_EVALUATION',
+          stepName: 'Avaliação de Aplicabilidade na Frota',
+          isMandatory: true,
+          status: 'REVIEW_REQUIRED',
+          message: `Existem ${pendingQuestions.length} dúvidas técnicas de engenharia pendentes de resposta para a frota afetada.`
+        });
+      } else {
+        steps.push({
+          stepKey: 'FLEET_EVALUATION',
+          stepName: 'Avaliação de Aplicabilidade na Frota',
+          isMandatory: true,
+          status: 'SUCCESS',
+          message: `Avaliação de frota realizada com sucesso para ${matchingAircraft.length} aeronave(s) do modelo.`
+        });
+      }
+    }
+
+    // STEP 8: AUDIT LINKAGE & INTEGRITY
+    if (record) {
+      const linkedReqId = record.analyzedRequirementId || record.analysisId;
+      const linkedReqExists = Boolean(linkedReqId && (state.requirements || []).some((r: any) => r.id === linkedReqId));
+
+      const hasReReviewFlag = Boolean(record.versionHistory?.some((v: any) => v.reReviewRequired));
+
+      if (!linkedReqId || !linkedReqExists) {
+        steps.push({
+          stepKey: 'AUDIT_LINKAGE',
+          stepName: 'Rastreabilidade e Vinculação Auditável',
+          isMandatory: true,
+          status: 'FAILED',
+          message: 'Inconsistência de rastreabilidade: Requisito vinculado ausente.',
+          error: `O ID de requisito vinculado ('${linkedReqId || 'NENHUM'}') não existe no repositório de requisitos.`
+        });
+      } else if (hasReReviewFlag && record.analysisStatus !== 'ANALYSIS_IN_PROGRESS') {
+        steps.push({
+          stepKey: 'AUDIT_LINKAGE',
+          stepName: 'Rastreabilidade e Vinculação Auditável',
+          isMandatory: true,
+          status: 'REVIEW_REQUIRED',
+          message: 'Alteração normativa detectada (hash/versão oficial alterada). Requer revisão de engenharia CAMO.'
+        });
+      } else {
+        steps.push({
+          stepKey: 'AUDIT_LINKAGE',
+          stepName: 'Rastreabilidade e Vinculação Auditável',
+          isMandatory: true,
+          status: 'SUCCESS',
+          message: `Vínculo bidirecional auditável validado com o Requisito ${linkedReqId}.`
+        });
+      }
+    } else {
+      if (requirement && (state.requirements || []).some((r: any) => r.id === requirement!.id)) {
+        steps.push({
+          stepKey: 'AUDIT_LINKAGE',
+          stepName: 'Rastreabilidade e Vinculação Auditável',
+          isMandatory: true,
+          status: 'SUCCESS',
+          message: `Requisito ${requirement.id} persistido e auditável.`
+        });
+      } else {
+        steps.push({
+          stepKey: 'AUDIT_LINKAGE',
+          stepName: 'Rastreabilidade e Vinculação Auditável',
+          isMandatory: true,
+          status: 'FAILED',
+          message: 'Requisito não persistido.',
+          error: 'Requisito não encontrado na lista de requisitos persistidos.'
+        });
+      }
+    }
+
+    // ROLLUP DETERMINATION
+    const failedSteps = steps.filter(s => s.status === 'FAILED' || s.status === 'ERROR');
+    const reviewSteps = steps.filter(s => s.status === 'REVIEW_REQUIRED');
+    const incompleteSteps = steps.filter(s => s.status === 'INCOMPLETE' || s.status === 'PENDING');
+    const completedSteps = steps.filter(s => s.status === 'SUCCESS');
+
+    let effectiveStatus: RegulatoryRegisterAnalysisStatus;
+    let isComplete = false;
+    let canTransitionToAnalyzed = false;
+    let summary = '';
+
+    if (failedSteps.length > 0) {
+      effectiveStatus = 'ANALYSIS_FAILED';
+      isComplete = false;
+      canTransitionToAnalyzed = false;
+      summary = `Análise técnica com falha em etapas obrigatórias: ${failedSteps.map(s => s.stepName).join('; ')}.`;
+    } else if (reviewSteps.length > 0) {
+      effectiveStatus = 'REVIEW_REQUIRED';
+      isComplete = false;
+      canTransitionToAnalyzed = false;
+      summary = `Análise técnica requer revisão de engenharia CAMO: ${reviewSteps.map(s => s.stepName).join('; ')}.`;
+    } else if (incompleteSteps.length > 0) {
+      effectiveStatus = 'PENDING_ANALYSIS';
+      isComplete = false;
+      canTransitionToAnalyzed = false;
+      summary = `Etapas obrigatórias da análise técnica incompletas ou pendentes: ${incompleteSteps.map(s => s.stepName).join('; ')}.`;
+    } else {
+      effectiveStatus = 'ANALYZED';
+      isComplete = true;
+      canTransitionToAnalyzed = true;
+      summary = 'Todas as etapas obrigatórias da análise técnica foram concluídas com sucesso e dados auditáveis.';
+    }
+
+    return {
+      isComplete,
+      effectiveStatus,
+      summary,
+      completedStepsCount: completedSteps.length,
+      totalMandatorySteps: steps.filter(s => s.isMandatory).length,
+      steps,
+      failedSteps,
+      reviewSteps,
+      missingRequirement: !requirement,
+      canTransitionToAnalyzed,
+      evaluatedAt: now
+    };
+  }
+
+  /**
    * Analysis Queue Operational Execution:
    * Analyzes an individual AD from the CAMO Regulatory Register.
-   * Transitions status from PENDING_ANALYSIS -> ANALYZED.
+   * Enforces strict state transitions:
+   * PENDING_ANALYSIS / ANALYSIS_FAILED / REVIEW_REQUIRED -> ANALYSIS_IN_PROGRESS -> (ANALYZED | REVIEW_REQUIRED | ANALYSIS_FAILED).
+   * 'ANALYZED' is granted ONLY if isAnalysisComplete() evaluates to true.
    */
   public async analyzeRegisterRecord(
     recordIdOrInput: string | { registerRecordId?: string; adNumber?: string; actor?: string },
@@ -2475,8 +2930,9 @@ export class RegulatoryIntelligenceEngine {
   ): Promise<{
     success: boolean;
     record: CamoRegulatoryRecord;
-    requirement: ComplianceRequirement;
-    knowledgeItem: RegulatoryKnowledgeItem;
+    requirement?: ComplianceRequirement;
+    knowledgeItem?: RegulatoryKnowledgeItem;
+    completeness: AnalysisCompletenessResult;
   }> {
     const recordIdOrAdNumber = typeof recordIdOrInput === 'string' 
       ? recordIdOrInput 
@@ -2498,67 +2954,274 @@ export class RegulatoryIntelligenceEngine {
     }
 
     const effectiveActor = actor || state.currentUser.name || 'CAMO Technical Analyst';
-    const now = new Date().toISOString();
+    const startTime = new Date().toISOString();
 
-    const candidate: RegulatoryAdCandidate = {
-      id: record.id,
-      authority: record.authority,
-      adNumber: record.adNumber,
-      title: record.title,
-      effectiveDate: record.effectiveDate || '',
-      issueDate: record.issueDate,
-      manufacturer: record.manufacturer,
-      family: record.family,
-      modelScope: record.modelScope,
-      rawApplicabilityText: record.rawApplicabilityText || `Applies to ${record.manufacturer} ${record.family} aircraft.`,
-      source: (record.sourceType as any) || 'FEDERAL_REGISTER',
-      sourceUrl: record.sourceUrl || '',
-      docketNumber: record.officialDocumentNumber,
-      status: 'DISCOVERED',
-      analysisStatus: 'PENDING_ANALYSIS',
-      operationalPriority: record.operationalPriority || 'HIGH',
-      discoveryTimestamp: record.retrievedAt || new Date().toISOString(),
-      retrievedAt: record.retrievedAt
-    };
-
-    camoDb.update(draft => {
-      if (!draft.adCandidates) draft.adCandidates = [];
-      const candIdx = draft.adCandidates.findIndex(c => c.id === candidate.id || c.adNumber.toLowerCase() === candidate.adNumber.toLowerCase());
-      if (candIdx >= 0) {
-        draft.adCandidates[candIdx] = { ...draft.adCandidates[candIdx], ...candidate };
-      } else {
-        draft.adCandidates.push(candidate);
-      }
-    });
-
-    const analysisResult = await this.analyzeCandidateAd(candidate.id, effectiveActor);
-
-    let updatedRecord!: CamoRegulatoryRecord;
+    // 1. TRANSITION TO 'ANALYSIS_IN_PROGRESS'
     camoDb.update(draft => {
       const regIdx = (draft.camoRegulatoryRegister || []).findIndex(r => r.id === record.id);
       if (regIdx >= 0) {
-        const target = draft.camoRegulatoryRegister![regIdx];
-        target.analysisStatus = 'ANALYZED';
-        target.analysisId = analysisResult.requirement.id;
-        target.analyzedRequirementId = analysisResult.requirement.id;
-        target.knowledgeId = analysisResult.knowledgeItem.id;
-        target.lastChangedAt = now;
-        if (!target.auditTrail) target.auditTrail = [];
-        target.auditTrail.unshift({
-          timestamp: now,
-          action: 'ANALYSIS_COMPLETED',
+        draft.camoRegulatoryRegister![regIdx].analysisStatus = 'ANALYSIS_IN_PROGRESS';
+        draft.camoRegulatoryRegister![regIdx].analysisStartedAt = startTime;
+        draft.camoRegulatoryRegister![regIdx].lastChangedAt = startTime;
+        if (!draft.camoRegulatoryRegister![regIdx].auditTrail) draft.camoRegulatoryRegister![regIdx].auditTrail = [];
+        draft.camoRegulatoryRegister![regIdx].auditTrail!.unshift({
+          timestamp: startTime,
+          action: 'ANALYSIS_STARTED',
           actor: effectiveActor,
-          details: `Análise técnica da AD concluída individualmente na Fila de Análise do CAMO. Requisito ID: ${analysisResult.requirement.id}.`
+          details: `Análise técnica iniciada pelo analista ${effectiveActor}. Status atualizado para ANALYSIS_IN_PROGRESS.`
         });
-        updatedRecord = target;
+      }
+    });
+
+    try {
+      // 2. Prepare Candidate
+      const candidate: RegulatoryAdCandidate = {
+        id: record.id,
+        authority: record.authority,
+        adNumber: record.adNumber,
+        title: record.title,
+        effectiveDate: record.effectiveDate || '',
+        issueDate: record.issueDate,
+        manufacturer: record.manufacturer,
+        family: record.family,
+        modelScope: record.modelScope,
+        rawApplicabilityText: record.rawApplicabilityText || `Applies to ${record.manufacturer} ${record.family} aircraft.`,
+        source: (record.sourceType as any) || 'FEDERAL_REGISTER',
+        sourceUrl: record.sourceUrl || '',
+        docketNumber: record.officialDocumentNumber,
+        status: 'DISCOVERED',
+        analysisStatus: 'ANALYSIS_IN_PROGRESS',
+        operationalPriority: record.operationalPriority || 'HIGH',
+        discoveryTimestamp: record.retrievedAt || startTime,
+        retrievedAt: record.retrievedAt
+      };
+
+      camoDb.update(draft => {
+        if (!draft.adCandidates) draft.adCandidates = [];
+        const candIdx = draft.adCandidates.findIndex(c => c.id === candidate.id || c.adNumber.toLowerCase() === candidate.adNumber.toLowerCase());
+        if (candIdx >= 0) {
+          draft.adCandidates[candIdx] = { ...draft.adCandidates[candIdx], ...candidate };
+        } else {
+          draft.adCandidates.push(candidate);
+        }
+      });
+
+      // 3. Run Candidate Technical Analysis (Synthesize Requirement & Knowledge Base Item)
+      const analysisResult = await this.analyzeCandidateAd(candidate.id, effectiveActor);
+
+      // 4. Execute Fleet Applicability Screening for Matching Fleet Aircraft
+      const matchingAircraft = (state.aircraft || []).filter(ac => {
+        const mfgMatch = !record.manufacturer || ac.manufacturer.toLowerCase().includes(record.manufacturer.toLowerCase());
+        const famMatch = !record.family || ac.family?.toLowerCase() === record.family.toLowerCase();
+        const modelMatch = record.modelScope.length === 0 || matchesModel(ac.model, record.modelScope);
+        return mfgMatch && (famMatch || modelMatch);
+      });
+
+      // 5. Run Deterministic Completeness Check
+      const completeness = this.isAnalysisComplete(record.id, {
+        state: camoDb.getState(),
+        aircraftList: matchingAircraft,
+        actor: effectiveActor
+      });
+
+      const completedTime = new Date().toISOString();
+      let updatedRecord!: CamoRegulatoryRecord;
+
+      // 6. Persist Final State
+      camoDb.update(draft => {
+        const regIdx = (draft.camoRegulatoryRegister || []).findIndex(r => r.id === record.id);
+        if (regIdx >= 0) {
+          const target = draft.camoRegulatoryRegister![regIdx];
+          target.analysisStatus = completeness.effectiveStatus;
+          target.analysisCompleteness = completeness;
+          target.analysisStartedAt = startTime;
+          target.analysisCompletedAt = completedTime;
+          target.analysisId = analysisResult.requirement.id;
+          target.analyzedRequirementId = analysisResult.requirement.id;
+          target.knowledgeId = analysisResult.knowledgeItem.id;
+          target.lastChangedAt = completedTime;
+
+          // Clear any previous normative re-review flag since it was re-analyzed
+          if (target.versionHistory) {
+            target.versionHistory.forEach(v => { v.reReviewRequired = false; });
+          }
+
+          if (completeness.effectiveStatus === 'ANALYSIS_FAILED') {
+            target.analysisError = completeness.summary;
+          } else {
+            target.analysisError = undefined;
+          }
+
+          if (!target.auditTrail) target.auditTrail = [];
+          target.auditTrail.unshift({
+            timestamp: completedTime,
+            action: completeness.isComplete ? 'ANALYSIS_COMPLETED' : completeness.effectiveStatus === 'REVIEW_REQUIRED' ? 'ANALYSIS_REVIEW_REQUIRED' : 'ANALYSIS_FAILED',
+            actor: effectiveActor,
+            details: `Avaliação técnica concluída. Status determinístico: ${completeness.effectiveStatus} (${completeness.completedStepsCount}/${completeness.totalMandatorySteps} etapas satisfeitas). ${completeness.summary}`
+          });
+          updatedRecord = target;
+        }
+      });
+
+      return {
+        success: completeness.isComplete,
+        record: updatedRecord || record,
+        requirement: analysisResult.requirement,
+        knowledgeItem: analysisResult.knowledgeItem,
+        completeness
+      };
+    } catch (err: any) {
+      const failTime = new Date().toISOString();
+      let failedRecord!: CamoRegulatoryRecord;
+
+      camoDb.update(draft => {
+        const regIdx = (draft.camoRegulatoryRegister || []).findIndex(r => r.id === record.id);
+        if (regIdx >= 0) {
+          const target = draft.camoRegulatoryRegister![regIdx];
+          target.analysisStatus = 'ANALYSIS_FAILED';
+          target.analysisError = err.message || 'Falha desconhecida durante execução da análise.';
+          target.analysisCompletedAt = failTime;
+          target.lastChangedAt = failTime;
+          if (!target.auditTrail) target.auditTrail = [];
+          target.auditTrail.unshift({
+            timestamp: failTime,
+            action: 'ANALYSIS_FAILED',
+            actor: effectiveActor,
+            details: `Falha na execução da análise técnica: ${err.message}. Status atualizado para ANALYSIS_FAILED.`
+          });
+          failedRecord = target;
+        }
+      });
+
+      const fallbackCompleteness: AnalysisCompletenessResult = {
+        isComplete: false,
+        effectiveStatus: 'ANALYSIS_FAILED',
+        summary: `Falha na execução técnica: ${err.message}`,
+        completedStepsCount: 0,
+        totalMandatorySteps: 8,
+        steps: [],
+        failedSteps: [],
+        reviewSteps: [],
+        missingRequirement: true,
+        canTransitionToAnalyzed: false,
+        evaluatedAt: failTime
+      };
+
+      return {
+        success: false,
+        record: failedRecord || record,
+        completeness: fallbackCompleteness
+      };
+    }
+  }
+
+  /**
+   * System Startup & Integrity Sanitizer (Phase 9 Stage 5.3):
+   * Inspects all records in the CAMO Regulatory Register.
+   * Ensures that any record marked as 'ANALYZED' actually satisfies all mandatory steps.
+   * If a record was marked 'ANALYZED' but lacks required artifacts (e.g., missing requirement),
+   * it attempts auto-recovery/synthesis or corrects the status to 'REVIEW_REQUIRED' or 'ANALYSIS_FAILED'.
+   */
+  public sanitizeRegulatoryRegisterCompleteness(): {
+    inspectedCount: number;
+    correctedCount: number;
+    recoveredCount: number;
+    details: string[];
+  } {
+    const state = camoDb.getState();
+    const register = state.camoRegulatoryRegister || [];
+    let correctedCount = 0;
+    let recoveredCount = 0;
+    const details: string[] = [];
+
+    camoDb.update(draft => {
+      for (const record of draft.camoRegulatoryRegister || []) {
+        if (record.analysisStatus === 'ANALYZED') {
+          const check = this.isAnalysisComplete(record, { state: draft });
+          if (!check.isComplete) {
+            // Attempt recovery if requirement is missing but candidate or record has full data
+            const reqId = record.analyzedRequirementId || record.analysisId || `req-${record.id}`;
+            let req = (draft.requirements || []).find(r => r.id === reqId || r.sourceNumber.toLowerCase() === record.adNumber.toLowerCase());
+
+            if (!req) {
+              const candidate: RegulatoryAdCandidate = {
+                id: record.id,
+                authority: record.authority,
+                adNumber: record.adNumber,
+                title: record.title,
+                effectiveDate: record.effectiveDate || '',
+                issueDate: record.issueDate,
+                manufacturer: record.manufacturer,
+                family: record.family,
+                modelScope: record.modelScope,
+                rawApplicabilityText: record.rawApplicabilityText || `Applies to ${record.manufacturer} ${record.family} aircraft.`,
+                source: (record.sourceType as any) || 'FEDERAL_REGISTER',
+                sourceUrl: record.sourceUrl || '',
+                docketNumber: record.officialDocumentNumber,
+                status: 'DISCOVERED',
+                analysisStatus: 'ANALYZED',
+                operationalPriority: record.operationalPriority || 'HIGH',
+                discoveryTimestamp: record.retrievedAt || new Date().toISOString()
+              };
+              req = this.synthesizeRequirementFromCandidate(candidate, reqId);
+              if (!draft.requirements) draft.requirements = [];
+              draft.requirements.unshift(req);
+              record.analyzedRequirementId = req.id;
+              record.analysisId = req.id;
+
+              // Ensure KB item
+              const kbId = record.knowledgeId || `kb-${record.authority.toLowerCase()}-${record.adNumber.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase()}`;
+              if (!draft.regulatoryKnowledgeBase) draft.regulatoryKnowledgeBase = [];
+              if (!draft.regulatoryKnowledgeBase.some(k => k.id === kbId || k.adNumber === record.adNumber)) {
+                draft.regulatoryKnowledgeBase.unshift({
+                  id: kbId,
+                  requirementId: req.id,
+                  adNumber: record.adNumber,
+                  authority: record.authority,
+                  title: record.title,
+                  effectiveDate: record.effectiveDate || '',
+                  manufacturer: record.manufacturer,
+                  family: record.family,
+                  modelScope: record.modelScope,
+                  requiredConfigurationData: this.extractRequiredConfigurationParameters(req),
+                  complianceThresholdSummary: req.requirementDetails?.initialThreshold || 'Initial inspection mandate',
+                  isRepetitive: Boolean(req.requirementDetails?.repetitiveInterval),
+                  hasTerminatingAction: Boolean(req.requirementDetails?.terminatingAction),
+                  applicabilityRuleSummary: record.rawApplicabilityText || record.title,
+                  analyzedAt: new Date().toISOString(),
+                  documentSha256: record.sha256 || crypto.createHash('sha256').update(record.adNumber).digest('hex'),
+                  provenance: { source: record.sourceType as any, documentNumber: record.id }
+                });
+              }
+              record.knowledgeId = kbId;
+              recoveredCount++;
+              details.push(`Auto-recuperado requisito e item de conhecimento para AD ${record.adNumber}`);
+            }
+
+            // Re-evaluate completeness after recovery attempt
+            const recheck = this.isAnalysisComplete(record, { state: draft });
+            if (!recheck.isComplete) {
+              const prevStatus = record.analysisStatus;
+              record.analysisStatus = recheck.effectiveStatus;
+              record.analysisCompleteness = recheck;
+              record.analysisError = recheck.summary;
+              correctedCount++;
+              details.push(`Inconsistência corrigida para AD ${record.adNumber}: status alterado de ${prevStatus} para ${recheck.effectiveStatus}. Motivo: ${recheck.summary}`);
+            } else {
+              record.analysisCompleteness = recheck;
+            }
+          } else {
+            record.analysisCompleteness = check;
+          }
+        }
       }
     });
 
     return {
-      success: true,
-      record: updatedRecord || record,
-      requirement: analysisResult.requirement,
-      knowledgeItem: analysisResult.knowledgeItem
+      inspectedCount: register.length,
+      correctedCount,
+      recoveredCount,
+      details
     };
   }
 
@@ -2581,6 +3244,7 @@ export class RegulatoryIntelligenceEngine {
       total: number;
       newCount: number;
       pendingCount: number;
+      inProgressCount: number;
       analyzedCount: number;
       reviewRequiredCount: number;
       failedCount: number;
@@ -2595,9 +3259,10 @@ export class RegulatoryIntelligenceEngine {
     const total = list.length;
     const newCount = list.filter(r => r.deltaStatus === 'NEW').length;
     const pendingCount = list.filter(r => r.analysisStatus === 'PENDING_ANALYSIS').length;
+    const inProgressCount = list.filter(r => r.analysisStatus === 'ANALYSIS_IN_PROGRESS').length;
     const analyzedCount = list.filter(r => r.analysisStatus === 'ANALYZED').length;
     const reviewRequiredCount = list.filter(r => r.analysisStatus === 'REVIEW_REQUIRED').length;
-    const failedCount = list.filter(r => r.analysisStatus === 'FAILED').length;
+    const failedCount = list.filter(r => r.analysisStatus === 'ANALYSIS_FAILED' || r.analysisStatus === 'FAILED').length;
     const updatedCount = list.filter(r => r.deltaStatus === 'UPDATED').length;
     const supersededCount = list.filter(r => r.officialStatus === 'SUPERSEDED' || r.deltaStatus === 'SUPERSEDED').length;
     const revokedCount = list.filter(r => r.officialStatus === 'REVOKED' || r.deltaStatus === 'REVOKED').length;
@@ -2623,7 +3288,11 @@ export class RegulatoryIntelligenceEngine {
         list = list.filter(r => r.ataChapter === filters.ataChapter);
       }
       if (filters.analysisStatus && filters.analysisStatus !== 'ALL') {
-        list = list.filter(r => r.analysisStatus === filters.analysisStatus);
+        if (filters.analysisStatus === 'ANALYSIS_FAILED' || filters.analysisStatus === 'FAILED') {
+          list = list.filter(r => r.analysisStatus === 'ANALYSIS_FAILED' || r.analysisStatus === 'FAILED');
+        } else {
+          list = list.filter(r => r.analysisStatus === filters.analysisStatus);
+        }
       }
       if (filters.deltaStatus && filters.deltaStatus !== 'ALL') {
         list = list.filter(r => r.deltaStatus === filters.deltaStatus);
@@ -2647,6 +3316,7 @@ export class RegulatoryIntelligenceEngine {
         total,
         newCount,
         pendingCount,
+        inProgressCount,
         analyzedCount,
         reviewRequiredCount,
         failedCount,

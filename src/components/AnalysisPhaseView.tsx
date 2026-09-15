@@ -11,11 +11,14 @@ import {
   Clock, 
   CheckCircle2, 
   AlertTriangle, 
+  AlertCircle,
+  XCircle,
   RotateCw, 
   ExternalLink, 
   Sparkles, 
   Layers, 
   ShieldAlert, 
+  ShieldCheck,
   Eye, 
   Check, 
   X, 
@@ -28,6 +31,7 @@ import {
   Info,
   ArrowRight
 } from 'lucide-react';
+import AnalysisCompletenessModal from './AnalysisCompletenessModal';
 
 interface AnalysisPhaseViewProps {
   state: DatabaseState | null;
@@ -93,15 +97,21 @@ export default function AnalysisPhaseView({
     fetchRecords();
   }, [onlyPending, statusFilter, authorityFilter, familyFilter, ataFilter, searchTerm]);
 
+  // Completeness Audit Modal
+  const [completenessModalRecord, setCompletenessModalRecord] = useState<{ id: string; adNumber?: string } | null>(null);
+  const [isSanitizing, setIsSanitizing] = useState<boolean>(false);
+
   // Derive global metrics from state
   const globalRegister = useMemo(() => state?.camoRegulatoryRegister || [], [state?.camoRegulatoryRegister]);
   const metrics = useMemo(() => {
     const total = globalRegister.length;
     const pendingCount = globalRegister.filter(r => r.analysisStatus === 'PENDING_ANALYSIS').length;
     const analyzedCount = globalRegister.filter(r => r.analysisStatus === 'ANALYZED').length;
+    const failedCount = globalRegister.filter(r => r.analysisStatus === 'ANALYSIS_FAILED').length;
+    const inProgressCount = globalRegister.filter(r => r.analysisStatus === 'ANALYSIS_IN_PROGRESS').length;
     const reviewRequiredCount = globalRegister.filter(r => r.analysisStatus === 'REVIEW_REQUIRED').length;
     const updatedCount = globalRegister.filter(r => r.deltaStatus === 'UPDATED').length;
-    return { total, pendingCount, analyzedCount, reviewRequiredCount, updatedCount };
+    return { total, pendingCount, analyzedCount, failedCount, inProgressCount, reviewRequiredCount, updatedCount };
   }, [globalRegister]);
 
   // Unique families and ATAs for filters
@@ -128,15 +138,19 @@ export default function AnalysisPhaseView({
 
   // Execute Individual Analysis
   const handleAnalyzeRecord = async (record: CamoRegulatoryRecord) => {
-    setAnalyzingRecordId(record.id);
+    const recId = typeof record === 'string' ? record : (record?.id ? String(record.id) : '');
+    if (!recId) return;
+
+    setAnalyzingRecordId(recId);
     setFeedback(null);
     try {
+      const actorName = typeof state?.currentUser?.name === 'string' ? state.currentUser.name : 'Chief CAMO Engineer';
       const res = await fetch('/api/intel/register/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          recordId: record.id,
-          actor: state?.currentUser?.name || 'Chief CAMO Engineer'
+          recordId: recId,
+          actor: actorName
         })
       });
 
@@ -145,10 +159,24 @@ export default function AnalysisPhaseView({
         if (data.state) {
           onRefreshState(data.state);
         }
-        setFeedback({
-          type: 'success',
-          message: `Diretriz ${record.adNumber} (${record.authority}) analisada com sucesso! Requisito ${data.record?.analyzedRequirementId || 'gerado'} cadastrado.`
-        });
+        
+        const effectiveStatus = data.record?.analysisStatus || 'ANALYZED';
+        if (effectiveStatus === 'ANALYZED') {
+          setFeedback({
+            type: 'success',
+            message: `Diretriz ${record.adNumber} (${record.authority}) analisada com sucesso e 100% validada! Requisito ${data.record?.analyzedRequirementId || 'gerado'} cadastrado.`
+          });
+        } else if (effectiveStatus === 'REVIEW_REQUIRED') {
+          setFeedback({
+            type: 'info',
+            message: `Diretriz ${record.adNumber} processada, porém requer revisão técnica de engenharia antes de aprovação final.`
+          });
+        } else {
+          setFeedback({
+            type: 'error',
+            message: `Análise da diretriz ${record.adNumber} falhou ou está incompleta. Status retido: ${effectiveStatus}. Verifique os detalhes técnicos.`
+          });
+        }
         await fetchRecords();
       } else {
         const errData = await res.json();
@@ -160,10 +188,45 @@ export default function AnalysisPhaseView({
     } catch (err: any) {
       setFeedback({
         type: 'error',
-        message: `Erro na comunicação com a API: ${err.message}`
+        message: `Erro na comunicação com a API: ${err?.message || String(err)}`
       });
     } finally {
       setAnalyzingRecordId(null);
+    }
+  };
+
+  // Run Master Integrity Sanitization
+  const handleSanitizeRegister = async () => {
+    setIsSanitizing(true);
+    setFeedback(null);
+    try {
+      const actorName = typeof state?.currentUser?.name === 'string' ? state.currentUser.name : 'Chief CAMO Engineer';
+      const res = await fetch('/api/intel/register/sanitize', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ actor: actorName })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        if (data.state) onRefreshState(data.state);
+        await fetchRecords();
+        setFeedback({
+          type: 'success',
+          message: `Auditoria de Integridade Concluída: ${data.totalInspected || 0} registros auditados. ${data.correctedCount || 0} registros corrigidos, ${data.alreadyValidCount || 0} confirmados em conformidade.`
+        });
+      } else {
+        setFeedback({
+          type: 'error',
+          message: `Falha na auditoria de integridade: ${data.error || 'Erro desconhecido'}`
+        });
+      }
+    } catch (err: any) {
+      setFeedback({
+        type: 'error',
+        message: `Erro na comunicação com a API: ${err?.message || String(err)}`
+      });
+    } finally {
+      setIsSanitizing(false);
     }
   };
 
@@ -192,24 +255,33 @@ export default function AnalysisPhaseView({
             ANALISADA
           </span>
         );
-      case 'PENDING_ANALYSIS':
+      case 'ANALYSIS_IN_PROGRESS':
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-500/15 text-amber-300 border border-amber-500/40 animate-pulse">
-            <Clock className="w-3.5 h-3.5" />
-            PENDENTE
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-500/15 text-blue-400 border border-blue-500/30 animate-pulse">
+            <RotateCw className="w-3.5 h-3.5 animate-spin" />
+            PROCESSANDO
+          </span>
+        );
+      case 'ANALYSIS_FAILED':
+        return (
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-500/15 text-rose-400 border border-rose-500/30">
+            <XCircle className="w-3.5 h-3.5" />
+            FALHA NA ANÁLISE
           </span>
         );
       case 'REVIEW_REQUIRED':
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-500/15 text-rose-300 border border-rose-500/40">
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-500/15 text-amber-300 border border-amber-500/30">
             <AlertTriangle className="w-3.5 h-3.5" />
-            REVISÃO
+            REVISÃO OBRIGATÓRIA
           </span>
         );
+      case 'PENDING_ANALYSIS':
       default:
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-500/15 text-slate-300 border border-slate-500/30">
-            {status}
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-800 text-slate-400 border border-slate-700">
+            <Clock className="w-3.5 h-3.5" />
+            PENDENTE
           </span>
         );
     }

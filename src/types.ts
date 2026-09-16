@@ -2796,6 +2796,7 @@ export type AnalysisStepKey =
   | 'EXTRACTION_INTELLIGENCE'
   | 'APPLICABILITY_STRUCTURING'
   | 'MANDATED_ACTIONS'
+  | 'SB_INTELLIGENCE'
   | 'KNOWLEDGE_COMPILATION'
   | 'FLEET_EVALUATION'
   | 'AUDIT_LINKAGE';
@@ -2832,6 +2833,13 @@ export interface AnalysisCompletenessResult {
   missingRequirement: boolean;
   canTransitionToAnalyzed: boolean;
   evaluatedAt: string;
+  // Phase 9 Stage 7 Multi-dimensional indicators
+  adAnalysisComplete?: boolean;
+  sbAnalysisStatus?: 'NO_SB_REFERENCED' | 'SB_ANALYSIS_REQUIRED' | 'SB_ANALYZED' | 'SB_PENDING_RETRIEVAL';
+  applicabilityStatus?: 'APPLICABILITY_PENDING' | 'APPLICABILITY_DETERMINED';
+  complianceStatus?: 'COMPLIANCE_PENDING' | 'COMPLIANCE_EVIDENCED';
+  referencedSbsCount?: number;
+  sbChecklistsCount?: number;
 }
 
 export interface RegulatoryRegisterVersionHistory {
@@ -2843,6 +2851,136 @@ export interface RegulatoryRegisterVersionHistory {
   previousPayload?: any;
   previousAnalysisStatus?: RegulatoryRegisterAnalysisStatus;
   reReviewRequired: boolean;
+}
+
+// ============================================================================
+// PHASE 9 — ETAPA 7: SERVICE BULLETIN (SB) REFERENCE & ANALYSIS INTELLIGENCE
+// ============================================================================
+
+export type SbDocumentType = 
+  | 'SERVICE_BULLETIN' 
+  | 'ALERT_SERVICE_BULLETIN' 
+  | 'SERVICE_LETTER' 
+  | 'SERVICE_INSTRUCTION' 
+  | 'ENGINEERING_CHANGE' 
+  | 'SPECIAL_ATTENTION'
+  | 'OTHER';
+
+export type SbRelationshipToAd = 
+  | 'MANDATORY_INCORPORATION' // AD mandates compliance with this SB
+  | 'PARTIAL_INSTRUCTION'     // AD requires only specific sections/steps
+  | 'REFERENCE_ONLY'          // Mentioned as reference or background
+  | 'TERMINATING_ACTION'      // SB provides terminating action for AD repetitive inspections
+  | 'ALTERNATIVE_METHOD'      // Alternative method of compliance (AMOC)
+  | 'OTHER';
+
+export type SbAnalysisStatus = 
+  | 'PENDING_RETRIEVAL'
+  | 'CHECKLIST_GENERATED'
+  | 'ANALYZED'
+  | 'FAILED'
+  | 'REVIEW_REQUIRED';
+
+export interface SbAnalysisChecklist {
+  identification: {
+    sbNumber: string;
+    revision?: string;
+    issueDate?: string;
+    title?: string;
+    manufacturer: string;
+    documentType: SbDocumentType;
+  };
+  applicability: {
+    models: string[];
+    msnRange?: string;
+    serialNumbers?: string[];
+    partNumbers?: string[];
+    positions?: string[];
+    affectedConfigurations?: string[];
+    rawText?: string;
+  };
+  previousIncorporation: {
+    priorSbsReferenced?: string[];
+    priorRevisions?: string[];
+    allowsPriorIncorporation?: boolean;
+    terminatingActionCondition?: string;
+    notes?: string;
+  };
+  actions: {
+    actionType: 'INSPECTION' | 'MODIFICATION' | 'REPLACEMENT' | 'REPETITIVE' | 'TERMINATING_ACTION' | 'TEST';
+    initialThreshold?: string;
+    repetitiveInterval?: string;
+    terminatingAction?: string;
+    requiredParts?: string[];
+    requiredTools?: string[];
+    summary: string;
+  }[];
+  limitationsAndConditions: string[];
+  configurationData: string[];
+}
+
+export interface ReferencedServiceBulletin {
+  id: string;
+  adNumber: string;
+  authority: string;
+  complianceRequirementId?: string;
+  camoRegisterId?: string;
+  sbNumber: string;
+  revision?: string;
+  manufacturer: string;
+  documentType: SbDocumentType;
+  title?: string;
+  issueDate?: string;
+  citedParagraphInAd?: string;
+  relationshipToAd: SbRelationshipToAd;
+  isMandatedByAd: boolean;
+  analysisStatus: SbAnalysisStatus;
+  checklist?: SbAnalysisChecklist;
+  notes?: string;
+  extractedAt?: string;
+}
+
+// ============================================================================
+// PHASE 9 — ETAPA 7: MAINTENANCE CONTROL (PCM) & AIRCRAFT CONFIGURATION LEDGER
+// ============================================================================
+
+export type ConfigurationEventType = 
+  | 'INSTALLATION' 
+  | 'REMOVAL' 
+  | 'MODIFICATION' 
+  | 'INSPECTION' 
+  | 'MAINTENANCE_RELEASE'
+  | 'STATUS_CHANGE'
+  | 'INITIAL_BASE'
+  | 'SB_INCORPORATION';
+
+export interface AircraftConfigurationHistoryRecord {
+  id: string;
+  aircraftId: string;
+  aircraftRegistration: string;
+  timestamp: string;
+  actor: string;
+  authorizedBy?: string;
+  reason: string;
+  eventType: ConfigurationEventType;
+  componentType?: string;
+  componentPartNumber?: string;
+  componentSerialNumber?: string;
+  partNumberBefore?: string;
+  partNumberAfter?: string;
+  serialNumberBefore?: string;
+  serialNumberAfter?: string;
+  position?: string;
+  flightHoursAtEvent: number;
+  flightCyclesAtEvent: number;
+  workOrderReference?: string;
+  taskCardReference?: string;
+  complianceObligationId?: string;
+  previousValue?: string;
+  newValue?: string;
+  notes?: string;
+  auditHash: string; // SHA-256 cryptographic seal
+  recordHash?: string; // Alias for auditHash
 }
 
 export interface CamoRegulatoryRecord {
@@ -2890,6 +3028,11 @@ export interface CamoRegulatoryRecord {
   knowledgeId?: string; // RegulatoryKnowledgeItem ID when analyzed
   rawApplicabilityText?: string;
   operationalPriority?: 'CRITICAL_URGENT' | 'HIGH' | 'NORMAL';
+  // Phase 9 Stage 7: Service Bulletins and multi-dimensional analysis status
+  referencedSbs?: ReferencedServiceBulletin[];
+  sbIntelligenceStatus?: 'NO_SB_REFERENCED' | 'SB_ANALYSIS_REQUIRED' | 'SB_ANALYZED' | 'SB_PENDING_RETRIEVAL';
+  applicabilityPendingStatus?: 'APPLICABILITY_PENDING' | 'APPLICABILITY_DETERMINED';
+  compliancePendingStatus?: 'COMPLIANCE_PENDING' | 'COMPLIANCE_EVIDENCED';
   auditTrail?: Array<{
     timestamp: string;
     action: string;

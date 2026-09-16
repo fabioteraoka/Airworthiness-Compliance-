@@ -30,7 +30,12 @@ import {
   AnalysisStepKey,
   AnalysisStepStatus,
   AnalysisStepEvaluation,
-  AnalysisCompletenessResult
+  AnalysisCompletenessResult,
+  ReferencedServiceBulletin,
+  SbAnalysisChecklist,
+  SbDocumentType,
+  SbRelationshipToAd,
+  SbAnalysisStatus
 } from '../../src/types';
 import { camoDb } from '../dataStore';
 import { 
@@ -2057,6 +2062,356 @@ export class RegulatoryIntelligenceEngine {
     return '05';
   }
 
+  // ==========================================================================
+  // FASE 9 — ETAPA 7: SERVICE BULLETIN (SB) REFERENCE & ANALYSIS INTELLIGENCE
+  // ==========================================================================
+
+  /**
+   * Extracts referenced Service Bulletins from regulatory text or requirement models.
+   * Clarifies distinction: AD defines mandatory requirement; SB defines technical implementation method.
+   */
+  public extractReferencedServiceBulletins(
+    text: string,
+    adNumber: string,
+    authority: string,
+    requirement?: ComplianceRequirement,
+    existingSbs?: ReferencedServiceBulletin[]
+  ): ReferencedServiceBulletin[] {
+    const results: ReferencedServiceBulletin[] = existingSbs ? [...existingSbs] : [];
+    const lowerText = text.toLowerCase();
+    const adClean = (adNumber || '').trim();
+
+    // Helper to add or update
+    const addSb = (sb: Omit<ReferencedServiceBulletin, 'id' | 'adNumber' | 'authority' | 'extractedAt'>) => {
+      const existing = results.find(s => s.sbNumber.toLowerCase() === sb.sbNumber.toLowerCase());
+      if (existing) {
+        if (!existing.checklist && sb.checklist) existing.checklist = sb.checklist;
+        if (existing.analysisStatus === 'PENDING_RETRIEVAL' && sb.analysisStatus !== 'PENDING_RETRIEVAL') {
+          existing.analysisStatus = sb.analysisStatus;
+        }
+        return;
+      }
+      const newSb: ReferencedServiceBulletin = {
+        id: `sb-${authority.toLowerCase()}-${adClean.replace(/[^a-zA-Z0-9]/g, '-')}-${sb.sbNumber.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase()}`,
+        adNumber,
+        authority: authority as IssuingAuthority,
+        complianceRequirementId: requirement?.id,
+        extractedAt: new Date().toISOString(),
+        ...sb
+      };
+      if (!newSb.checklist) {
+        newSb.checklist = this.generateSbAnalysisChecklist(newSb, { text, requirement });
+      }
+      results.push(newSb);
+    };
+
+    // 1. Inspect requirement referenced documents or effectivity references if available
+    if (requirement) {
+      if (requirement.externalEffectivityReferences) {
+        for (const ext of requirement.externalEffectivityReferences) {
+          const docRef = ext.documentReference || '';
+          const isSb = /bulletin|sb|asb|service/i.test(docRef);
+          if (isSb) {
+            const numMatch = docRef.match(/([A-Z0-9]{2,8}[-_][A-Z0-9-_/]+|[0-9]{2,4}-[0-9]{2,4}[A-Z0-9-_]*)/i);
+            const sbNum = numMatch ? numMatch[1] : docRef;
+            addSb({
+              sbNumber: sbNum,
+              revision: ext.revision || 'Original',
+              manufacturer: requirement.applicabilityRule?.aircraftManufacturers?.[0] || 'Boeing',
+              documentType: /alert/i.test(docRef) ? 'ALERT_SERVICE_BULLETIN' : 'SERVICE_BULLETIN',
+              title: ext.purpose || `Service Bulletin ${sbNum}`,
+              relationshipToAd: ext.requiredForApplicability ? 'MANDATORY_INCORPORATION' : 'REFERENCE_ONLY',
+              isMandatedByAd: ext.requiredForApplicability,
+              analysisStatus: 'CHECKLIST_GENERATED'
+            });
+          }
+        }
+      }
+      if ((requirement as any).referencedDocuments) {
+        for (const doc of (requirement as any).referencedDocuments) {
+          const docNum = doc.documentNumber || doc.title || '';
+          if (/bulletin|sb|asb/i.test(docNum) || /bulletin|sb|asb/i.test(doc.documentType || '')) {
+            addSb({
+              sbNumber: docNum,
+              revision: doc.revision || 'Original',
+              manufacturer: doc.publisher || requirement.applicabilityRule?.aircraftManufacturers?.[0] || 'Manufacturer',
+              documentType: /alert/i.test(docNum) ? 'ALERT_SERVICE_BULLETIN' : 'SERVICE_BULLETIN',
+              title: doc.title,
+              relationshipToAd: doc.isMandatory ? 'MANDATORY_INCORPORATION' : 'REFERENCE_ONLY',
+              isMandatedByAd: Boolean(doc.isMandatory),
+              analysisStatus: 'CHECKLIST_GENERATED'
+            });
+          }
+        }
+      }
+    }
+
+    // 2. Deterministic Knowledge Mapping for canonical Seed ADs
+    if (adClean.includes('2024-12-05')) {
+      addSb({
+        sbNumber: 'B737-27A1305',
+        revision: 'Rev 0',
+        manufacturer: 'Boeing',
+        documentType: 'ALERT_SERVICE_BULLETIN',
+        title: 'Elevator Tab Pushrod Assembly Detailed Visual and Ultrasonic Inspection and Redesigned Terminating Bushing Installation',
+        issueDate: '2024-05-15',
+        citedParagraphInAd: 'Paragraph (g), (h), (i)',
+        relationshipToAd: 'MANDATORY_INCORPORATION',
+        isMandatedByAd: true,
+        analysisStatus: 'ANALYZED'
+      });
+    } else if (adClean.includes('2020-24-02')) {
+      addSb({
+        sbNumber: 'B737-32A1420',
+        revision: 'Rev 1',
+        manufacturer: 'Boeing',
+        documentType: 'ALERT_SERVICE_BULLETIN',
+        title: 'Main Landing Gear (MLG) Actuator Beam Outboard Pin High Frequency Eddy Current Inspection',
+        issueDate: '2020-10-12',
+        citedParagraphInAd: 'Paragraph (g)',
+        relationshipToAd: 'MANDATORY_INCORPORATION',
+        isMandatedByAd: true,
+        analysisStatus: 'ANALYZED'
+      });
+    } else if (adClean.includes('2024-0120')) {
+      addSb({
+        sbNumber: 'A320-29-1180',
+        revision: 'Rev 0',
+        manufacturer: 'Airbus',
+        documentType: 'SERVICE_BULLETIN',
+        title: 'Hydraulic Power - Ram Air Turbine (RAT) Actuator Lower Attachment Bushing Modification',
+        issueDate: '2024-04-10',
+        citedParagraphInAd: 'Paragraph (1), (2)',
+        relationshipToAd: 'TERMINATING_ACTION',
+        isMandatedByAd: true,
+        analysisStatus: 'ANALYZED'
+      });
+    } else if (adClean.includes('2024-03-01')) {
+      addSb({
+        sbNumber: 'SB190-27-0045',
+        revision: 'Original',
+        manufacturer: 'Embraer',
+        documentType: 'SERVICE_BULLETIN',
+        title: 'Flight Controls - Flap Power Unit Secondary Brake Torque Limit Verification and Adjustment',
+        issueDate: '2024-02-28',
+        citedParagraphInAd: 'Paragraph (b)',
+        relationshipToAd: 'MANDATORY_INCORPORATION',
+        isMandatedByAd: true,
+        analysisStatus: 'ANALYZED'
+      });
+    }
+
+    // 3. Regex Extraction from Raw Text
+    const sbPatterns = [
+      /(?:Boeing\s+)?(?:Alert\s+)?(?:Requirements\s+Bulletin|Requirements\s+Service\s+Bulletin|Service\s+Bulletin)\s+([A-Za-z0-9\-_/]+(?:\s+RB)?)/gi,
+      /(?:Airbus\s+)?(?:Alert\s+)?Service\s+Bulletin\s+([A-Za-z0-9\-_/]+)/gi,
+      /(?:Embraer\s+)?(?:Alert\s+)?Service\s+Bulletin\s+([A-Za-z0-9\-_/]+)/gi,
+      /(?:Alert\s+Service\s+Bulletin|ASB)\s+([A-Za-z0-9\-_/]{4,20})/gi,
+      /(?:Service\s+Bulletin|SB)\s+([A-Za-z0-9\-_/]{4,20})/gi
+    ];
+
+    for (const pattern of sbPatterns) {
+      let match: RegExpExecArray | null;
+      while ((match = pattern.exec(text)) !== null) {
+        let candidateSbNumber = match[1].replace(/[,.;]$/, '').trim();
+        // Disqualify standard words accidentally caught
+        if (/^(no|number|date|effective|page|revision|accordance|rules|the|all|within|model|faa|easa)$/i.test(candidateSbNumber)) {
+          continue;
+        }
+        if (candidateSbNumber.length < 4) continue;
+
+        const isAlert = /alert/i.test(match[0]);
+        const matchIndex = match.index;
+        const surroundingSnippet = text.substring(Math.max(0, matchIndex - 120), Math.min(text.length, matchIndex + 120)).toLowerCase();
+
+        let detectedRelationship: SbRelationshipToAd = 'REFERENCE_ONLY';
+        if (surroundingSnippet.includes('terminating action') || surroundingSnippet.includes('terminating')) {
+          detectedRelationship = 'TERMINATING_ACTION';
+        } else if (surroundingSnippet.includes('alternative method') || surroundingSnippet.includes('amoc')) {
+          detectedRelationship = 'ALTERNATIVE_METHOD';
+        } else if (
+          surroundingSnippet.includes('accomplish') ||
+          surroundingSnippet.includes('in accordance with') ||
+          surroundingSnippet.includes('required actions') ||
+          surroundingSnippet.includes('mandatory') ||
+          surroundingSnippet.includes('incorporate')
+        ) {
+          detectedRelationship = 'MANDATORY_INCORPORATION';
+        }
+
+        let mfg = requirement?.applicabilityRule?.aircraftManufacturers?.[0];
+        if (!mfg) {
+          if (/boeing/i.test(text) || /737|747|767|777|787/.test(candidateSbNumber)) {
+            mfg = 'Boeing';
+          } else if (/airbus/i.test(text) || /a320|a330|a350/.test(candidateSbNumber)) {
+            mfg = 'Airbus';
+          } else if (/embraer/i.test(text) || /erj|e190|e195/.test(candidateSbNumber)) {
+            mfg = 'Embraer';
+          } else {
+            mfg = 'Manufacturer OEM';
+          }
+        }
+
+        addSb({
+          sbNumber: candidateSbNumber,
+          revision: 'Rev 0',
+          manufacturer: mfg,
+          documentType: isAlert ? 'ALERT_SERVICE_BULLETIN' : 'SERVICE_BULLETIN',
+          title: `Service Bulletin ${candidateSbNumber}`,
+          relationshipToAd: detectedRelationship,
+          isMandatedByAd: detectedRelationship === 'MANDATORY_INCORPORATION' || detectedRelationship === 'TERMINATING_ACTION',
+          analysisStatus: 'CHECKLIST_GENERATED'
+        });
+      }
+    }
+
+    return results;
+  }
+
+  /**
+   * Generates a structured accomplishment and engineering checklist for a Service Bulletin.
+   */
+  public generateSbAnalysisChecklist(
+    sb: ReferencedServiceBulletin,
+    adContext?: { text?: string; requirement?: ComplianceRequirement }
+  ): SbAnalysisChecklist {
+    const models = adContext?.requirement?.applicabilityRule?.aircraftModels || ['B737-800', 'B737-700'];
+    const pns = adContext?.requirement?.applicabilityRule?.componentPartNumbers || [];
+    const threshold = adContext?.requirement?.requirementDetails?.initialThreshold || 'Within 500 FH or 6 months';
+    const repetitive = adContext?.requirement?.requirementDetails?.repetitiveInterval || 'Every 500 FH or 12 months';
+    const terminating = adContext?.requirement?.requirementDetails?.terminatingAction || 'Installation of terminating part';
+
+    return {
+      identification: {
+        sbNumber: sb.sbNumber,
+        revision: sb.revision || 'Original',
+        issueDate: sb.issueDate || '2024-05-15',
+        title: sb.title || `Service Bulletin ${sb.sbNumber}`,
+        manufacturer: sb.manufacturer || 'Boeing',
+        documentType: sb.documentType || 'SERVICE_BULLETIN'
+      },
+      applicability: {
+        models,
+        partNumbers: pns.length > 0 ? pns : undefined,
+        rawText: `Service Bulletin applies to ${sb.manufacturer} ${models.join(', ')} airplanes.`
+      },
+      previousIncorporation: {
+        priorSbsReferenced: [],
+        allowsPriorIncorporation: true,
+        terminatingActionCondition: terminating,
+        notes: 'Prior accomplishment in service of this Service Bulletin or terminating modification standard satisfies initial compliance.'
+      },
+      actions: [
+        {
+          actionType: 'INSPECTION',
+          initialThreshold: threshold,
+          repetitiveInterval: repetitive,
+          summary: 'Detailed visual and NDT/ultrasonic inspection according to manufacturer task card instructions.'
+        },
+        {
+          actionType: 'MODIFICATION',
+          terminatingAction: terminating,
+          requiredParts: pns.length > 0 ? pns.map(p => `P/N ${p}-MOD`) : ['Approved Terminating Part Standard'],
+          summary: 'Installation of terminating redesigned component or bushing standard.'
+        }
+      ],
+      limitationsAndConditions: [
+        'Special tools and calibration equipment required for ultrasonic inspection probe.',
+        'Any crack or wear exceeding limits requires immediate part replacement prior to next flight.',
+        'Record accomplishment in Aircraft Tech Log and CAMO Configuration Ledger.'
+      ],
+      configurationData: [
+        'Component Serial Number',
+        'Physical Part Number verification',
+        'Modification Status Standard (As-Installed)'
+      ]
+    };
+  }
+
+  /**
+   * Analyses or reviews a referenced Service Bulletin directly for a CAMO Regulatory Record.
+   */
+  public analyzeReferencedServiceBulletin(
+    recordId: string,
+    sbId: string,
+    actorOrOptions?: string | { actor?: string; technicalNotes?: string; notes?: string }
+  ): ReferencedServiceBulletin & { success: boolean; record?: CamoRegulatoryRecord; sb: ReferencedServiceBulletin; error?: string } {
+    const state = camoDb.getState();
+    const effectiveActor = typeof actorOrOptions === 'string'
+      ? actorOrOptions
+      : (actorOrOptions?.actor || state.currentUser.name || 'CAMO Engineering Analyst');
+    const technicalNotes = typeof actorOrOptions === 'object' 
+      ? (actorOrOptions?.technicalNotes || actorOrOptions?.notes) 
+      : undefined;
+
+    const record = (state.camoRegulatoryRegister || []).find(r => r.id === recordId);
+    if (!record) {
+      throw new Error(`Registro regulatório ${recordId} não encontrado.`);
+    }
+
+    let targetSb: ReferencedServiceBulletin | undefined;
+    camoDb.update(draft => {
+      const rec = (draft.camoRegulatoryRegister || []).find(r => r.id === recordId);
+      if (rec) {
+        if (!rec.referencedSbs || rec.referencedSbs.length === 0) {
+          rec.referencedSbs = this.extractReferencedServiceBulletins(
+            rec.rawApplicabilityText || '',
+            rec.adNumber,
+            rec.authority
+          );
+        }
+        const sb = rec.referencedSbs.find(s => s.id === sbId || s.sbNumber.toLowerCase() === sbId.toLowerCase());
+        if (sb) {
+          sb.analysisStatus = 'ANALYZED';
+          if (!sb.checklist) {
+            sb.checklist = this.generateSbAnalysisChecklist(sb);
+          }
+          if (technicalNotes) {
+            sb.checklist.engineeringValidation = {
+              validatedBy: effectiveActor,
+              validatedAt: new Date().toISOString(),
+              notes: technicalNotes,
+              approvedForIncorporation: true
+            };
+          }
+          targetSb = sb;
+          rec.sbIntelligenceStatus = 'SB_ANALYZED';
+          if (!rec.auditTrail) rec.auditTrail = [];
+          rec.auditTrail.unshift({
+            timestamp: new Date().toISOString(),
+            action: 'SB_ANALYSIS_COMPLETED',
+            actor: effectiveActor,
+            details: `Boletim de Serviço ${sb.sbNumber} analisado com checklist e regras de prévia incorporação homologadas.`
+          });
+        }
+      }
+    });
+
+    if (!targetSb) {
+      throw new Error(`Boletim de Serviço ${sbId} não encontrado na AD ${record.adNumber}.`);
+    }
+
+    // Re-evaluate completeness
+    const completeness = this.isAnalysisComplete(recordId);
+    camoDb.update(draft => {
+      const rec = (draft.camoRegulatoryRegister || []).find(r => r.id === recordId);
+      if (rec) {
+        rec.analysisCompleteness = completeness;
+        if (completeness.isComplete) {
+          rec.analysisStatus = 'ANALYZED';
+        }
+      }
+    });
+
+    const updatedRecord = camoDb.getState().camoRegulatoryRegister?.find(r => r.id === recordId);
+    return {
+      ...targetSb,
+      success: true,
+      record: updatedRecord,
+      sb: targetSb
+    };
+  }
+
   /**
    * Fleet Regulatory Discovery + Delta Comparison with CAMO Register
    */
@@ -2783,7 +3138,76 @@ export class RegulatoryIntelligenceEngine {
       }
     }
 
-    // STEP 6: KNOWLEDGE BASE COMPILATION
+    // STEP 6: SERVICE BULLETIN (SB) REFERENCE & ANALYSIS INTELLIGENCE (Phase 9 Stage 7)
+    // Clear separation of concerns: AD mandates what must be done; SB specifies how technical tasks are accomplished.
+    const extractedSbs: ReferencedServiceBulletin[] = record?.referencedSbs && record.referencedSbs.length > 0
+      ? record.referencedSbs
+      : this.extractReferencedServiceBulletins(
+          sourceText || record?.rawApplicabilityText || '',
+          adNumber,
+          authority,
+          requirement
+        );
+
+    const referencedSbsCount = extractedSbs.length;
+    const sbChecklistsCount = extractedSbs.filter(s => s.checklist && (s.analysisStatus === 'CHECKLIST_GENERATED' || s.analysisStatus === 'ANALYZED')).length;
+
+    let sbAnalysisStatus: 'NO_SB_REFERENCED' | 'SB_ANALYSIS_REQUIRED' | 'SB_ANALYZED' | 'SB_PENDING_RETRIEVAL';
+
+    if (extractedSbs.length === 0) {
+      sbAnalysisStatus = 'NO_SB_REFERENCED';
+      steps.push({
+        stepKey: 'SB_INTELLIGENCE',
+        stepName: 'Inteligência de Boletins de Serviço (SB)',
+        isMandatory: false,
+        status: 'SUCCESS',
+        message: 'Nenhum Boletim de Serviço (SB) técnico ou mandatório referenciado no texto normativo da AD.'
+      });
+    } else {
+      const pendingSbs = extractedSbs.filter(s => s.analysisStatus === 'PENDING_RETRIEVAL' || s.analysisStatus === 'FAILED');
+      const reviewSbs = extractedSbs.filter(s => s.analysisStatus === 'REVIEW_REQUIRED');
+
+      if (isPendingIntake) {
+        sbAnalysisStatus = 'SB_ANALYSIS_REQUIRED';
+        steps.push({
+          stepKey: 'SB_INTELLIGENCE',
+          stepName: 'Inteligência de Boletins de Serviço (SB)',
+          isMandatory: true,
+          status: 'PENDING',
+          message: `Identificado(s) ${extractedSbs.length} Boletim(ns) de Serviço referenciado(s). Análise de métodos de cumprimento pendente.`
+        });
+      } else if (pendingSbs.length > 0) {
+        sbAnalysisStatus = 'SB_ANALYSIS_REQUIRED';
+        steps.push({
+          stepKey: 'SB_INTELLIGENCE',
+          stepName: 'Inteligência de Boletins de Serviço (SB)',
+          isMandatory: true,
+          status: 'INCOMPLETE',
+          message: `A AD referencia ${extractedSbs.length} Boletim(ns) de Serviço. ${pendingSbs.length} documento(s) técnico(s) pendente(s) de análise de engenharia.`,
+          error: `SBs pendentes: ${pendingSbs.map(s => s.sbNumber).join(', ')}`
+        });
+      } else if (reviewSbs.length > 0) {
+        sbAnalysisStatus = 'SB_ANALYSIS_REQUIRED';
+        steps.push({
+          stepKey: 'SB_INTELLIGENCE',
+          stepName: 'Inteligência de Boletins de Serviço (SB)',
+          isMandatory: true,
+          status: 'REVIEW_REQUIRED',
+          message: `Checklist técnico do Boletim de Serviço gerado com ressalvas. Requer validação de engenharia CAMO: ${reviewSbs.map(s => s.sbNumber).join(', ')}.`
+        });
+      } else {
+        sbAnalysisStatus = 'SB_ANALYZED';
+        steps.push({
+          stepKey: 'SB_INTELLIGENCE',
+          stepName: 'Inteligência de Boletins de Serviço (SB)',
+          isMandatory: true,
+          status: 'SUCCESS',
+          message: `Inteligência técnica de SB concluída: ${extractedSbs.length} Boletim(ns) de Serviço analisado(s) com checklist de cumprimento e condições de prévia incorporação estruturados.`
+        });
+      }
+    }
+
+    // STEP 7: KNOWLEDGE BASE COMPILATION
     if (!knowledgeItem) {
       if (isPendingIntake) {
         steps.push({
@@ -2826,7 +3250,7 @@ export class RegulatoryIntelligenceEngine {
       }
     }
 
-    // STEP 7: FLEET APPLICABILITY EVALUATION
+    // STEP 8: FLEET APPLICABILITY EVALUATION
     const fleetAircraft = context?.aircraftList || state.aircraft || [];
     const matchingAircraft = fleetAircraft.filter((ac: Aircraft) => {
       const mfgMatch = !manufacturer || ac.manufacturer.toLowerCase().includes(manufacturer.toLowerCase()) || manufacturer.toLowerCase().includes(ac.manufacturer.toLowerCase());
@@ -2870,7 +3294,7 @@ export class RegulatoryIntelligenceEngine {
       }
     }
 
-    // STEP 8: AUDIT LINKAGE & INTEGRITY
+    // STEP 9: AUDIT LINKAGE & INTEGRITY
     if (record) {
       const linkedReqId = record.analyzedRequirementId || record.analysisId || requirement?.id;
       const linkedReqExists = Boolean(linkedReqId && (state.requirements || []).some((r: any) => r.id === linkedReqId));
@@ -2967,6 +3391,41 @@ export class RegulatoryIntelligenceEngine {
       summary = 'Todas as etapas obrigatórias da análise técnica foram concluídas com sucesso e dados auditáveis.';
     }
 
+    // Phase 9 Stage 7 Multi-dimensional Indicators:
+    // 1. AD Analysis Completeness: (Regulatory mandate core steps)
+    const adSpecificStepKeys: AnalysisStepKey[] = [
+      'IDENTIFICATION',
+      'DOCUMENT_RETRIEVAL',
+      'EXTRACTION_INTELLIGENCE',
+      'APPLICABILITY_STRUCTURING',
+      'MANDATED_ACTIONS',
+      'KNOWLEDGE_COMPILATION',
+      'FLEET_EVALUATION',
+      'AUDIT_LINKAGE'
+    ];
+    const adFailedSteps = steps.filter(s => adSpecificStepKeys.includes(s.stepKey) && (s.status === 'FAILED' || s.status === 'ERROR'));
+    const adReviewSteps = steps.filter(s => adSpecificStepKeys.includes(s.stepKey) && s.status === 'REVIEW_REQUIRED');
+    const adIncompleteSteps = steps.filter(s => adSpecificStepKeys.includes(s.stepKey) && (s.status === 'INCOMPLETE' || s.status === 'PENDING'));
+    const adAnalysisComplete = adFailedSteps.length === 0 && adReviewSteps.length === 0 && adIncompleteSteps.length === 0 && Boolean(requirement);
+
+    // 2. Fleet Applicability Status:
+    // Check whether missing configuration parameters block determination for matching aircraft
+    const missingParamsCount = (state.configurationAssessments || []).filter((ca: any) => 
+      matchingAircraft.some((ac: any) => ac.registration === ca.registration) && 
+      ca.missingOperationalData && ca.missingOperationalData.length > 0
+    ).length;
+    const applicabilityStatus: 'APPLICABILITY_PENDING' | 'APPLICABILITY_DETERMINED' = 
+      (missingParamsCount > 0 && matchingAircraft.length > 0) ? 'APPLICABILITY_PENDING' : 'APPLICABILITY_DETERMINED';
+
+    // 3. Compliance Status:
+    // Check whether compliance obligations exist and whether any is open / pending evidence
+    const relatedObligations = (state.complianceObligations || state.obligations || []).filter((o: any) => 
+      o.adNumber?.toLowerCase() === adNumber.toLowerCase() || (requirement && o.complianceRequirementId === requirement.id)
+    );
+    const hasOpenObligations = relatedObligations.some((o: any) => o.status === 'OPEN' || o.status === 'OVERDUE' || o.status === 'PENDING_EVIDENCE');
+    const complianceStatus: 'COMPLIANCE_PENDING' | 'COMPLIANCE_EVIDENCED' = 
+      (relatedObligations.length > 0 && hasOpenObligations) ? 'COMPLIANCE_PENDING' : 'COMPLIANCE_EVIDENCED';
+
     return {
       isComplete,
       effectiveStatus,
@@ -2978,7 +3437,13 @@ export class RegulatoryIntelligenceEngine {
       reviewSteps,
       missingRequirement: !requirement,
       canTransitionToAnalyzed,
-      evaluatedAt: now
+      evaluatedAt: now,
+      adAnalysisComplete,
+      sbAnalysisStatus,
+      applicabilityStatus,
+      complianceStatus,
+      referencedSbsCount,
+      sbChecklistsCount
     };
   }
 
@@ -3074,7 +3539,24 @@ export class RegulatoryIntelligenceEngine {
       // 3. Run Candidate Technical Analysis (Synthesize Requirement & Knowledge Base Item)
       const analysisResult = await this.analyzeCandidateAd(candidate.id, effectiveActor);
 
-      // 4. Execute Fleet Applicability Screening for Matching Fleet Aircraft
+      // 4. Extract and analyze any referenced Service Bulletins
+      const extractedSbs = this.extractReferencedServiceBulletins(
+        record.rawApplicabilityText || candidate.rawApplicabilityText || '',
+        record.adNumber,
+        record.authority,
+        analysisResult.requirement,
+        record.referencedSbs
+      );
+
+      // Update in database draft so completeness check can evaluate extracted SBs
+      camoDb.update(draft => {
+        const regIdx = (draft.camoRegulatoryRegister || []).findIndex(r => r.id === record.id);
+        if (regIdx >= 0) {
+          draft.camoRegulatoryRegister![regIdx].referencedSbs = extractedSbs;
+        }
+      });
+
+      // 5. Execute Fleet Applicability Screening for Matching Fleet Aircraft
       const matchingAircraft = (state.aircraft || []).filter(ac => {
         const mfgMatch = !record.manufacturer || ac.manufacturer.toLowerCase().includes(record.manufacturer.toLowerCase());
         const famMatch = !record.family || (ac.series && ac.series.toLowerCase().includes(record.family.toLowerCase())) || ac.model.toLowerCase().includes(record.family.toLowerCase()) || ((ac as any).family && (ac as any).family.toLowerCase() === record.family.toLowerCase());
@@ -3082,7 +3564,7 @@ export class RegulatoryIntelligenceEngine {
         return mfgMatch && (famMatch || modelMatch);
       });
 
-      // 5. Run Deterministic Completeness Check
+      // 6. Run Deterministic Completeness Check
       const completeness = this.isAnalysisComplete(record.id, {
         state: camoDb.getState(),
         aircraftList: matchingAircraft,
@@ -3093,7 +3575,7 @@ export class RegulatoryIntelligenceEngine {
       const completedTime = new Date().toISOString();
       let updatedRecord!: CamoRegulatoryRecord;
 
-      // 6. Persist Final State
+      // 7. Persist Final State
       camoDb.update(draft => {
         const regIdx = (draft.camoRegulatoryRegister || []).findIndex(r => r.id === record.id);
         if (regIdx >= 0) {
@@ -3106,6 +3588,12 @@ export class RegulatoryIntelligenceEngine {
           target.analyzedRequirementId = analysisResult.requirement.id;
           target.knowledgeId = analysisResult.knowledgeItem.id;
           target.lastChangedAt = completedTime;
+
+          // Attach Service Bulletins intelligence and multi-dimensional flags
+          target.referencedSbs = extractedSbs;
+          target.sbIntelligenceStatus = completeness.sbAnalysisStatus;
+          target.applicabilityPendingStatus = completeness.applicabilityStatus;
+          target.compliancePendingStatus = completeness.complianceStatus;
 
           // Clear any previous normative re-review flag since it was re-analyzed
           if (target.versionHistory) {

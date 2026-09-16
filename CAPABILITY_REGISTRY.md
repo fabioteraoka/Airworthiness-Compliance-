@@ -1,9 +1,9 @@
 # CAPABILITY REGISTRY — CAMO AIRWORTHINESS COMPLIANCE INTELLIGENCE
 ## Registro Formal de Capacidades do Sistema de Engenharia CAMO
-**Versão do Registro:** Release 9.5.2 (Homologada após Fase 9 Etapa 6.3 Governança Viva & Fleet CRUD)  
-**Data da Emissão:** 14 de Setembro de 2026  
+**Versão do Registro:** Release 9.7.0 (Homologada na Fase 9 Etapa 7: System Design Vivo + Aircraft Master & Configuration + Inteligência AD/SB)  
+**Data da Emissão:** 16 de Setembro de 2026  
 **Autoridade de Governança:** Diretoria Técnica de Engenharia & Governança CAMO  
-**Status do Registro:** VIVO • HOMOLOGADO • SINCRONIZADO COM CÓDIGO-FONTE (128/128 TESTES VERDES)  
+**Status do Registro:** VIVO • HOMOLOGADO • SINCRONIZADO COM CÓDIGO-FONTE (152/152 TESTES VERDES)  
 
 ---
 

@@ -26,7 +26,9 @@ import {
   RegulatoryAdCandidate,
   RegulatoryKnowledgeItem,
   AircraftConfigurationAssessment,
-  CamoRegulatoryRecord
+  CamoRegulatoryRecord,
+  AircraftConfigurationHistoryRecord,
+  ConfigurationEventType
 } from '../src/types';
 
 export interface DatabaseState {
@@ -38,6 +40,7 @@ export interface DatabaseState {
   installations: ComponentInstallation[];
   installedSoftware: InstalledSoftwareRecord[];
   actionAccomplishments: MaintenanceActionAccomplishment[];
+  configurationHistory?: AircraftConfigurationHistoryRecord[];
   requirements: ComplianceRequirement[];
   assessments: ComplianceAssessment[];
   obligations: ComplianceObligation[];
@@ -798,6 +801,61 @@ Compliance: Within 36 months or 4,500 flight cycles, perform repetitive ultrason
     }
   ];
 
+  const sampleConfigurationHistory: AircraftConfigurationHistoryRecord[] = [
+    {
+      id: 'cfg-hist-01',
+      aircraftId: 'ac-01',
+      aircraftRegistration: 'PR-GUO',
+      timestamp: '2014-06-18T10:00:00.000Z',
+      actor: 'Boeing Manufacturing & Delivery QA',
+      reason: 'Factory Delivery & Initial Aircraft As-Delivered Baseline Definition',
+      eventType: 'INITIAL_BASE',
+      flightHoursAtEvent: 0,
+      flightCyclesAtEvent: 0,
+      workOrderReference: 'BOEING-DELIVERY-PR-GUO-38124',
+      taskCardReference: 'TC-DELIV-001',
+      newValue: 'Line 3452, Variable YC123, CFM56-7B26 Engines, B737-800 NG Standard',
+      notes: 'Initial aircraft baseline configuration registered upon delivery.',
+      auditHash: crypto.createHash('sha256').update('PR-GUO-INITIAL-BASE-20140618').digest('hex')
+    },
+    {
+      id: 'cfg-hist-02',
+      aircraftId: 'ac-01',
+      aircraftRegistration: 'PR-GUO',
+      timestamp: '2023-11-10T14:30:00.000Z',
+      actor: 'Eng. Fábio Teraoka',
+      reason: 'Incorporação de modificação de atuador RAT e verificação de barramento',
+      eventType: 'MODIFICATION',
+      componentPartNumber: '762300-2',
+      componentSerialNumber: 'SN-RAT-8812',
+      position: 'Fuselage Bay Lower Section',
+      flightHoursAtEvent: 24500,
+      flightCyclesAtEvent: 12100,
+      workOrderReference: 'WO-2023-8871',
+      taskCardReference: 'TC-29-014',
+      previousValue: 'P/N 762300-1 (Original Standard)',
+      newValue: 'P/N 762300-2 (Terminating Mod Standard)',
+      notes: 'Substituição física realizada com Form 8130-3 arquivado no cofre.',
+      auditHash: crypto.createHash('sha256').update('PR-GUO-MOD-RAT-20231110').digest('hex')
+    },
+    {
+      id: 'cfg-hist-03',
+      aircraftId: 'ac-02',
+      aircraftRegistration: 'PR-VBC',
+      timestamp: '2017-03-22T09:00:00.000Z',
+      actor: 'Boeing Delivery Center',
+      reason: 'Factory Delivery Baseline Definition',
+      eventType: 'INITIAL_BASE',
+      flightHoursAtEvent: 0,
+      flightCyclesAtEvent: 0,
+      workOrderReference: 'BOEING-DELIVERY-PR-VBC-41200',
+      taskCardReference: 'TC-DELIV-002',
+      newValue: 'Line 4102, Variable YC456, CFM56-7B26 Engines, B737-800 NG Standard',
+      notes: 'Initial aircraft baseline configuration registered upon delivery.',
+      auditHash: crypto.createHash('sha256').update('PR-VBC-INITIAL-BASE-20170322').digest('hex')
+    }
+  ];
+
   return {
     operator,
     currentUser,
@@ -807,6 +865,7 @@ Compliance: Within 36 months or 4,500 flight cycles, perform repetitive ultrason
     installations,
     installedSoftware: [],
     actionAccomplishments: [],
+    configurationHistory: sampleConfigurationHistory,
     requirements: [sampleAd1, sampleAd2],
     assessments: sampleAssessments,
     obligations: [],
@@ -1324,6 +1383,9 @@ Required Actions:
     if (!this.state.camoRegulatoryRegister || this.state.camoRegulatoryRegister.length === 0) {
       this.state.camoRegulatoryRegister = getInitialRegulatoryRegister();
     }
+    if (!this.state.configurationHistory || this.state.configurationHistory.length === 0) {
+      this.state.configurationHistory = getInitialSeedData().configurationHistory || [];
+    }
     return this.state;
   }
 
@@ -1331,6 +1393,101 @@ Required Actions:
     this.state = getInitialSeedData();
     this.saveToDisk();
     return this.state;
+  }
+
+  // Record an immutable Aircraft Configuration Change in the Historical Ledger
+  public recordConfigurationChange(params: {
+    aircraftId: string;
+    registration?: string;
+    actor?: string;
+    authorizedBy?: string;
+    reason: string;
+    eventType: ConfigurationEventType;
+    componentType?: string;
+    componentPartNumber?: string;
+    componentSerialNumber?: string;
+    partNumberBefore?: string;
+    partNumberAfter?: string;
+    serialNumberBefore?: string;
+    serialNumberAfter?: string;
+    position?: string;
+    flightHoursAtEvent?: number;
+    flightCyclesAtEvent?: number;
+    workOrderReference?: string;
+    taskCardReference?: string;
+    complianceObligationId?: string;
+    previousValue?: string;
+    newValue?: string;
+    notes?: string;
+  }): AircraftConfigurationHistoryRecord {
+    const ac = this.state.aircraft.find(a => a.id === params.aircraftId || a.registration === params.registration);
+    const reg = params.registration || (ac ? ac.registration : 'UNKNOWN');
+    const now = new Date().toISOString();
+    const effectiveActor = params.authorizedBy || params.actor || this.state.currentUser.name || 'CAMO Engineering';
+    const fh = params.flightHoursAtEvent !== undefined ? params.flightHoursAtEvent : (ac?.totalFlightHours || 0);
+    const fc = params.flightCyclesAtEvent !== undefined ? params.flightCyclesAtEvent : (ac?.totalCycles || 0);
+
+    const contentToHash = [
+      params.aircraftId,
+      reg,
+      now,
+      params.eventType,
+      params.reason,
+      params.componentPartNumber || params.partNumberAfter || '',
+      params.componentSerialNumber || params.serialNumberAfter || '',
+      params.position || '',
+      String(fh),
+      String(fc),
+      params.workOrderReference || '',
+      params.previousValue || params.partNumberBefore || '',
+      params.newValue || params.partNumberAfter || ''
+    ].join('||');
+
+    const auditHash = crypto.createHash('sha256').update(contentToHash).digest('hex');
+
+    const record: AircraftConfigurationHistoryRecord = {
+      id: `cfg-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+      aircraftId: params.aircraftId,
+      aircraftRegistration: reg,
+      timestamp: now,
+      actor: effectiveActor,
+      authorizedBy: params.authorizedBy || effectiveActor,
+      reason: params.reason,
+      eventType: params.eventType,
+      componentType: params.componentType,
+      componentPartNumber: params.componentPartNumber || params.partNumberAfter,
+      componentSerialNumber: params.componentSerialNumber || params.serialNumberAfter,
+      partNumberBefore: params.partNumberBefore,
+      partNumberAfter: params.partNumberAfter,
+      serialNumberBefore: params.serialNumberBefore,
+      serialNumberAfter: params.serialNumberAfter,
+      position: params.position,
+      flightHoursAtEvent: fh,
+      flightCyclesAtEvent: fc,
+      workOrderReference: params.workOrderReference,
+      taskCardReference: params.taskCardReference,
+      complianceObligationId: params.complianceObligationId,
+      previousValue: params.previousValue,
+      newValue: params.newValue,
+      notes: params.notes,
+      auditHash,
+      recordHash: auditHash
+    };
+
+    if (!this.state.configurationHistory) {
+      this.state.configurationHistory = [];
+    }
+    this.state.configurationHistory.unshift(record);
+    this.logAudit({
+      user: effectiveActor,
+      role: this.state.currentUser.role,
+      action: 'CONFIGURATION_CHANGE_RECORDED',
+      entityType: 'AircraftConfigurationHistoryRecord',
+      entityId: record.id,
+      details: `Registrada alteração de configuração na aeronave ${reg}: evento ${params.eventType} (${params.reason}). Hash de integridade: ${auditHash.substring(0, 16)}...`
+    });
+    this.saveToDisk();
+    return record;
   }
 
   // Generic updater

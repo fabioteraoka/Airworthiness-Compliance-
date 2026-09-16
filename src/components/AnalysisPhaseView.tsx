@@ -307,6 +307,15 @@ export default function AnalysisPhaseView({
 
         <div className="flex items-center gap-3">
           <button
+            onClick={() => handleSanitizeRegister()}
+            disabled={isSanitizing || isLoadingRecords}
+            className="flex items-center gap-1.5 px-3 py-2 bg-emerald-950/40 hover:bg-emerald-900/60 text-emerald-300 rounded-lg text-xs font-medium border border-emerald-500/40 transition disabled:opacity-50"
+            title="Executar auditoria e saneamento determinístico de completude em todo o CAMO Register"
+          >
+            <ShieldCheck className={`w-3.5 h-3.5 ${isSanitizing ? 'animate-spin' : ''}`} />
+            <span>{isSanitizing ? 'Auditando Integridade...' : 'Auditar Integridade'}</span>
+          </button>
+          <button
             onClick={() => fetchRecords()}
             disabled={isLoadingRecords}
             className="flex items-center gap-1.5 px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-medium border border-slate-700 transition"
@@ -507,8 +516,10 @@ export default function AnalysisPhaseView({
             >
               <option value="ALL">Todos os Status</option>
               <option value="PENDING_ANALYSIS">Pendente ({metrics.pendingCount})</option>
-              <option value="ANALYZED">Analisada ({metrics.analyzedCount})</option>
+              <option value="ANALYSIS_IN_PROGRESS">Em Andamento ({metrics.inProgressCount})</option>
+              <option value="ANALYSIS_FAILED">Falha na Análise ({metrics.failedCount})</option>
               <option value="REVIEW_REQUIRED">Revisão Requerida ({metrics.reviewRequiredCount})</option>
+              <option value="ANALYZED">Analisada ({metrics.analyzedCount})</option>
             </select>
           </div>
 
@@ -720,6 +731,15 @@ export default function AnalysisPhaseView({
                             <Eye className="w-3.5 h-3.5" />
                           </button>
 
+                          {/* Deterministic Audit Modal Trigger */}
+                          <button
+                            onClick={() => setCompletenessModalRecord({ id: record.id, adNumber: record.adNumber })}
+                            className="p-1.5 rounded-lg bg-blue-950/60 hover:bg-blue-900/80 text-blue-300 border border-blue-500/30 hover:text-white transition"
+                            title="Auditar completude determinística das 8 etapas obrigatórias"
+                          >
+                            <ShieldCheck className="w-3.5 h-3.5" />
+                          </button>
+
                           {/* Primary Action Button */}
                           {isPending && (
                             <button
@@ -738,6 +758,25 @@ export default function AnalysisPhaseView({
                                   <span>ANALISAR</span>
                                 </>
                               )}
+                            </button>
+                          )}
+
+                          {record.analysisStatus === 'ANALYSIS_IN_PROGRESS' && (
+                            <span className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-500/15 text-blue-300 border border-blue-500/30 font-medium rounded-lg text-xs">
+                              <RotateCw className="w-3.5 h-3.5 animate-spin text-blue-400" />
+                              <span>Em Análise</span>
+                            </span>
+                          )}
+
+                          {record.analysisStatus === 'ANALYSIS_FAILED' && (
+                            <button
+                              onClick={() => handleAnalyzeRecord(record)}
+                              disabled={isAnalyzing}
+                              className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-600 hover:bg-rose-500 text-white font-semibold rounded-lg text-xs transition shadow-sm disabled:opacity-50"
+                              title="Tentar novamente análise técnica completa"
+                            >
+                              <RotateCw className={`w-3.5 h-3.5 ${isAnalyzing ? 'animate-spin' : ''}`} />
+                              <span>RETRY</span>
                             </button>
                           )}
 
@@ -891,6 +930,17 @@ export default function AnalysisPhaseView({
 
             <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-800">
               <button
+                onClick={() => {
+                  const rec = selectedRecordForDetail;
+                  setSelectedRecordForDetail(null);
+                  setCompletenessModalRecord({ id: rec.id, adNumber: rec.adNumber });
+                }}
+                className="px-3.5 py-2 bg-blue-950/60 hover:bg-blue-900/80 text-blue-300 border border-blue-500/30 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition"
+              >
+                <ShieldCheck className="w-3.5 h-3.5" />
+                Auditar 8 Etapas
+              </button>
+              <button
                 onClick={() => setSelectedRecordForDetail(null)}
                 className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-medium"
               >
@@ -912,6 +962,19 @@ export default function AnalysisPhaseView({
             </div>
           </div>
         </div>
+      )}
+
+      {/* Analysis Completeness & Integrity Audit Modal */}
+      {completenessModalRecord && (
+        <AnalysisCompletenessModal
+          recordId={completenessModalRecord.id}
+          adNumber={completenessModalRecord.adNumber}
+          isOpen={true}
+          onClose={() => setCompletenessModalRecord(null)}
+          onStatusUpdated={() => {
+            fetchRecords();
+          }}
+        />
       )}
     </div>
   );

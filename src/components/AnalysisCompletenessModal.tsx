@@ -25,6 +25,7 @@ interface AnalysisCompletenessModalProps {
   isOpen: boolean;
   onClose: () => void;
   onRefresh?: () => void;
+  onStatusUpdated?: () => void;
 }
 
 export default function AnalysisCompletenessModal({
@@ -32,7 +33,8 @@ export default function AnalysisCompletenessModal({
   adNumber,
   isOpen,
   onClose,
-  onRefresh
+  onRefresh,
+  onStatusUpdated
 }: AnalysisCompletenessModalProps) {
   const [loading, setLoading] = useState<boolean>(false);
   const [retrying, setRetrying] = useState<boolean>(false);
@@ -81,6 +83,7 @@ export default function AnalysisCompletenessModal({
       if (res.ok) {
         await fetchCompleteness();
         if (onRefresh) onRefresh();
+        if (onStatusUpdated) onStatusUpdated();
       } else {
         setError(data.error || 'Falha ao reanalisar registro');
       }

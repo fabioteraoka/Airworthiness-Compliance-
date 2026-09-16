@@ -7,7 +7,7 @@
 [![Compliance](https://img.shields.io/badge/Compliance-FAA%20|%20EASA%20|%20ANAC-blue.svg?style=for-the-badge)](https://www.easa.europa.eu/)
 [![Audit Trail](https://img.shields.io/badge/Security-SHA--256%20Cryptographic%20Audit-emerald.svg?style=for-the-badge)](./DOSSIE_ARQUITETURA_SISTEMA_CAMO.md)
 [![AI Engine](https://img.shields.io/badge/AI%20Intelligence-Gemini%203.7%20Flash%20Document-indigo.svg?style=for-the-badge)](https://ai.google.dev/)
-[![Vitest](https://img.shields.io/badge/Automated%20Tests-128%2F128%20Passed%20(100%25)-success.svg?style=for-the-badge)](./test/)
+[![Vitest](https://img.shields.io/badge/Automated%20Tests-148%2F148%20Passed%20(100%25)-success.svg?style=for-the-badge)](./test/)
 [![Living Governance](https://img.shields.io/badge/Living%20Governance-Release%209.5.2%20Audited-purple.svg?style=for-the-badge)](./PRODUCT_VISION_ROADMAP.md)
 
 ---
@@ -100,7 +100,7 @@ A arquitetura do CAMO Engine é desacoplada, orientada a eventos e estritamente 
 ## 5. ESTADO ATUAL (RELEASE 9.5.2)
 
 * **Versão Canônica:** `Release 9.5.2` (Active Living Architecture)
-* **Suíte de Testes Automatizados:** 13 arquivos de teste no Vitest, **134 testes unitários, de integração e de máquinas de estado — 100% PASSING**.
+* **Suíte de Testes Automatizados:** 14 arquivos de teste no Vitest, **148 testes unitários, de integração e de máquinas de estado — 100% PASSING**.
 * **Frontend:** 27 Visões de cockpit executivo e engenharia em React 18, Tailwind CSS e Lucide Icons.
 * **Backend:** Servidor Express com **73+ endpoints REST especializados** e 14 submódulos de domínio.
 * **Integridade TypeScript & Linter:** 0 erros no compilador (`tsc --noEmit`), compilação de produção aprovada via Vite + esbuild.
@@ -133,7 +133,7 @@ O roadmap priorizado define o sequenciamento técnico por dependência arquitetu
 
 ## 8. PRÓXIMOS PASSOS IMEDIATOS
 
-1. Conectar a esteira de CI/CD para validação automática dos 134 testes a cada push.
+1. Conectar a esteira de CI/CD para validação automática dos 148 testes a cada push.
 2. Expandir a suite de conectores oficiais com o protótipo do conector EASA Safety Publications Tool (SPT).
 3. Implementar a interface de estruturação de tarefas recorrentes do Programa de Manutenção da Aeronave (AMP).
 

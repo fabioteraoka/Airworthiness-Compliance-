@@ -768,6 +768,33 @@ export default function AircraftDeliveryView({ state, onRefreshState, onSelectAd
                               Sem regra CAMO
                             </span>
                           </div>
+                        ) : item.registerAnalysisStatus === 'ANALYSIS_FAILED' ? (
+                          <div>
+                            <span className="inline-block px-2 py-0.5 rounded text-[10px] font-medium bg-rose-500/15 text-rose-300 border border-rose-500/30">
+                              ANÁLISE COM FALHA
+                            </span>
+                            <span className="block text-[10px] text-rose-400/80 mt-0.5">
+                              Requer reprocessamento
+                            </span>
+                          </div>
+                        ) : item.registerAnalysisStatus === 'REVIEW_REQUIRED' ? (
+                          <div>
+                            <span className="inline-block px-2 py-0.5 rounded text-[10px] font-medium bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                              REVISÃO TÉCNICA
+                            </span>
+                            <span className="block text-[10px] text-slate-400 mt-0.5">
+                              Triagem sênior requerida
+                            </span>
+                          </div>
+                        ) : item.registerAnalysisStatus === 'ANALYSIS_IN_PROGRESS' ? (
+                          <div>
+                            <span className="inline-block px-2 py-0.5 rounded text-[10px] font-medium bg-blue-500/15 text-blue-300 border border-blue-500/30">
+                              EM ANÁLISE
+                            </span>
+                            <span className="block text-[10px] text-slate-400 mt-0.5">
+                              Processando etapas
+                            </span>
+                          </div>
                         ) : item.regulatoryComplianceStatus ? (
                           <div>
                             <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-semibold ${

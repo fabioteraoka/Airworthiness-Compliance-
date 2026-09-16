@@ -2418,6 +2418,7 @@ export class RegulatoryIntelligenceEngine {
             sourceType: cand.source,
             sourceIdentifier: cand.docketNumber || cand.adNumber,
             originalPayload: cand,
+            rawApplicabilityText: cand.rawApplicabilityText || '',
             sha256: candSha,
             firstSeenAt: now,
             lastSeenAt: now,
@@ -2489,13 +2490,14 @@ export class RegulatoryIntelligenceEngine {
       state?: any;
       aircraftList?: Aircraft[];
       actor?: string;
+      requirement?: ComplianceRequirement;
     }
   ): AnalysisCompletenessResult {
     const state = context?.state || camoDb.getState();
     const now = new Date().toISOString();
 
     let record: CamoRegulatoryRecord | undefined;
-    let requirement: ComplianceRequirement | undefined;
+    let requirement: ComplianceRequirement | undefined = context?.requirement;
     let knowledgeItem: RegulatoryKnowledgeItem | undefined;
 
     // 1. Resolve Target Record and Target Requirement
@@ -2509,17 +2511,21 @@ export class RegulatoryIntelligenceEngine {
         (r.adNumber.replace(/[^a-zA-Z0-9]/g, '').toLowerCase() === q.replace(/[^a-zA-Z0-9]/g, ''))
       );
 
-      // Search in requirements
-      requirement = (state.requirements || []).find((req: ComplianceRequirement) => 
-        req.id.toLowerCase() === q ||
-        req.sourceNumber.toLowerCase() === q ||
-        (req.sourceNumber.replace(/[^a-zA-Z0-9]/g, '').toLowerCase() === q.replace(/[^a-zA-Z0-9]/g, ''))
-      );
+      // Search in requirements if not provided in context
+      if (!requirement) {
+        requirement = (state.requirements || []).find((req: ComplianceRequirement) => 
+          req.id.toLowerCase() === q ||
+          req.sourceNumber.toLowerCase() === q ||
+          (req.sourceNumber.replace(/[^a-zA-Z0-9]/g, '').toLowerCase() === q.replace(/[^a-zA-Z0-9]/g, ''))
+        );
+      }
 
       if (record && !requirement) {
         const reqId = record.analyzedRequirementId || record.analysisId;
         if (reqId) {
           requirement = (state.requirements || []).find((r: ComplianceRequirement) => r.id === reqId || r.sourceNumber.toLowerCase() === record!.adNumber.toLowerCase());
+        } else {
+          requirement = (state.requirements || []).find((r: ComplianceRequirement) => r.sourceNumber.toLowerCase() === record!.adNumber.toLowerCase());
         }
       }
       if (requirement && !record) {
@@ -2540,11 +2546,13 @@ export class RegulatoryIntelligenceEngine {
     } else {
       // It's a CamoRegulatoryRecord
       record = targetInput as CamoRegulatoryRecord;
-      const reqId = record.analyzedRequirementId || record.analysisId;
-      if (reqId) {
-        requirement = (state.requirements || []).find((r: ComplianceRequirement) => r.id === reqId || r.sourceNumber.toLowerCase() === record!.adNumber.toLowerCase());
-      } else {
-        requirement = (state.requirements || []).find((r: ComplianceRequirement) => r.sourceNumber.toLowerCase() === record!.adNumber.toLowerCase());
+      if (!requirement) {
+        const reqId = record.analyzedRequirementId || record.analysisId;
+        if (reqId) {
+          requirement = (state.requirements || []).find((r: ComplianceRequirement) => r.id === reqId || r.sourceNumber.toLowerCase() === record!.adNumber.toLowerCase());
+        } else {
+          requirement = (state.requirements || []).find((r: ComplianceRequirement) => r.sourceNumber.toLowerCase() === record!.adNumber.toLowerCase());
+        }
       }
     }
 
@@ -2564,6 +2572,13 @@ export class RegulatoryIntelligenceEngine {
     );
 
     const steps: AnalysisStepEvaluation[] = [];
+    const isPendingIntake = Boolean(
+      record &&
+      record.analysisStatus === 'PENDING_ANALYSIS' &&
+      !record.analysisStartedAt &&
+      !record.analyzedRequirementId &&
+      !requirement
+    );
 
     // STEP 1: IDENTIFICATION & METADATA
     const hasValidAdNumber = Boolean(adNumber && adNumber.trim().length > 0 && adNumber !== 'UNKNOWN');
@@ -2616,14 +2631,24 @@ export class RegulatoryIntelligenceEngine {
 
     // STEP 3: EXTRACTION & ENTITY INTELLIGENCE
     if (!requirement) {
-      steps.push({
-        stepKey: 'EXTRACTION_INTELLIGENCE',
-        stepName: 'Inteligência Documental e Extração de Entidades',
-        isMandatory: true,
-        status: 'FAILED',
-        message: 'Requisito de cumprimento (ComplianceRequirement) não foi gerado ou está ausente no banco.',
-        error: 'ComplianceRequirement ausente no repositório de requisitos.'
-      });
+      if (isPendingIntake) {
+        steps.push({
+          stepKey: 'EXTRACTION_INTELLIGENCE',
+          stepName: 'Inteligência Documental e Extração de Entidades',
+          isMandatory: true,
+          status: 'PENDING',
+          message: 'Análise técnica ainda não iniciada. Extração de parâmetros pendente na fila.'
+        });
+      } else {
+        steps.push({
+          stepKey: 'EXTRACTION_INTELLIGENCE',
+          stepName: 'Inteligência Documental e Extração de Entidades',
+          isMandatory: true,
+          status: 'FAILED',
+          message: 'Requisito de cumprimento (ComplianceRequirement) não foi gerado ou está ausente no banco.',
+          error: 'ComplianceRequirement ausente no repositório de requisitos.'
+        });
+      }
     } else {
       const docStatus = (requirement as any).documentProcessingStatus;
       const extStatus = (requirement as any).extractionStatus;
@@ -2660,14 +2685,24 @@ export class RegulatoryIntelligenceEngine {
 
     // STEP 4: APPLICABILITY STRUCTURING
     if (!requirement || !requirement.applicabilityRule) {
-      steps.push({
-        stepKey: 'APPLICABILITY_STRUCTURING',
-        stepName: 'Regras de Aplicabilidade e Configuração',
-        isMandatory: true,
-        status: 'FAILED',
-        message: 'Regra de aplicabilidade estruturada inexistente.',
-        error: 'Requisito não possui objeto applicabilityRule estruturado.'
-      });
+      if (isPendingIntake) {
+        steps.push({
+          stepKey: 'APPLICABILITY_STRUCTURING',
+          stepName: 'Regras de Aplicabilidade e Configuração',
+          isMandatory: true,
+          status: 'PENDING',
+          message: 'Estruturação de aplicabilidade pendente de execução da análise técnica.'
+        });
+      } else {
+        steps.push({
+          stepKey: 'APPLICABILITY_STRUCTURING',
+          stepName: 'Regras de Aplicabilidade e Configuração',
+          isMandatory: true,
+          status: 'FAILED',
+          message: 'Regra de aplicabilidade estruturada inexistente.',
+          error: 'Requisito não possui objeto applicabilityRule estruturado.'
+        });
+      }
     } else {
       const rule = requirement.applicabilityRule;
       const hasModels = (rule.aircraftModels || []).length > 0;
@@ -2698,14 +2733,24 @@ export class RegulatoryIntelligenceEngine {
 
     // STEP 5: MANDATED ACTIONS & COMPLIANCE THRESHOLDS
     if (!requirement) {
-      steps.push({
-        stepKey: 'MANDATED_ACTIONS',
-        stepName: 'Ações Mandatórias e Limiares de Cumprimento',
-        isMandatory: true,
-        status: 'FAILED',
-        message: 'Requisito ausente.',
-        error: 'ComplianceRequirement ausente para validação de ações mandatórias.'
-      });
+      if (isPendingIntake) {
+        steps.push({
+          stepKey: 'MANDATED_ACTIONS',
+          stepName: 'Ações Mandatórias e Limiares de Cumprimento',
+          isMandatory: true,
+          status: 'PENDING',
+          message: 'Determinação de métodos e limiares de cumprimento pendente de análise.'
+        });
+      } else {
+        steps.push({
+          stepKey: 'MANDATED_ACTIONS',
+          stepName: 'Ações Mandatórias e Limiares de Cumprimento',
+          isMandatory: true,
+          status: 'FAILED',
+          message: 'Requisito ausente.',
+          error: 'ComplianceRequirement ausente para validação de ações mandatórias.'
+        });
+      }
     } else {
       const det = requirement.requirementDetails || {} as any;
       const hasThreshold = Boolean(det.initialThreshold && det.initialThreshold.trim().length > 0);
@@ -2740,14 +2785,24 @@ export class RegulatoryIntelligenceEngine {
 
     // STEP 6: KNOWLEDGE BASE COMPILATION
     if (!knowledgeItem) {
-      steps.push({
-        stepKey: 'KNOWLEDGE_COMPILATION',
-        stepName: 'Compilação da Base de Conhecimento Regulatório',
-        isMandatory: true,
-        status: 'FAILED',
-        message: 'Item de conhecimento não compilado.',
-        error: 'Item correspondente não encontrado na Base de Conhecimento do CAMO (regulatoryKnowledgeBase).'
-      });
+      if (isPendingIntake) {
+        steps.push({
+          stepKey: 'KNOWLEDGE_COMPILATION',
+          stepName: 'Compilação da Base de Conhecimento Regulatório',
+          isMandatory: true,
+          status: 'PENDING',
+          message: 'Compilação da base de conhecimento do CAMO pendente de execução da análise técnica.'
+        });
+      } else {
+        steps.push({
+          stepKey: 'KNOWLEDGE_COMPILATION',
+          stepName: 'Compilação da Base de Conhecimento Regulatório',
+          isMandatory: true,
+          status: 'FAILED',
+          message: 'Item de conhecimento não compilado.',
+          error: 'Item correspondente não encontrado na Base de Conhecimento do CAMO (regulatoryKnowledgeBase).'
+        });
+      }
     } else {
       const hasConfig = (knowledgeItem.requiredConfigurationData || []).length >= 0;
       const hasSummary = Boolean(knowledgeItem.applicabilityRuleSummary && knowledgeItem.applicabilityRuleSummary.trim().length > 0);
@@ -2775,7 +2830,7 @@ export class RegulatoryIntelligenceEngine {
     const fleetAircraft = context?.aircraftList || state.aircraft || [];
     const matchingAircraft = fleetAircraft.filter((ac: Aircraft) => {
       const mfgMatch = !manufacturer || ac.manufacturer.toLowerCase().includes(manufacturer.toLowerCase()) || manufacturer.toLowerCase().includes(ac.manufacturer.toLowerCase());
-      const famMatch = !family || ac.family?.toLowerCase() === family.toLowerCase();
+      const famMatch = !family || (ac.series && ac.series.toLowerCase().includes(family.toLowerCase())) || ac.model.toLowerCase().includes(family.toLowerCase()) || ((ac as any).family && (ac as any).family.toLowerCase() === family.toLowerCase());
       const modelMatch = modelScope.length === 0 || matchesModel(ac.model, modelScope);
       return mfgMatch && (famMatch || modelMatch);
     });
@@ -2817,20 +2872,30 @@ export class RegulatoryIntelligenceEngine {
 
     // STEP 8: AUDIT LINKAGE & INTEGRITY
     if (record) {
-      const linkedReqId = record.analyzedRequirementId || record.analysisId;
+      const linkedReqId = record.analyzedRequirementId || record.analysisId || requirement?.id;
       const linkedReqExists = Boolean(linkedReqId && (state.requirements || []).some((r: any) => r.id === linkedReqId));
 
       const hasReReviewFlag = Boolean(record.versionHistory?.some((v: any) => v.reReviewRequired));
 
       if (!linkedReqId || !linkedReqExists) {
-        steps.push({
-          stepKey: 'AUDIT_LINKAGE',
-          stepName: 'Rastreabilidade e Vinculação Auditável',
-          isMandatory: true,
-          status: 'FAILED',
-          message: 'Inconsistência de rastreabilidade: Requisito vinculado ausente.',
-          error: `O ID de requisito vinculado ('${linkedReqId || 'NENHUM'}') não existe no repositório de requisitos.`
-        });
+        if (isPendingIntake) {
+          steps.push({
+            stepKey: 'AUDIT_LINKAGE',
+            stepName: 'Rastreabilidade e Vinculação Auditável',
+            isMandatory: true,
+            status: 'PENDING',
+            message: 'Vinculação auditável e rastreabilidade documental pendente de análise.'
+          });
+        } else {
+          steps.push({
+            stepKey: 'AUDIT_LINKAGE',
+            stepName: 'Rastreabilidade e Vinculação Auditável',
+            isMandatory: true,
+            status: 'FAILED',
+            message: 'Inconsistência de rastreabilidade: Requisito vinculado ausente.',
+            error: `O ID de requisito vinculado ('${linkedReqId || 'NENHUM'}') não existe no repositório de requisitos.`
+          });
+        }
       } else if (hasReReviewFlag && record.analysisStatus !== 'ANALYSIS_IN_PROGRESS') {
         steps.push({
           stepKey: 'AUDIT_LINKAGE',
@@ -2891,7 +2956,7 @@ export class RegulatoryIntelligenceEngine {
       canTransitionToAnalyzed = false;
       summary = `Análise técnica requer revisão de engenharia CAMO: ${reviewSteps.map(s => s.stepName).join('; ')}.`;
     } else if (incompleteSteps.length > 0) {
-      effectiveStatus = 'PENDING_ANALYSIS';
+      effectiveStatus = record?.analysisStatus === 'ANALYSIS_IN_PROGRESS' ? 'ANALYSIS_IN_PROGRESS' : 'PENDING_ANALYSIS';
       isComplete = false;
       canTransitionToAnalyzed = false;
       summary = `Etapas obrigatórias da análise técnica incompletas ou pendentes: ${incompleteSteps.map(s => s.stepName).join('; ')}.`;
@@ -3012,7 +3077,7 @@ export class RegulatoryIntelligenceEngine {
       // 4. Execute Fleet Applicability Screening for Matching Fleet Aircraft
       const matchingAircraft = (state.aircraft || []).filter(ac => {
         const mfgMatch = !record.manufacturer || ac.manufacturer.toLowerCase().includes(record.manufacturer.toLowerCase());
-        const famMatch = !record.family || ac.family?.toLowerCase() === record.family.toLowerCase();
+        const famMatch = !record.family || (ac.series && ac.series.toLowerCase().includes(record.family.toLowerCase())) || ac.model.toLowerCase().includes(record.family.toLowerCase()) || ((ac as any).family && (ac as any).family.toLowerCase() === record.family.toLowerCase());
         const modelMatch = record.modelScope.length === 0 || matchesModel(ac.model, record.modelScope);
         return mfgMatch && (famMatch || modelMatch);
       });
@@ -3021,7 +3086,8 @@ export class RegulatoryIntelligenceEngine {
       const completeness = this.isAnalysisComplete(record.id, {
         state: camoDb.getState(),
         aircraftList: matchingAircraft,
-        actor: effectiveActor
+        actor: effectiveActor,
+        requirement: analysisResult.requirement
       });
 
       const completedTime = new Date().toISOString();
@@ -3139,77 +3205,12 @@ export class RegulatoryIntelligenceEngine {
         if (record.analysisStatus === 'ANALYZED') {
           const check = this.isAnalysisComplete(record, { state: draft });
           if (!check.isComplete) {
-            // Attempt recovery if requirement is missing but candidate or record has full data
-            const reqId = record.analyzedRequirementId || record.analysisId || `req-${record.id}`;
-            let req = (draft.requirements || []).find(r => r.id === reqId || r.sourceNumber.toLowerCase() === record.adNumber.toLowerCase());
-
-            if (!req) {
-              const candidate: RegulatoryAdCandidate = {
-                id: record.id,
-                authority: record.authority,
-                adNumber: record.adNumber,
-                title: record.title,
-                effectiveDate: record.effectiveDate || '',
-                issueDate: record.issueDate,
-                manufacturer: record.manufacturer,
-                family: record.family,
-                modelScope: record.modelScope,
-                rawApplicabilityText: record.rawApplicabilityText || `Applies to ${record.manufacturer} ${record.family} aircraft.`,
-                source: (record.sourceType as any) || 'FEDERAL_REGISTER',
-                sourceUrl: record.sourceUrl || '',
-                docketNumber: record.officialDocumentNumber,
-                status: 'DISCOVERED',
-                analysisStatus: 'ANALYZED',
-                operationalPriority: record.operationalPriority || 'HIGH',
-                discoveryTimestamp: record.retrievedAt || new Date().toISOString()
-              };
-              req = this.synthesizeRequirementFromCandidate(candidate, reqId);
-              if (!draft.requirements) draft.requirements = [];
-              draft.requirements.unshift(req);
-              record.analyzedRequirementId = req.id;
-              record.analysisId = req.id;
-
-              // Ensure KB item
-              const kbId = record.knowledgeId || `kb-${record.authority.toLowerCase()}-${record.adNumber.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase()}`;
-              if (!draft.regulatoryKnowledgeBase) draft.regulatoryKnowledgeBase = [];
-              if (!draft.regulatoryKnowledgeBase.some(k => k.id === kbId || k.adNumber === record.adNumber)) {
-                draft.regulatoryKnowledgeBase.unshift({
-                  id: kbId,
-                  requirementId: req.id,
-                  adNumber: record.adNumber,
-                  authority: record.authority,
-                  title: record.title,
-                  effectiveDate: record.effectiveDate || '',
-                  manufacturer: record.manufacturer,
-                  family: record.family,
-                  modelScope: record.modelScope,
-                  requiredConfigurationData: this.extractRequiredConfigurationParameters(req),
-                  complianceThresholdSummary: req.requirementDetails?.initialThreshold || 'Initial inspection mandate',
-                  isRepetitive: Boolean(req.requirementDetails?.repetitiveInterval),
-                  hasTerminatingAction: Boolean(req.requirementDetails?.terminatingAction),
-                  applicabilityRuleSummary: record.rawApplicabilityText || record.title,
-                  analyzedAt: new Date().toISOString(),
-                  documentSha256: record.sha256 || crypto.createHash('sha256').update(record.adNumber).digest('hex'),
-                  provenance: { source: record.sourceType as any, documentNumber: record.id }
-                });
-              }
-              record.knowledgeId = kbId;
-              recoveredCount++;
-              details.push(`Auto-recuperado requisito e item de conhecimento para AD ${record.adNumber}`);
-            }
-
-            // Re-evaluate completeness after recovery attempt
-            const recheck = this.isAnalysisComplete(record, { state: draft });
-            if (!recheck.isComplete) {
-              const prevStatus = record.analysisStatus;
-              record.analysisStatus = recheck.effectiveStatus;
-              record.analysisCompleteness = recheck;
-              record.analysisError = recheck.summary;
-              correctedCount++;
-              details.push(`Inconsistência corrigida para AD ${record.adNumber}: status alterado de ${prevStatus} para ${recheck.effectiveStatus}. Motivo: ${recheck.summary}`);
-            } else {
-              record.analysisCompleteness = recheck;
-            }
+            const prevStatus = record.analysisStatus;
+            record.analysisStatus = check.effectiveStatus;
+            record.analysisCompleteness = check;
+            record.analysisError = check.summary;
+            correctedCount++;
+            details.push(`Inconsistência corrigida para AD ${record.adNumber}: status alterado de ${prevStatus} para ${check.effectiveStatus}. Motivo: ${check.summary}`);
           } else {
             record.analysisCompleteness = check;
           }

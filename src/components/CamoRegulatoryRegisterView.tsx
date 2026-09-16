@@ -4,6 +4,7 @@ import {
   CamoRegulatoryRecord, 
   IssuingAuthority 
 } from '../types';
+import AnalysisCompletenessModal from './AnalysisCompletenessModal';
 import { 
   Layers, 
   Search, 
@@ -55,6 +56,7 @@ export default function CamoRegulatoryRegisterView({
   // Pagination
   const [pageSize, setPageSize] = useState<number>(25);
   const [currentPage, setCurrentPage] = useState<number>(1);
+  const [completenessModalRecord, setCompletenessModalRecord] = useState<{ id: string; adNumber: string } | null>(null);
 
   // Fetch register records
   const fetchRecords = async () => {
@@ -341,8 +343,10 @@ export default function CamoRegulatoryRegisterView({
             >
               <option value="ALL">Todos os Status CAMO</option>
               <option value="PENDING_ANALYSIS">Pendente ({registerMetrics.pendingCount})</option>
-              <option value="ANALYZED">Analisada ({registerMetrics.analyzedCount})</option>
+              <option value="ANALYSIS_IN_PROGRESS">Em Andamento</option>
+              <option value="ANALYSIS_FAILED">Falha na Análise</option>
               <option value="REVIEW_REQUIRED">Revisão Requerida</option>
+              <option value="ANALYZED">Analisada ({registerMetrics.analyzedCount})</option>
             </select>
 
             {/* Official Status */}
@@ -491,6 +495,21 @@ export default function CamoRegulatoryRegisterView({
                           <Clock className="w-3 h-3" />
                           PENDENTE
                         </span>
+                      ) : record.analysisStatus === 'ANALYSIS_IN_PROGRESS' ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-500/10 text-blue-300 border border-blue-500/30">
+                          <RotateCw className="w-3 h-3 animate-spin" />
+                          EM ANDAMENTO
+                        </span>
+                      ) : record.analysisStatus === 'ANALYSIS_FAILED' ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-rose-500/10 text-rose-300 border border-rose-500/30">
+                          <AlertTriangle className="w-3 h-3" />
+                          FALHA
+                        </span>
+                      ) : record.analysisStatus === 'REVIEW_REQUIRED' ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-500/15 text-amber-300 border border-amber-500/30">
+                          <AlertTriangle className="w-3 h-3" />
+                          REVISÃO
+                        </span>
                       ) : (
                         <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-slate-800 text-slate-400">
                           {record.analysisStatus}
@@ -500,13 +519,22 @@ export default function CamoRegulatoryRegisterView({
 
                     {/* Action */}
                     <td className="py-3 px-4 text-right whitespace-nowrap">
-                      <button
-                        onClick={() => setSelectedRecordForDetail(record)}
-                        className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition text-xs font-medium border border-slate-700 flex items-center gap-1 ml-auto"
-                      >
-                        <Eye className="w-3.5 h-3.5" />
-                        <span>Ver Ficha</span>
-                      </button>
+                      <div className="flex items-center justify-end gap-1.5">
+                        <button
+                          onClick={() => setCompletenessModalRecord({ id: record.id, adNumber: record.adNumber })}
+                          className="p-1.5 rounded-lg bg-blue-950/60 hover:bg-blue-900/80 text-blue-300 border border-blue-500/30 hover:text-white transition"
+                          title="Auditar completude determinística das 8 etapas"
+                        >
+                          <ShieldCheck className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => setSelectedRecordForDetail(record)}
+                          className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition text-xs font-medium border border-slate-700 flex items-center gap-1"
+                        >
+                          <Eye className="w-3.5 h-3.5" />
+                          <span>Ficha</span>
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -623,7 +651,19 @@ export default function CamoRegulatoryRegisterView({
             </div>
 
             <div className="flex items-center justify-between pt-3 border-t border-slate-800">
-              <div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    const rec = selectedRecordForDetail;
+                    setSelectedRecordForDetail(null);
+                    setCompletenessModalRecord({ id: rec.id, adNumber: rec.adNumber });
+                  }}
+                  className="px-3.5 py-1.5 bg-blue-950/60 hover:bg-blue-900/80 text-blue-300 border border-blue-500/30 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition"
+                >
+                  <ShieldCheck className="w-3.5 h-3.5" />
+                  <span>Auditar 8 Etapas</span>
+                </button>
+
                 {selectedRecordForDetail.analysisStatus === 'PENDING_ANALYSIS' && onSelectView && (
                   <button
                     onClick={() => {
@@ -647,6 +687,19 @@ export default function CamoRegulatoryRegisterView({
             </div>
           </div>
         </div>
+      )}
+
+      {/* Analysis Completeness & Integrity Audit Modal */}
+      {completenessModalRecord && (
+        <AnalysisCompletenessModal
+          recordId={completenessModalRecord.id}
+          adNumber={completenessModalRecord.adNumber}
+          isOpen={true}
+          onClose={() => setCompletenessModalRecord(null)}
+          onStatusUpdated={() => {
+            fetchRecords();
+          }}
+        />
       )}
     </div>
   );

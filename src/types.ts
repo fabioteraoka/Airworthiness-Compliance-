@@ -2634,7 +2634,7 @@ export interface RegulatoryAdCandidate {
   docketNumber?: string;
   source: RegulatorySourceType;
   status: 'DISCOVERED' | 'SCREENED' | 'ARCHIVED';
-  analysisStatus: 'PENDING_ANALYSIS' | 'ANALYZED' | 'FAILED';
+  analysisStatus: RegulatoryRegisterAnalysisStatus | 'FAILED';
   analyzedRequirementId?: string;
   discoveryTimestamp: string;
   retrievedAt?: string;

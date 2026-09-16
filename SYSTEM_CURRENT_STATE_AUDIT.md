@@ -3,7 +3,7 @@
 **Data da Auditoria:** 14 de Setembro de 2026  
 **Versão do Sistema Auditado:** Release 9.5.2 (Fleet Management CRUD, Inactivation & Decommissioning Engine)  
 **Auditor:** Agente Autônomo de Governança e Arquitetura CAMO  
-**Status da Auditoria:** AUDITADO • OPERACIONAL • 100% GREEN NOS TESTES REGULAMENTARES (134 TESTES PASSANDO)
+**Status da Auditoria:** AUDITADO • OPERACIONAL • 100% GREEN NOS TESTES REGULAMENTARES (148 TESTES PASSANDO)
 
 ---
 
@@ -15,7 +15,7 @@ Esta auditoria representa uma **fotografia confiável, exaustiva e factual** da 
 * **Frontend:** 27 componentes principais em React 18 + Tailwind CSS + Lucide Icons.
 * **Backend:** Servidor Express com mais de 73 endpoints REST especializados.
 * **Motores de Domínio:** 14 módulos especializados em `server/camoEngine/` e `server/regulatoryConnectors/`.
-* **Suíte de Testes Automatizados:** 13 arquivos de teste no Vitest, **134 testes unitários, de integração e de máquina de estados — 100% PASSING**.
+* **Suíte de Testes Automatizados:** 14 arquivos de teste no Vitest, **148 testes unitários, de integração e de máquina de estados — 100% PASSING**.
 * **Integridade TypeScript / Linter:** 0 erros (`tsc --noEmit` limpo).
 * **Compilação de Produção:** 100% aprovada via Vite + esbuild (`compile_applet` verde).
 
@@ -231,10 +231,10 @@ Esta auditoria representa uma **fotografia confiável, exaustiva e factual** da 
 * **Resultado:** **Sucesso absoluto**. Bundling do Vite e do servidor CJS via esbuild concluído sem advertências.
 
 ### 4.3. Suíte de Testes Automatizados (Vitest)
-* **Arquivos de Teste Executados:** 12
-* **Total de Testes:** 128 testes
-* **Testes com Sucesso:** **128 (100% de aprovação)**
-* **Duração da Execução:** ~9.85s
+* **Arquivos de Teste Executados:** 14
+* **Total de Testes:** 148 testes
+* **Testes com Sucesso:** **148 (100% de aprovação)**
+* **Duração da Execução:** ~11.9s
 * **Lista de Suítes Validadas:**
   1. `test/phase9-aircraft-crud.test.ts` (4 testes) — PASS
   2. `test/phase9-stage6-security-architecture.test.ts` (14 testes) — PASS
@@ -248,7 +248,8 @@ Esta auditoria representa uma **fotografia confiável, exaustiva e factual** da 
   10. `test/phase9-stage3-configuration.test.ts` (16 testes) — PASS
   11. `test/phase8-help-center.test.ts` (22 testes) — PASS
   12. `test/retry-extraction.test.ts` (3 testes) — PASS
-  13. `test/phase9-stage6-3-governance-docs.test.ts` (6 testes) — PASS
+  13. `test/phase9-stage5-3-analysis-integrity.test.ts` (14 testes) — PASS
+  14. `test/phase9-stage6-3-governance-docs.test.ts` (6 testes) — PASS
 
 ### 4.4. Smoke Test das Principais Rotas HTTP
 * `GET /api/health` ➔ HTTP 200 `{"status":"ok"}`

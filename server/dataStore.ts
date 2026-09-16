@@ -447,22 +447,21 @@ Comply with this AD within the compliance times specified, unless already done.
     sourceType: 'AD',
     issuingAuthority: 'FAA',
     sourceNumber: '2020-24-02',
+    revision: 'Original Issue',
     title: 'Boeing 737 Main Landing Gear (MLG) Actuator Beam Outboard Pin Cracking and Corrosion Inspection',
+    issueDate: '2020-11-20',
     effectiveDate: '2021-01-05',
-    applicabilityCriteria: [
-      {
-        id: 'crit-2020-01',
-        type: 'MODEL',
-        operator: 'IN',
-        values: ['737-600', '737-700', '737-700C', '737-800', '737-900', '737-900ER'],
-        description: 'Aircraft Model must be 737-600, -700, -700C, -800, -900, or -900ER series'
-      }
-    ],
+    emergencyAd: false,
+    status: 'ASSESSED',
+    createdAt: '2026-08-16T14:00:00.000Z',
+    createdBy: 'Eng. Fábio Teraoka',
+    updatedAt: '2026-08-16T14:15:00.000Z',
+    updatedBy: 'Eng. Fábio Teraoka',
     applicabilityRule: {
+      id: 'rule-02',
+      complianceRequirementId: sampleAd2Id,
       aircraftManufacturers: ['Boeing'],
       aircraftModels: ['737-600', '737-700', '737-700C', '737-800', '737-900', '737-900ER'],
-      engineManufacturers: [],
-      engineModels: [],
       componentPartNumbers: ['65-49200-1', '65-49200-2'],
       affectedConfiguration: 'Aircraft equipped with Main Landing Gear Actuator Beam Outboard Pins.',
       rawText: 'Applicability: The Boeing Company Model 737-600, -700, -700C, -800, -900, and -900ER series airplanes, certificated in any category.'
@@ -505,15 +504,19 @@ Compliance: Within 36 months or 4,500 flight cycles, perform repetitive ultrason
       modelScope: ['737-700', '737-800', '737-900', '737-900ER'],
       requiredConfigurationData: [
         {
-          parameterId: 'param-elevator-pushrod-pn',
-          parameterName: 'Elevator Tab Pushrod Part Number',
-          category: 'PART_NUMBER',
-          scope: 'AIRCRAFT',
-          dataType: 'STRING',
-          targetEntityPath: 'components.partNumber',
+          id: 'param-elevator-pushrod-pn',
+          parameterKey: 'COMPONENT_PART_NUMBER',
+          label: 'Elevator Tab Pushrod Part Number',
+          category: 'COMPONENT',
+          statusInAd: 'EXPLICITLY_REQUIRED',
+          targetValues: ['12345-01', '12345-02'],
           description: 'P/N of the installed elevator tab pushrod assembly',
-          isMandatoryForEvaluation: true,
-          validationRule: 'Must match 12345-01 or 12345-02'
+          traceability: {
+            adNumber: '2024-12-05',
+            requirementId: sampleAd1Id,
+            authority: 'FAA',
+            ruleCitation: 'FAA AD 2024-12-05 para (c)'
+          }
         }
       ],
       complianceThresholdSummary: 'Within 500 flight hours or 6 months after effective date',
@@ -540,15 +543,19 @@ Compliance: Within 36 months or 4,500 flight cycles, perform repetitive ultrason
       modelScope: ['737-600', '737-700', '737-700C', '737-800', '737-900', '737-900ER'],
       requiredConfigurationData: [
         {
-          parameterId: 'param-mlg-pin-pn',
-          parameterName: 'MLG Actuator Beam Pin Part Number',
-          category: 'PART_NUMBER',
-          scope: 'AIRCRAFT',
-          dataType: 'STRING',
-          targetEntityPath: 'components.partNumber',
+          id: 'param-mlg-pin-pn',
+          parameterKey: 'COMPONENT_PART_NUMBER',
+          label: 'MLG Actuator Beam Pin Part Number',
+          category: 'COMPONENT',
+          statusInAd: 'EXPLICITLY_REQUIRED',
+          targetValues: ['65-49200-1', '65-49200-2'],
           description: 'P/N of the installed MLG actuator beam pin',
-          isMandatoryForEvaluation: true,
-          validationRule: 'Must match 65-49200-1 or 65-49200-2'
+          traceability: {
+            adNumber: '2020-24-02',
+            requirementId: sampleAd2Id,
+            authority: 'FAA',
+            ruleCitation: 'FAA AD 2020-24-02 para (c)'
+          }
         }
       ],
       complianceThresholdSummary: 'Within 36 months or 4,500 flight cycles',

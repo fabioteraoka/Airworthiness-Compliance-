@@ -1,8 +1,8 @@
 # PRODUCT VISION & STRATEGIC ROADMAP — CAMO AIRWORTHINESS ENGINE
 ## Plataforma Integrada de Controle de Manutenção & Conformidade Regulatória CAMO
 **Documento Canônico de Governança Estratégica & Visão de Longo Prazo**  
-**Versão:** Release 9.5.2 (Active Living Architecture)  
-**Data de Emissão:** 14 de Setembro de 2026  
+**Versão:** Release 9.7.1 (Active Living Architecture, AI Model Orchestration & Continuous Upgrade with Gemini 3.8 Flash)  
+**Data de Emissão:** 17 de Setembro de 2026  
 **Autoridade:** Diretoria de Engenharia, Confiabilidade & Governança CAMO  
 **Status do Documento:** VIVO • HOMOLOGADO • SINCRONIZADO COM CÓDIGO-FONTE  
 
@@ -54,14 +54,15 @@ A integridade da aeronavegabilidade é resultado de uma cadeia contínua e inter
 3. **Não-Contaminação entre Conhecimento e Frota:** O conhecimento regulatório compilado sobre famílias e modelos de aeronaves (Knowledge Base) reside em domínio desacoplado dos dados físicos da frota ativa.
 4. **Isolamento de Pré-Entrega (Delivery Sandbox):** Avaliações de aeronaves candidatas (auditorias de Lessors ou compra) rodam em sandbox isolado, sem poluir a telemetria da frota operacional ativa.
 5. **Rastreabilidade e Integridade SHA-256:** Cada mutação de estado, assinatura de laudo FAPT e decisão técnica é selada criptograficamente em trilha append-only.
+6. **Design de Sistema Vivo:** O sistema transporta sua própria arquitetura através do artefato canônico [SYSTEM_DESIGN.md](./SYSTEM_DESIGN.md), servindo como referência autocontida e atemporal.
 
 ---
 
-## 2. ESTADO ATUAL DO PRODUTO (RELEASE 9.5.2)
+## 2. ESTADO ATUAL DO PRODUTO (RELEASE 9.7.0)
 
 ### 2.1 Metadados da Release
-* **Release Canônica:** `Release 9.5.2` (Post Fleet Management CRUD, Inactivation & Decommissioning Engine)
-* **Status da Suíte Automatizada:** 12 arquivos de teste no Vitest, **128 testes unitários, de integração e de máquinas de estado — 100% PASSING**.
+* **Release Canônica:** `Release 9.7.0` (Living System Design, Aircraft Master & Configuration Ledger, SB Intelligence Engine)
+* **Status da Suíte Automatizada:** 15 arquivos de teste no Vitest, **152 testes unitários, de integração e de máquinas de estado — 100% PASSING**.
 * **Integridade Estrutural:** 27 Visões de Frontend, 14 Submódulos de Domínio no Backend, 73+ Endpoints REST especializados.
 * **Compilação e Tipagem:** `tsc --noEmit` limpo (0 erros), compilação de produção via Vite e esbuild 100% verde.
 
@@ -73,10 +74,10 @@ Todo recurso planejado ou construído no CAMO Engine deve utilizar rigorosamente
 * `FUTURE_EXPLORATORY`: Linha de pesquisa, inovação ou evolução de longo prazo.
 * `DEPRECATED / DEPRECATED_CANDIDATE`: Capacidade legada em processo de substituição ou aposentadoria planejada.
 
-### 2.3 Limitações Conhecidas da Release Atual (9.5.2)
+### 2.3 Limitações Conhecidas da Release Atual (9.7.0)
 1. **Persistência Monolítica em Arquivo Local (`data/camo_db.json`):** Adequada para testes e operações em container único, com escrita atômica (`fs.writeFileSync` + swap seguro). Requer migração futura para banco relacional em alta concorrência.
-2. **Conectores Oficiais Live:** A FAA Federal Register possui conector REST live via API pública governamental. EASA e ANAC operam atualmente via ingestion normalizada, dependendo de scraping/feeds dedicados para atualização contínua em tempo real (CAP-021).
-3. **Controle de Manutenção Não-Regulatória:** O sistema atualmente gerencia tarefas mandatórias oriundas de Diretrizes de Aeronavegabilidade (ADs). O controle de tarefas rotineiras de manutenção preventiva do fabricante (MPD/AMP) é o próximo marco de expansão.
+2. **Conectores Oficiais Live:** A FAA Federal Register possui conector REST live via API pública governamental. EASA e ANAC operam atualmente via ingestion normalizada, dependendo de feeds dedicados para atualização contínua em tempo real (CAP-021).
+3. **Ordens de Engenharia (EOs):** A inteligência de SBs já extrai e gera checklists técnicos com relacionamentos mandatórios e terminativos. O próximo passo de expansão é a emissão formal de Ordens de Engenharia (CAP-024).
 
 ---
 
@@ -107,6 +108,9 @@ Todas as capacidades abaixo estão classificadas como `IMPLEMENTED` e comprovada
 | **CAP-019** | CAMO Regulatory Register (Livro-Razão & Screening) | `IMPLEMENTED` | `camoRegulatoryRegisterService.ts`, `RegisterView.tsx` | PASS (`phase9-stage5-register.test.ts`) |
 | **CAP-020** | Fila de Análise Técnica de Engenharia (Analysis Phase) | `IMPLEMENTED` | `AnalysisPhaseView.tsx`, `regulatoryIntelligenceEngine.ts` | PASS (`phase9-stage5-register.test.ts`) |
 | **CAP-025** | Gestão Cadastral, Edição, Inativação e Descomissionamento | `IMPLEMENTED` | `server.ts`, `FleetView.tsx`, `dataStore.ts` | PASS (`phase9-aircraft-crud.test.ts`) |
+| **CAP-026** | Governança Viva, Memória Estratégica Independente e AI Guide | `IMPLEMENTED` | `PRODUCT_VISION_ROADMAP.md`, `AI_DEVELOPMENT_GUIDE.md` | PASS (`phase9-stage6-3-governance-docs.test.ts`) |
+| **CAP-027** | Inteligência de Boletins de Serviço (SB) e Checklists | `IMPLEMENTED` | `regulatoryIntelligenceEngine.ts`, `types.ts` | PASS (`phase9-stage7-sb-and-system-design.test.ts`) |
+| **CAP-028** | Controle de Manutenção (PCM) & Ledger Criptográfico de Configuração | `IMPLEMENTED` | `dataStore.ts`, `types.ts` | PASS (`phase9-stage7-sb-and-system-design.test.ts`) |
 
 ---
 
@@ -228,7 +232,7 @@ A visão arquitetural do CAMO Engine estabelece que **manutenção física e con
 | Capacidade Alvo | Estado Real | Depende Diretamente de | Próximo Passo Arquitetural |
 | :--- | :---: | :--- | :--- |
 | **CAP-001** (Domain & Fleet) | `IMPLEMENTED` | Nenhuma externa | Refinamento de metadados cadastrais |
-| **CAP-002** (AI Document Extraction) | `IMPLEMENTED` | Gemini API + `types.ts` | Processamento multimodal de esquemas e diagramas |
+| **CAP-002** (AI Document Extraction) | `IMPLEMENTED` | Gemini 3.8 Flash + `types.ts` | Processamento multimodal de esquemas e diagramas |
 | **CAP-003** (Rule Engine V2) | `IMPLEMENTED` | `types.ts` + `dataStore.ts` | Otimização com compilador booleano estrito |
 | **CAP-004** (Knowledge Facts) | `IMPLEMENTED` | `ruleEngine.ts` + `dataStore.ts` | Sincronização automática com Service Letters |
 | **CAP-005** (FAPT Generation) | `IMPLEMENTED` | `pdfGenerator.ts` + CAP-003 | Assinatura com certificado digital ICP-Brasil / A1 |
@@ -255,6 +259,7 @@ A visão arquitetural do CAMO Engine estabelece que **manutenção física e con
 | **CAP-026** (Maintenance Program / AMP)| `PLANNED` | CAP-001 + CAP-017 | Estruturação de dados para MPD e tarefas de revisão |
 | **CAP-027** (Work Orders / PCM) | `PLANNED` | CAP-026 + CAP-011 | Workflow de emissão e encerramento de pacotes |
 | **CAP-028** (LLP Back-to-Birth Control)| `PLANNED` | CAP-001 + CAP-017 | Rastreamento histórico ininterrupto de ciclos de vida |
+| **CAP-029** (AI Model Orchestrator & Upgrade)| `IMPLEMENTED`| Gemini 3.8 Flash + `camoDb` | Benchmarking contínuo com dataset sintético de 50 ADs |
 
 ---
 

@@ -21,6 +21,7 @@ import { evidenceVerificationEngine } from './server/camoEngine/evidenceVerifica
 import { fleetAirworthinessControlEngine, FleetAirworthinessControlEngine } from './server/camoEngine/fleetAirworthinessControlEngine';
 import { aircraftDeliveryAssessmentEngine } from './server/camoEngine/aircraftDeliveryAssessmentEngine';
 import { regulatoryIntelligenceEngine } from './server/camoEngine/regulatoryIntelligenceEngine';
+import { aiModelOrchestrator } from './server/camoEngine/aiModelOrchestrator';
 import { helpCenterService } from './server/helpCenterService';
 import { generateArchitecturePdf } from './server/pdfGenerator';
 import { 
@@ -3853,6 +3854,148 @@ async function startServer() {
       });
     } catch (err: any) {
       res.status(400).json({ error: err.message });
+    }
+  });
+
+  // ============================================================================
+  // PHASE 9 - STAGE 7.1: AI MODEL ORCHESTRATION & UPGRADE ENDPOINTS
+  // ============================================================================
+
+  // Get homologated & candidate AI models catalog
+  app.get('/api/ai/models', async (req, res) => {
+    try {
+      const homologated = aiModelOrchestrator.getHomologatedModels();
+      const dbState = camoDb.getState();
+      const discovered = dbState.discoveredAiModels || [];
+      const runtimeStatus = aiModelOrchestrator.getRuntimeStatus();
+      const config = aiModelOrchestrator.getConfig();
+      const resolution = aiModelOrchestrator.resolveModel();
+
+      res.json({
+        success: true,
+        primaryModel: aiModelOrchestrator.PRIMARY_MODEL_ID,
+        resolvedModel: resolution.resolvedModel,
+        runtimeModel: runtimeStatus.runtimeModel,
+        policy: config.selectionPolicy,
+        pinnedModel: config.pinnedModel,
+        fallbackChain: config.fallbackModels,
+        homologatedModels: homologated,
+        discoveredModels: discovered,
+        runtimeStatus
+      });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // Get full AI runtime status & operational health
+  app.get('/api/ai/runtime-status', (req, res) => {
+    try {
+      const status = aiModelOrchestrator.getRuntimeStatus();
+      res.json({
+        success: true,
+        status
+      });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // Get AI Orchestrator Configuration
+  app.get('/api/ai/config', (req, res) => {
+    try {
+      const config = aiModelOrchestrator.getConfig();
+      const resolution = aiModelOrchestrator.resolveModel();
+      res.json({
+        success: true,
+        config,
+        resolution
+      });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // Update AI Orchestrator Policy / Pinned Model
+  app.post('/api/ai/config', (req, res) => {
+    try {
+      const { policy, pinnedModel } = req.body;
+      if (!policy || !['LATEST_STABLE', 'PINNED', 'FALLBACK', 'DISABLED'].includes(policy)) {
+        return res.status(400).json({ 
+          error: 'Valid policy is required: LATEST_STABLE, PINNED, FALLBACK, or DISABLED' 
+        });
+      }
+      const updatedConfig = aiModelOrchestrator.updatePolicy(policy, pinnedModel);
+      const resolution = aiModelOrchestrator.resolveModel();
+      
+      // Record audit trail entry
+      camoDb.update(draft => {
+        draft.auditTrail.push({
+          id: `aud-ai-${Date.now()}`,
+          timestamp: new Date().toISOString(),
+          user: draft.currentUser?.name || 'Chief Airworthiness Engineer',
+          role: draft.currentUser?.role || 'CHIEF_CAMO_ENGINEER',
+          action: 'CONFIGURATION_CHANGE_RECORDED',
+          entityType: 'AiModelOrchestrator',
+          entityId: 'AI_MODEL_CONFIG',
+          details: `Updated AI Model Selection Policy to ${policy} (Resolved: ${resolution.resolvedModel}${pinnedModel ? `, Pinned: ${pinnedModel}` : ''}).`
+        });
+      });
+
+      res.json({
+        success: true,
+        config: updatedConfig,
+        resolution,
+        status: aiModelOrchestrator.getRuntimeStatus()
+      });
+    } catch (err: any) {
+      res.status(400).json({ error: err.message });
+    }
+  });
+
+  // Get AI Execution Traces for regulatory auditability
+  app.get('/api/ai/traces', (req, res) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 50;
+      const traces = aiModelOrchestrator.getExecutionTraces(limit);
+      res.json({
+        success: true,
+        total: traces.length,
+        traces
+      });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // Trigger live AI Model Verification Probe (runtime proof of gemini-3.8-flash)
+  app.post('/api/ai/test-probe', async (req, res) => {
+    try {
+      const probeResult = await aiModelOrchestrator.executeTestPrompt();
+      res.json({
+        success: probeResult.success,
+        modelUsed: probeResult.modelUsed,
+        trace: probeResult.trace,
+        output: probeResult.output,
+        runtimeStatus: aiModelOrchestrator.getRuntimeStatus()
+      });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // Discover newly available models from Google Gemini API
+  app.post('/api/ai/discover', async (req, res) => {
+    try {
+      const models = await aiModelOrchestrator.discoverAvailableModels();
+      res.json({
+        success: true,
+        count: models.length,
+        models,
+        primaryModel: aiModelOrchestrator.PRIMARY_MODEL_ID
+      });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
     }
   });
 

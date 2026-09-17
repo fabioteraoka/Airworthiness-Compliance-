@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import { GoogleGenAI, Type } from "@google/genai";
 import { 
   ComplianceRequirement, 
@@ -17,10 +18,12 @@ import {
   SoftwareRequirement,
   ExternalEffectivityReference,
   RawExtractionPayload,
-  DynamicApplicabilityCriteria
+  DynamicApplicabilityCriteria,
+  AiExecutionTrace
 } from '../src/types';
 import { buildExtractionPipelineDiagnostics } from './diagnosticsBuilder';
 import { buildDynamicApplicabilityCriteria } from './ruleEngine';
+import { aiModelOrchestrator } from './camoEngine/aiModelOrchestrator';
 
 let aiClient: GoogleGenAI | null = null;
 
@@ -639,7 +642,8 @@ export function healAndEnrichParsedAdData(parsed: any, sourceText: string, origi
 }
 
 /**
- * Server-side Gemini 3.7 Flash Extraction from PDF or Text with absolute safety invariants
+ * Server-side Gemini 3.8 Flash Extraction from PDF or Text with absolute safety invariants
+ * Orchestrated via AIModelOrchestrator with automated fallback and regulatory tracing.
  */
 export async function extractAdWithGemini(input: {
   pdfBase64?: string;
@@ -651,6 +655,13 @@ export async function extractAdWithGemini(input: {
   const originalFileName = input.fileName || 'Airworthiness_Directive.pdf';
   const fileSize = input.pdfBase64 ? Math.round(input.pdfBase64.length * 0.75) : (input.text?.length || 0);
   const mimeType = input.pdfBase64 ? 'application/pdf' : 'text/plain';
+
+  // Consult AI Model Orchestrator for policy and model resolution
+  const aiResolution = aiModelOrchestrator.resolveModel();
+  let successfulModelName = aiResolution.resolvedModel;
+  let fallbackUsed = false;
+  const executionStartTime = Date.now();
+  let retryCount = 0;
 
   const diagnostics: ExtractionDiagnostics = {
     sourceFileReceived: Boolean(input.pdfBase64 || input.text),
@@ -665,7 +676,6 @@ export async function extractAdWithGemini(input: {
     rawTechnicalExtractionResponse: undefined
   };
 
-  let successfulModelName = 'gemini-3.8-flash';
   const ai = getGeminiClient();
 
   // Perform high-fidelity PDF text extraction
@@ -715,7 +725,13 @@ ABSOLUTE ZERO-FABRICATION SAFETY INVARIANTS (NEVER INVENT DATA):
 8. Engines & Components: Extract exact engine models and Part Numbers (P/N) mentioned. If none, return [].
 9. Referenced External Documents: Extract all Service Bulletins, AOTs, AMMs, CMMs mentioned into "referencedDocuments". If none, return [].`;
 
-  if (ai) {
+  if (ai && aiResolution.selectionPolicy !== 'DISABLED') {
+    // Dynamic candidate chain ordered by AI Model Orchestrator policy
+    const candidateModels = [
+      aiResolution.resolvedModel,
+      ...aiResolution.fallbackChain.filter(m => m !== aiResolution.resolvedModel)
+    ];
+
     try {
       diagnostics.geminiInvoked = true;
       const parts: any[] = [];
@@ -738,19 +754,17 @@ ABSOLUTE ZERO-FABRICATION SAFETY INVARIANTS (NEVER INVENT DATA):
         throw new Error('No PDF or text provided for extraction');
       }
 
-      const candidateModels = [
-        'gemini-3.8-flash',
-        'gemini-flash-latest',
-        'gemini-3.1-flash-lite'
-      ];
       let response: any = null;
       let lastModelError: any = null;
-      successfulModelName = 'gemini-3.8-flash';
+      successfulModelName = aiResolution.resolvedModel;
+
+      const orchestratorConfig = aiModelOrchestrator.getConfig();
+      const timeoutLimitMs = orchestratorConfig.timeoutMs || 10000;
 
       for (const modelName of candidateModels) {
         try {
           const timeoutPromise = new Promise<never>((_, reject) => 
-            setTimeout(() => reject(new Error(`AI extraction request timed out after 8s for model ${modelName}`)), 8000)
+            setTimeout(() => reject(new Error(`AI extraction request timed out after ${timeoutLimitMs}ms for model ${modelName}`)), timeoutLimitMs)
           );
 
           const generatePromise = ai.models.generateContent({
@@ -937,9 +951,13 @@ ABSOLUTE ZERO-FABRICATION SAFETY INVARIANTS (NEVER INVENT DATA):
           response = await Promise.race([generatePromise, timeoutPromise]);
           if (response && response.text) {
             successfulModelName = modelName;
+            if (modelName !== aiResolution.resolvedModel) {
+              fallbackUsed = true;
+            }
             break;
           }
         } catch (mErr: any) {
+          retryCount++;
           console.warn(`Model ${modelName} failed or not available:`, mErr.message);
           lastModelError = mErr;
           // Graceful backoff if 503 (high demand) or 429 (rate limit)
@@ -1367,6 +1385,42 @@ ABSOLUTE ZERO-FABRICATION SAFETY INVARIANTS (NEVER INVENT DATA):
 
       const computedCriteria = buildDynamicApplicabilityCriteria({} as any, tempRule);
 
+      // Regulatory Execution Trace & SHA-256 Response Hashing
+      const responseHash = crypto.createHash('sha256').update(rawJson).digest('hex');
+      const traceId = `trace-${Date.now()}-${crypto.randomBytes(3).toString('hex')}`;
+      const executionTrace: AiExecutionTrace = {
+        traceId,
+        provider: 'Google Gemini',
+        requestedModel: aiResolution.requestedModel,
+        resolvedModel: successfulModelName,
+        timestamp: new Date().toISOString(),
+        pipelineVersion: aiModelOrchestrator.ORCHESTRATOR_VERSION,
+        promptVersion: aiModelOrchestrator.PROMPT_VERSION,
+        schemaVersion: aiModelOrchestrator.SCHEMA_VERSION,
+        requestCorrelationId: `ad-extract-${Date.now()}`,
+        documentRef: originalFileName,
+        executionDurationMs: Date.now() - executionStartTime,
+        retryCount,
+        fallbackUsed,
+        fallbackReason: fallbackUsed 
+          ? `Primary model ${aiResolution.resolvedModel} failed. Succeeded with fallback ${successfulModelName}.`
+          : undefined,
+        fallbackChain: candidateModels,
+        validationResult: {
+          passed: missingFields.length === 0,
+          rulesChecked: 10,
+          failedRules: missingFields.map(f => `MISSING_${f.toUpperCase()}`),
+          details: missingFields.length === 0 
+            ? 'All mandatory CAMO airworthiness fields extracted and validated successfully' 
+            : `Partial extraction: missing ${missingFields.join(', ')}`
+        },
+        responseHash,
+        finalStatus: missingFields.length === 0 
+          ? (fallbackUsed ? 'FALLBACK_SUCCESS' : 'SUCCESS') 
+          : 'VALIDATION_FAILED'
+      };
+      aiModelOrchestrator.recordExecutionTrace(executionTrace);
+
       return {
         sourceNumber: parsed.sourceNumber || '',
         revision: parsed.revision || null,
@@ -1434,6 +1488,36 @@ ABSOLUTE ZERO-FABRICATION SAFETY INVARIANTS (NEVER INVENT DATA):
     } catch (err: any) {
       console.error('Gemini extraction error:', err);
       diagnostics.exactErrorMessage = err.message || 'Error during Gemini extraction';
+      try {
+        const errTrace: AiExecutionTrace = {
+          traceId: `trace-err-${Date.now()}-${crypto.randomBytes(3).toString('hex')}`,
+          provider: 'Google Gemini',
+          requestedModel: aiResolution.requestedModel,
+          resolvedModel: successfulModelName,
+          timestamp: new Date().toISOString(),
+          pipelineVersion: aiModelOrchestrator.ORCHESTRATOR_VERSION,
+          promptVersion: aiModelOrchestrator.PROMPT_VERSION,
+          schemaVersion: aiModelOrchestrator.SCHEMA_VERSION,
+          requestCorrelationId: `ad-extract-err-${Date.now()}`,
+          documentRef: originalFileName,
+          executionDurationMs: Date.now() - executionStartTime,
+          retryCount,
+          fallbackUsed,
+          fallbackReason: err.message,
+          fallbackChain: candidateModels,
+          validationResult: {
+            passed: false,
+            rulesChecked: 0,
+            failedRules: ['MODEL_EXECUTION_EXCEPTION'],
+            details: err.message
+          },
+          responseHash: crypto.createHash('sha256').update(err.message || 'ERROR').digest('hex'),
+          finalStatus: 'ERROR'
+        };
+        aiModelOrchestrator.recordExecutionTrace(errTrace);
+      } catch (logErr) {
+        // Safe fallback
+      }
     }
   } else {
     diagnostics.exactErrorMessage = 'GEMINI_API_KEY is not configured';

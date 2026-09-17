@@ -1,8 +1,8 @@
 # SYSTEM DESIGN — CAMO AIRWORTHINESS COMPLIANCE & MAINTENANCE CONTROL (PCM)
 
 > **Documento Canônico de Arquitetura de Sistema e Engenharia de Software**  
-> **Versão:** 9.7.0 (Homologada na Fase 9 — Etapa 7: System Design Vivo + Aircraft Master & Configuration + Inteligência AD/SB)  
-> **Status:** VIVO • AUTOCONTIDO • HOMOLOGADO • EM PRODUÇÃO  
+> **Versão:** 9.7.1 (Homologada na Fase 9 — Etapa 7.1: Orquestração de IA & Upgrade Contínuo com Gemini 3.8 Flash)  
+> **Status:** VIVO • AUTOCONTIDO • HOMOLOGADO • EM PRODUÇÃO (159/159 TESTES VERDES)  
 > **Classificação:** Engenharia Aeronáutica, Governança CAMO e Arquitetura de Software Crítico  
 
 ---
@@ -159,6 +159,18 @@ Qualquer agente de IA ou desenvolvedor humano que atue neste sistema **DEVE** re
 #### Camada 8: Delivery Assessment Sandbox (Fase 7)
 * Módulo de análise de transição de aeronave (devolução para lessor ou recebimento de frota).
 * Simula se a aeronave cumpre todos os requisitos de devolução sem alterar o banco de dados operacional.
+
+#### Camada 9: Orquestração de IA & Upgrade Contínuo de Modelos (Fase 9.7.1 / CAP-029)
+* **Autoridade Centralizada (`AIModelOrchestrator`):** Ponto único de controle de modelos de linguagem no sistema, eliminando acoplamento a versões estáticas e permitindo upgrade sem alterar múltiplos pontos do código.
+* **Modelo Primário Homologado:** Adoção oficial do **Gemini 3.8 Flash** (`gemini-3.8-flash`) para extração de diretrizes técnicas e estruturação de dados aeronáuticos.
+* **Políticas Dinâmicas de Seleção:**
+  * `LATEST_STABLE`: Seleciona automaticamente o modelo mais recente homologado pelo comitê técnico (`gemini-3.8-flash`).
+  * `PINNED`: Fixa uma versão específica para congelamento de linha de base ou auditoria regulatória.
+  * `FALLBACK`: Cadeia ordenada de contingência (`gemini-3.8-flash` ➔ `gemini-flash-latest` ➔ `gemini-3.1-flash-lite`) com backoff exponencial para erros de infraestrutura (503, 429).
+  * `DISABLED`: Desativa chamadas de IA e ativa o modo 100% determinístico baseado no parser regex/heurístico com zero alucinação.
+* **Rastreabilidade Criptográfica (`AiExecutionTrace`):** Toda invocação de IA registra metadados de execução (`traceId`, `requestedModel`, `resolvedModel`, `pipelineVersion`, `durationMs`, `retryCount`, `fallbackUsed`, `validationResult`) e o hash **SHA-256** do JSON retornado pela IA, armazenados no Livro de Auditoria.
+* **Invariante Inegociável:** A atualização ou troca de modelo de IA atua **exclusivamente na camada de extração e estruturação documental**; as regras booleanas de aplicabilidade e os critérios de conformidade física do CAMO Engine são **100% determinísticos e impermeáveis** a qualquer comportamento do modelo.
+* **Runtime Health & Observabilidade:** Endpoints `/api/ai/runtime-status`, `/api/ai/models`, `/api/ai/config`, `/api/ai/traces` e `/api/ai/test-probe` permitem visualização e controle operacional da IA em tempo real.
 
 ---
 

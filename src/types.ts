@@ -1098,7 +1098,8 @@ export interface AuditTrailEntry {
     | 'STATUS_CHANGE'
     | 'DELETE'
     | 'SYSTEM_DELETE'
-    | 'SYSTEM_RESET';
+    | 'SYSTEM_RESET'
+    | 'CONFIGURATION_CHANGE_RECORDED';
   entityType: string;
   entityId: string;
   details: string | Record<string, any>;
@@ -2917,6 +2918,12 @@ export interface SbAnalysisChecklist {
   }[];
   limitationsAndConditions: string[];
   configurationData: string[];
+  engineeringValidation?: {
+    validatedBy: string;
+    validatedAt: string;
+    notes?: string;
+    approvedForIncorporation?: boolean;
+  };
 }
 
 export interface ReferencedServiceBulletin {
@@ -3123,7 +3130,105 @@ export interface ImportToRegisterResult {
   camoRegisterTotal: number;
   records: CamoRegulatoryRecord[];
 }
+// ============================================================================
+// PHASE 9 - STAGE 7.1: AI MODEL ORCHESTRATION & CONTINUOUS MODEL UPGRADE
+// ============================================================================
 
+export type ModelSelectionPolicy = 'LATEST_STABLE' | 'PINNED' | 'FALLBACK' | 'DISABLED';
 
+export type ModelHomologationStatus = 'HOMOLOGATED' | 'EXPERIMENTAL' | 'PREVIEW' | 'DEPRECATED' | 'DISCOVERED';
 
+export interface DiscoveredAiModel {
+  id: string; // e.g. "gemini-3.8-flash"
+  displayName: string;
+  provider: 'Google Gemini';
+  version: string;
+  status: ModelHomologationStatus;
+  isPrimary: boolean;
+  isFallbackCandidate: boolean;
+  supportsStructuredOutput: boolean;
+  supportsJsonSchema: boolean;
+  supportsMultimodal: boolean;
+  tokenLimitInput?: number;
+  tokenLimitOutput?: number;
+  recommendedRole: 'PRIMARY_EXTRACTION' | 'FAST_FALLBACK' | 'REASONING_ANALYSIS' | 'GENERAL';
+  compatibilityNotes?: string;
+  homologatedAt?: string;
+  inputCostPer1M?: number;
+  outputCostPer1M?: number;
+}
+
+export interface AiOrchestratorConfig {
+  provider: 'Google Gemini';
+  selectionPolicy: ModelSelectionPolicy;
+  primaryModel: string; // "gemini-3.8-flash"
+  pinnedModel?: string;
+  fallbackModels: string[]; // ["gemini-flash-latest", "gemini-3.1-flash-lite"]
+  pipelineVersion: string;
+  promptVersion: string;
+  schemaVersion: string;
+  maxRetries: number;
+  timeoutMs: number;
+  lastModelUpdate: string;
+  continuousUpgradeStatus: 'MONITORING' | 'UPGRADED' | 'EVALUATING';
+}
+
+export interface AiModelResolution {
+  requestedModel: string;
+  resolvedModel: string;
+  provider: string;
+  modelVersion: string;
+  selectionPolicy: ModelSelectionPolicy;
+  fallbackUsed: boolean;
+  fallbackChain: string[];
+  isPrimary: boolean;
+}
+
+export interface AiExecutionTrace {
+  traceId: string;
+  provider: string;
+  requestedModel: string;
+  resolvedModel: string;
+  timestamp: string;
+  pipelineVersion: string;
+  promptVersion: string;
+  schemaVersion: string;
+  requestCorrelationId?: string;
+  documentRef?: string;
+  executionDurationMs: number;
+  retryCount: number;
+  fallbackUsed: boolean;
+  fallbackReason?: string;
+  fallbackChain?: string[];
+  validationResult: {
+    passed: boolean;
+    rulesChecked: number;
+    failedRules: string[];
+    details?: string;
+  };
+  responseHash: string; // SHA-256 of raw output
+  finalStatus: 'SUCCESS' | 'VALIDATION_FAILED' | 'ERROR' | 'FALLBACK_SUCCESS' | 'DISABLED';
+  tokensUsed?: {
+    promptTokens?: number;
+    completionTokens?: number;
+  };
+}
+
+export interface AiEngineRuntimeStatus {
+  provider: string;
+  primaryModel: string;
+  runtimeModel: string;
+  modelPolicy: ModelSelectionPolicy;
+  fallbackCandidates: string[];
+  lastExecutionTrace?: AiExecutionTrace;
+  lastModelUpdate: string;
+  modelHealth: 'HEALTHY' | 'DEGRADED' | 'OFFLINE' | 'DISABLED';
+  availableModelsCount: number;
+  totalExecutions: number;
+  fallbackRatePercent: number;
+  isGeminiApiKeyConfigured: boolean;
+  pipelineVersion: string;
+  promptVersion: string;
+  schemaVersion: string;
+}
 

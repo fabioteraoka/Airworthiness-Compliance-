@@ -28,7 +28,10 @@ import {
   AircraftConfigurationAssessment,
   CamoRegulatoryRecord,
   AircraftConfigurationHistoryRecord,
-  ConfigurationEventType
+  ConfigurationEventType,
+  AiOrchestratorConfig,
+  AiExecutionTrace,
+  DiscoveredAiModel
 } from '../src/types';
 
 export interface DatabaseState {
@@ -59,6 +62,9 @@ export interface DatabaseState {
   discoveryRecords: RegulatoryDiscoveryRecord[];
   screeningAssessments: RegulatoryScreeningAssessment[];
   pipelineExecutions: CompliancePipelineExecution[];
+  aiOrchestratorConfig?: AiOrchestratorConfig;
+  aiExecutionTraces?: AiExecutionTrace[];
+  discoveredAiModels?: DiscoveredAiModel[];
   lastSuccessfulScan?: string;
 }
 
@@ -882,7 +888,22 @@ Compliance: Within 36 months or 4,500 flight cycles, perform repetitive ultrason
     adCandidates: [],
     regulatoryKnowledgeBase: sampleKbItems,
     configurationAssessments: [],
-    camoRegulatoryRegister: getInitialRegulatoryRegister()
+    camoRegulatoryRegister: getInitialRegulatoryRegister(),
+    aiOrchestratorConfig: {
+      provider: 'Google Gemini',
+      selectionPolicy: 'LATEST_STABLE',
+      primaryModel: 'gemini-3.8-flash',
+      fallbackModels: ['gemini-flash-latest', 'gemini-3.1-flash-lite'],
+      pipelineVersion: '9.7.1',
+      promptVersion: '9.7.1-camov4',
+      schemaVersion: '9.7.1-airworthiness-json',
+      maxRetries: 2,
+      timeoutMs: 12000,
+      lastModelUpdate: '2026-09-17T00:00:00.000Z',
+      continuousUpgradeStatus: 'MONITORING'
+    },
+    aiExecutionTraces: [],
+    discoveredAiModels: []
   };
 }
 
@@ -1168,6 +1189,27 @@ class DataStore {
         }
         if (!Array.isArray(parsed.camoRegulatoryRegister)) {
           parsed.camoRegulatoryRegister = getInitialRegulatoryRegister();
+        }
+        if (!parsed.aiOrchestratorConfig) {
+          parsed.aiOrchestratorConfig = {
+            provider: 'Google Gemini',
+            selectionPolicy: 'LATEST_STABLE',
+            primaryModel: 'gemini-3.8-flash',
+            fallbackModels: ['gemini-flash-latest', 'gemini-3.1-flash-lite'],
+            pipelineVersion: '9.7.1',
+            promptVersion: '9.7.1-camov4',
+            schemaVersion: '9.7.1-airworthiness-json',
+            maxRetries: 2,
+            timeoutMs: 12000,
+            lastModelUpdate: '2026-09-17T00:00:00.000Z',
+            continuousUpgradeStatus: 'MONITORING'
+          };
+        }
+        if (!Array.isArray(parsed.aiExecutionTraces)) {
+          parsed.aiExecutionTraces = [];
+        }
+        if (!Array.isArray(parsed.discoveredAiModels)) {
+          parsed.discoveredAiModels = [];
         }
         parsed.complianceObligations = parsed.obligations;
         if (Array.isArray(parsed.requirements)) {

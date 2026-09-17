@@ -6,9 +6,9 @@
 
 [![Compliance](https://img.shields.io/badge/Compliance-FAA%20|%20EASA%20|%20ANAC-blue.svg?style=for-the-badge)](https://www.easa.europa.eu/)
 [![Audit Trail](https://img.shields.io/badge/Security-SHA--256%20Cryptographic%20Audit-emerald.svg?style=for-the-badge)](./DOSSIE_ARQUITETURA_SISTEMA_CAMO.md)
-[![AI Engine](https://img.shields.io/badge/AI%20Intelligence-Gemini%203.7%20Flash%20Document-indigo.svg?style=for-the-badge)](https://ai.google.dev/)
-[![Vitest](https://img.shields.io/badge/Automated%20Tests-148%2F148%20Passed%20(100%25)-success.svg?style=for-the-badge)](./test/)
-[![Living Governance](https://img.shields.io/badge/Living%20Governance-Release%209.5.2%20Audited-purple.svg?style=for-the-badge)](./PRODUCT_VISION_ROADMAP.md)
+[![AI Engine](https://img.shields.io/badge/AI%20Intelligence-Gemini%203.8%20Flash%20Orchestrated-indigo.svg?style=for-the-badge)](https://ai.google.dev/)
+[![Vitest](https://img.shields.io/badge/Automated%20Tests-159%2F159%20Passed%20(100%25)-success.svg?style=for-the-badge)](./test/)
+[![Living Governance](https://img.shields.io/badge/Living%20Governance-Release%209.7.1%20Audited-purple.svg?style=for-the-badge)](./SYSTEM_DESIGN.md)
 
 ---
 
@@ -29,8 +29,8 @@
 O **CAMO Airworthiness Compliance Intelligence Platform** é um ecossistema de software de missão crítica para aviação civil comercial e executiva. Concebido segundo os rigorosos padrões do **FAA Title 14 CFR Part 39**, **EASA Part-M (Subpart G / Part-CAMO)** e **ANAC RBAC 121 / RBAC 39**, o sistema integra o monitoramento proativo de Diretrizes de Aeronavegabilidade (ADs), a rastreabilidade física de células, motores e componentes rotáveis e o atesto de conformidade técnica com validade jurídica e probatória.
 
 O sistema opera sob o **Princípio Zero da Segurança Aeronáutica**:
-* **Inteligência Artificial Confinada (Gemini 3.7 Flash):** Executa OCR, leitura e estruturação de dados não estruturados contidos em PDFs complexos de autoridades internacionais.
-* **Motor Determinístico Booleano (CAMO Rule Engine V2):** Processa o cruzamento matemático entre requisitos mandatórios e dados físicos da frota. Falta de informação gera obrigatoriamente `REVIEW_REQUIRED`, nunca `NOT_APPLICABLE`.
+* **Inteligência Artificial Orquestrada (Gemini 3.8 Flash):** Executa OCR, leitura e estruturação de dados não estruturados contidos em PDFs complexos de autoridades internacionais através do `AIModelOrchestrator` centralizado com rastreabilidade criptográfica (`AiExecutionTrace` + SHA-256).
+* **Motor Determinístico Booleano (CAMO Rule Engine V2):** Processa o cruzamento matemático entre requisitos mandatórios e dados físicos da frota. Falta de informação gera obrigatoriamente `REVIEW_REQUIRED`, nunca `NOT_APPLICABLE`. A IA nunca altera as regras de conformidade e aplicabilidade.
 * **Engenheiro CAMO Humano:** Mantém 100% da autoridade regulatória e responsabilidade técnica, emitindo e assinando laudos oficiais (FAPTs) com selo digital SHA-256.
 
 ---
@@ -65,11 +65,11 @@ Essa cadeia causal garante que qualquer intervenção física no hangar alimente
 A arquitetura do CAMO Engine é desacoplada, orientada a eventos e estritamente auditável:
 
 ```
-  [FONTES REGULATÓRIAS]          [INTELIGÊNCIA DOCUMENTAL]         [BASE DE CONHECIMENTO]
-  FAA, EASA e ANAC Live          Gemini 3.7 Flash Confinado        Knowledge Facts Reutilizáveis
-          │                                  │                                  │
-          ▼                                  ▼                                  ▼
-┌─────────────────────────────────────────────────────────────────────────────────────────────┐
+  [FONTES REGULATÓRIAS]          [ORQUESTRADOR DE IA CENTRAL]       [BASE DE CONHECIMENTO]
+  FAA, EASA e ANAC Live          Gemini 3.8 Flash (CAP-029)         Knowledge Facts Reutilizáveis
+          │                      Fallback Multi-tier & SHA-256                   │
+          ▼                                  │                                   ▼
+┌────────────────────────────────────────────┴────────────────────────────────────────────────┐
 │                             CAMO REGULATORY REGISTER & SCREENING                            │
 └──────────────────────────────────────────────┬──────────────────────────────────────────────┘
                                                │
@@ -97,19 +97,19 @@ A arquitetura do CAMO Engine é desacoplada, orientada a eventos e estritamente 
 
 ---
 
-## 5. ESTADO ATUAL (RELEASE 9.5.2)
+## 5. ESTADO ATUAL (RELEASE 9.7.1)
 
-* **Versão Canônica:** `Release 9.5.2` (Active Living Architecture)
-* **Suíte de Testes Automatizados:** 14 arquivos de teste no Vitest, **148 testes unitários, de integração e de máquinas de estado — 100% PASSING**.
+* **Versão Canônica:** `Release 9.7.1` (Evoluída a partir da Release 9.5.2 e 9.7.0 • AI Model Orchestration & Continuous Upgrade com Gemini 3.8 Flash)
+* **Suíte de Testes Automatizados:** 16 arquivos de teste no Vitest, **159 testes unitários, de integração e de máquinas de estado — 100% PASSING**.
 * **Frontend:** 27 Visões de cockpit executivo e engenharia em React 18, Tailwind CSS e Lucide Icons.
-* **Backend:** Servidor Express com **73+ endpoints REST especializados** e 14 submódulos de domínio.
+* **Backend:** Servidor Express com **79+ endpoints REST especializados** e 15 submódulos de domínio.
 * **Integridade TypeScript & Linter:** 0 erros no compilador (`tsc --noEmit`), compilação de produção aprovada via Vite + esbuild.
 
 ---
 
-## 6. CAPACIDADES IMPLEMENTADAS (CAP-001 A CAP-026)
+## 6. CAPACIDADES IMPLEMENTADAS (CAP-001 A CAP-029)
 
-O sistema possui **22 capacidades ativas homologadas** no [Capability Registry](./CAPABILITY_REGISTRY.md):
+O sistema possui **25 capacidades ativas homologadas** no [Capability Registry](./CAPABILITY_REGISTRY.md):
 
 * **CAP-001 a CAP-005:** Inventário de Frota, Extração Gemini AI, Motor Booleano V2, Memória Técnica e Emissão de FAPTs Digitais.
 * **CAP-006 a CAP-010:** Conector Federal Register FAA, Cofre com Anti-SSRF, Descoberta Contínua, Screening de Frota e Pipeline de 8 Estágios.
@@ -117,6 +117,9 @@ O sistema possui **22 capacidades ativas homologadas** no [Capability Registry](
 * **CAP-016 a CAP-020:** Central de Ajuda, Gestão de Configuração Real, Descoberta Aberta Universal, CAMO Register e Fila de Análise Técnica.
 * **CAP-025:** Gestão Cadastral da Frota, Edição, Inativação de Status (`DECOMMISSIONED`, `STORED`) e Exclusão Segura com Desassociação em Cascata.
 * **CAP-026:** Governança Viva, Memória Estratégica Independente e Contrato de Desenvolvimento para IA.
+* **CAP-027:** Inteligência de Boletins de Serviço (SB), extração regex, checklists de cumprimento de engenharia e homologação técnica.
+* **CAP-028:** Controle de Manutenção (PCM) & Ledger Criptográfico Imutável de Configuração da Aeronave (SHA-256 auditHash).
+* **CAP-029:** Orquestração Centralizada de Modelos de IA (`AIModelOrchestrator`), Upgrade para Gemini 3.8 Flash, Fallback Multi-tier e Trilha Criptográfica de Execução (`AiExecutionTrace`).
 
 ---
 
@@ -126,16 +129,16 @@ O roadmap priorizado define o sequenciamento técnico por dependência arquitetu
 
 * **P0 — Fundamentos / Críticos:** Isolamento transacional fino em `dataStore.ts`, governança viva e trilha de auditoria encadeada Merkle Tree.
 * **P1 — Próxima Evolução (Q1/Q2 2027):** Conectores diretos live REST para EASA SPT e ANAC SISAC (`CAP-021`), ações terminatórias multietapas (`CAP-022`) e superação parcial parametrizada por MSN/PN (`CAP-023`).
-* **P2 — Expansão Maintenance Control (Q3/Q4 2027):** Programa de Manutenção Aprovado (AMP/MPD), Ordens de Serviço (Work Orders) e controle de vida limite de partes descartáveis (LLP).
+* **P2 — Expansão Maintenance Control (Q3/Q4 2027):** Programa de Manutenção Aprovado (AMP/MPD), Ordens de Serviço (Work Orders / EO) e controle de vida limite de partes descartáveis (LLP).
 * **FUTURE — Visão de Longo Prazo (2028+):** Telemetria ACARS em tempo real, inteligência de redelivery contratual de leasing e integração com portais OEM Boeing/Airbus.
 
 ---
 
 ## 8. PRÓXIMOS PASSOS IMEDIATOS
 
-1. Conectar a esteira de CI/CD para validação automática dos 148 testes a cada push.
-2. Expandir a suite de conectores oficiais com o protótipo do conector EASA Safety Publications Tool (SPT).
-3. Implementar a interface de estruturação de tarefas recorrentes do Programa de Manutenção da Aeronave (AMP).
+1. Conectar a esteira de CI/CD para validação automática dos 152 testes a cada push.
+2. Expandir a suite de conectores oficiais com o conector EASA Safety Publications Tool (SPT).
+3. Implementar a interface de estruturação de Ordens de Engenharia (EOs) a partir de SBs analisados.
 
 ---
 
@@ -150,8 +153,11 @@ A governança do projeto é organizada em uma **cadeia documental interligada e 
 [PRODUCT_VISION_ROADMAP.md]
   │  Direção estratégica de produto (PCM + CAMO), limites e priorização
   ▼
+[SYSTEM_DESIGN.md]
+  │  Documento canônico vivo de design de sistema, axiomas e topologia de componentes
+  ▼
 [CAPABILITY_REGISTRY.md]
-  │  Catálogo canônico e auditado de capacidades (CAP-001 a CAP-026)
+  │  Catálogo canônico e auditado de capacidades (CAP-001 a CAP-028)
   ▼
 [DOSSIE_ARQUITETURA_SISTEMA_CAMO.md]
   │  Especificação técnica profunda, submódulos, endpoints e invariantes

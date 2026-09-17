@@ -1,8 +1,8 @@
 # AI DEVELOPMENT GUIDE — CONTRATO DE DESENVOLVIMENTO AUTÔNOMO
 ## Diretrizes Operacionais, Invariantes e Protocolo de Execução para Agentes de IA
 **Documento Canônico de Governança para Engenharia Assistida por IA**  
-**Versão:** Release 9.5.2 (Active Living Architecture)  
-**Data:** 14 de Setembro de 2026  
+**Versão:** Release 9.7.1 (Active Living Architecture & AI Model Orchestration)  
+**Data:** 17 de Setembro de 2026  
 **Autoridade:** Governança Técnica & Arquitetura do Sistema CAMO  
 **Status:** VIVO • OBRIGATÓRIO • CONTRATO INEGOCIÁVEL  
 
@@ -22,9 +22,10 @@ Antes de propor planos, executar edições em código ou criar arquivos, a IA **
 
 1. **`AI_DEVELOPMENT_GUIDE.md`** (este documento): Regras de ouro e invariantes de segurança.
 2. **`PRODUCT_VISION_ROADMAP.md`**: Visão do produto, limites de escopo e priorização estratégica.
-3. **`DOSSIE_ARQUITETURA_SISTEMA_CAMO.md`**: Topologia de componentes, submódulos e comportamento de engenharia.
-4. **`CAPABILITY_REGISTRY.md`**: Catálogo de capacidades oficiais cadastradas (`CAP-001` a `CAP-026`).
-5. **`SYSTEM_CURRENT_STATE_AUDIT.md`**: Auditoria do estado real mais recente do sistema.
+3. **`SYSTEM_DESIGN.md`**: Documento canônico vivo de design de sistema, axiomas e topologia de componentes.
+4. **`DOSSIE_ARQUITETURA_SISTEMA_CAMO.md`**: Topologia de componentes, submódulos e comportamento de engenharia.
+5. **`CAPABILITY_REGISTRY.md`**: Catálogo de capacidades oficiais cadastradas (`CAP-001` a `CAP-028`).
+6. **`SYSTEM_CURRENT_STATE_AUDIT.md`**: Auditoria do estado real mais recente do sistema.
 
 Após a leitura dos documentos de governança, a IA deve **auditar o código-fonte real**:
 * Modelos de dados em `src/types.ts`.
@@ -49,7 +50,7 @@ Toda IA que opere neste repositório está estritamente submetida às 12 regras 
 7. **Proibição Absoluta de Inventar Dados Ausentes (Anti-Alucinação):** Ausência de dados de frota (ex: falta de número de série de atuador ou histórico de SB) gera estritamente `INSUFFICIENT_DATA` ou `REVIEW_REQUIRED`. É terminantemente proibido assumir conformidade ou declarar `NOT_APPLICABLE` por falta de informação.
 8. **Isolamento Rígido entre Contextos:** Preservar a segregação entre frotas de operadores distintos e, criticamente, entre a **Frota Ativa em Operação** e o **Sandbox de Pré-Entrega / Lessors (CAP-015)**. Uma aeronave candidata em auditoria nunca deve afetar a telemetria da frota operacional.
 9. **Preservação de Histórico e Auditabilidade Append-Only:** Jamais sobrescreva ou apague registros históricos de auditoria. Modificações de dados de aeronaves, status ou componentes devem gerar registros rastreáveis no Livro de Auditoria com carimbo temporal.
-10. **Princípio Zero da IA Confinada:** Modelos de Linguagem e IA generativa (Gemini 3.7 Flash) atuam unicamente na extração, tradução e estruturação documental a partir de texto bruto. A IA nunca toma decisões de aplicabilidade nem declara conformidade de aeronaves.
+10. **Princípio Zero da IA Confinada & Orquestração Controlada:** Modelos de Linguagem e IA generativa (orquestrados centralmente via `AIModelOrchestrator`, com modelo primário homologado Gemini 3.8 Flash, fallback multi-tier e rastreabilidade criptográfica SHA-256) atuam unicamente na extração, tradução e estruturação documental a partir de texto bruto. A IA nunca toma decisões de aplicabilidade nem declara conformidade de aeronaves. A troca ou promoção de modelos de IA é estritamente isolada e nunca afeta as regras determinísticas do CAMO Engine.
 11. **Significado do Hash SHA-256:** Hashes criptográficos gerados no sistema representam **integridade e verificação matemática contra adulteração acidental ou intencional**, e não uma barreira mágica contra intervenções em banco local.
 12. **Rastreabilidade Completa de Mudanças:** Toda evolução de código deve preservar referências a usuários, licenças de engenharia (quando aplicável) e justificativas técnicas documentadas.
 
@@ -86,6 +87,7 @@ Qualquer implementação executada por IA deve percorrer estritamente as seguint
 > **REGRA DE OURO:** Uma tarefa NÃO está concluída se o código estiver implementado mas a documentação estiver defasada ou divergente.
 
 Ao finalizar qualquer implementação, a IA deve inspecionar e atualizar:
+* **`SYSTEM_DESIGN.md`**: Atualizar axiomas, esquemas de dados e topologia de componentes se houver evolução arquitetural.
 * **`DOSSIE_ARQUITETURA_SISTEMA_CAMO.md`**: Atualizar número de endpoints, catálogo de módulos, fluxos e versão.
 * **`CAPABILITY_REGISTRY.md`**: Atualizar status, versão e cobertura de testes da capacidade afetada.
 * **`PRODUCT_VISION_ROADMAP.md`**: Atualizar a matriz de dependências, limitações e próximos passos.

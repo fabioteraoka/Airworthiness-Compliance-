@@ -1081,5 +1081,23 @@
         }
       ]
     }
-  ]
+  ],
+  "aiOrchestratorConfig": {
+    "provider": "Google Gemini",
+    "selectionPolicy": "LATEST_STABLE",
+    "primaryModel": "gemini-3.8-flash",
+    "fallbackModels": [
+      "gemini-flash-latest",
+      "gemini-3.1-flash-lite"
+    ],
+    "pipelineVersion": "9.7.1",
+    "promptVersion": "9.7.1-camov4",
+    "schemaVersion": "9.7.1-airworthiness-json",
+    "maxRetries": 2,
+    "timeoutMs": 12000,
+    "lastModelUpdate": "2026-09-17T00:00:00.000Z",
+    "continuousUpgradeStatus": "MONITORING"
+  },
+  "aiExecutionTraces": [],
+  "discoveredAiModels": []
 }

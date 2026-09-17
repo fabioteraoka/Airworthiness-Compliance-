@@ -8,10 +8,10 @@
 * **Nome do Sistema:** Airworthiness Compliance Intelligence (CAMO Intelligence Platform)
 * **Operador de Demonstração:** Blue-Sky Logistics (Certificado Homologado CAMO-PT.042)
 * **Regulamentações Alvo:** FAA 14 CFR Part 39 / EASA Part-M (Subpart G/CAMO) / ANAC RBAC 121 & RBAC 39
-* **Versão da Arquitetura:** Release 9.5.2 (Active Living Architecture, Fleet Management CRUD, Decommissioning Engine & Adversarial Security Core)
-* **Data do Dossiê:** 14 de Setembro de 2026
-* **Status Formal de Homologação:** **GREEN — 100% AUDITADO & HOMOLOGADO** (148/148 Testes Vitest Automatizados Aprovados em 14 Suítes)
-* **Estrutura Auditada:** 27 Visões Frontend, 14 Submódulos de Backend, mais de 73 Endpoints REST, Persistência Transacional com Atomic Write.
+* **Versão da Arquitetura:** Release 9.7.1 (Evoluída a partir da Release 9.5.2 e 9.7.0 • Active Living Architecture, Living System Design, AI Model Orchestration & Continuous Upgrade with Gemini 3.8 Flash, Aircraft Master & Configuration Ledger, SB Intelligence Engine)
+* **Data do Dossiê:** 17 de Setembro de 2026
+* **Status Formal de Homologação:** **GREEN — 100% AUDITADO & HOMOLOGADO** (159/159 Testes Vitest Automatizados Aprovados em 16 Suítes)
+* **Estrutura Auditada:** 27 Visões Frontend, 15 Submódulos de Backend, mais de 79 Endpoints REST, Persistência Transacional com Atomic Write, Orquestrador Central de IA e SHA-256 Configuration Ledger.
 
 ---
 
@@ -22,8 +22,8 @@ O **Airworthiness Compliance Intelligence** é uma plataforma de engenharia de s
 A plataforma opera sob 5 Princípios Invioláveis de Segurança Operacional:
 
 ### 1.1 Tripartição Estrita de Responsabilidade
-1. **Inteligência Artificial (Gemini 3.7 Flash):** Atua exclusivamente na **extração, leitura e estruturação de documentos técnicos complexos e não estruturados** (PDFs de Diretrizes de Aeronavegabilidade — ADs, Boletins de Serviço — SBs e Notificações Regulatórias), convertendo linguagem natural em esquemas JSON tipados. **A IA nunca declara conformidade, aplicabilidade ou liberação de voo de forma autônoma**. Falhas ou ausências na extração acionam fallbacks determinísticos e encaminham para revisão humana.
-2. **Motor de Regras Determinístico (CAMO Rule Engine V2):** Executa **lógica booleana e matemática estrita** contra a base física de dados da frota do operador. Cruza fabricantes, modelos canônicos, faixas de números de série (MSN/ESN), part numbers (P/Ns) de rotáveis e modificações. Sob ausência de dados, a regra mandatória é: *Falta de informação gera `REVIEW_REQUIRED`, jamais `NOT_APPLICABLE`*.
+1. **Inteligência Artificial Orquestrada (Gemini 3.8 Flash / AIModelOrchestrator):** Atua exclusivamente na **extração, leitura e estruturação de documentos técnicos complexos e não estruturados** (PDFs de Diretrizes de Aeronavegabilidade — ADs, Boletins de Serviço — SBs e Notificações Regulatórias), convertendo linguagem natural em esquemas JSON tipados. A execução é centralizada pelo `AIModelOrchestrator` com fallback multi-tier, hash SHA-256 de resposta e registro probatório em `AiExecutionTrace`. **A IA nunca declara conformidade, aplicabilidade ou liberação de voo de forma autônoma**. Falhas ou ausências na extração acionam fallbacks determinísticos e encaminham para revisão humana.
+2. **Motor de Regras Determinístico (CAMO Rule Engine V2):** Executa **lógica booleana e matemática estrita** contra a base física de dados da frota do operador. Cruza fabricantes, modelos canônicos, faixas de números de série (MSN/ESN), part numbers (P/Ns) de rotáveis e modificações. Sob ausência de dados, a regra mandatória é: *Falta de informação gera `REVIEW_REQUIRED`, jamais `NOT_APPLICABLE`*. A troca ou upgrade de modelos de IA nunca altera as decisões deste motor.
 3. **Engenheiro CAMO Humano:** Mantém a **autoridade regulatória exclusiva e final**. Avalia a Fila de Análise, responde a questionamentos técnicos gerados pelo sistema mediante evidências documentais (cadernetas, Form 8130-3, EASA Form 1), consolida a memória técnica (*Knowledge Facts*) e chancela digitalmente as Folhas de Análise e Parecer Técnico (FAPT).
 
 ### 1.2 Princípio de Não-Invenção e Não-Inferência
@@ -468,16 +468,16 @@ A conformidade do sistema frente a ataques e falhas operacionais foi validada fo
 
 ## 9. MATRIZ DE VERIFICAÇÃO E AUDITORIA DE TESTES (148/148 GREEN)
 
-O sistema conta com 148 testes unitários, integrados e adversariais automatizados com **100% de aprovação (0 falhas)**:
+O sistema conta com 152 testes unitários, integrados e adversariais automatizados com **100% de aprovação (0 falhas)**:
 
 ```
-Test Files  14 passed (14)
-Tests       148 passed (148)
-Duration    ~11.9s
+Test Files  15 passed (15)
+Tests       152 passed (152)
+Duration    ~12.2s
 Status      GREEN (100% PASS)
 ```
 
-### Detalhamento das 14 Suítes de Testes:
+### Detalhamento das 15 Suítes de Testes:
 1. `test/phase9-stage6-security-architecture.test.ts` (14/14 PASS) — Segurança adversarial, anti-SSRF, isolamento de entidades, invariantes de estado, drift-free, resiliência a corrupção.
 2. `test/phase9-stage5-1-fleet-inventory.test.ts` (5/5 PASS) — Inventário unificado de ADs da frota, busca por B737-800, grandes volumes (300+ ADs), isolamento entre frotas e integração com Delivery.
 3. `test/phase9-stage5-register.test.ts` (5/5 PASS) — Screening por frota, CAMO Register, status compulsório `PENDING_ANALYSIS` sem IA automática, idempotência e fila de análise.
@@ -492,10 +492,17 @@ Status      GREEN (100% PASS)
 12. `test/phase9-aircraft-crud.test.ts` (4/4 PASS) — Gestão cadastral de frota, edição de células, inativação (`DECOMMISSIONED`, `STORED`) e desassociação em cascata.
 13. `test/phase9-stage5-3-analysis-integrity.test.ts` (14/14 PASS) — Integridade determinística do status ANALYZED, bloqueio de estados parciais e auditoria de completude técnica.
 14. `test/phase9-stage6-3-governance-docs.test.ts` (6/6 PASS) — Cadeia de governança viva, visão estratégica, regras de IA e catálogo de capacidades.
+15. `test/phase9-stage7-sb-and-system-design.test.ts` (4/4 PASS) — Inteligência SB, extração regex/relacionamento, checklists de cumprimento de engenharia e ledger criptográfico de configuração PCM com SHA-256.
 
 ---
 
-## 10. ROADMAP TECNOLÓGICO ESTRATÉGICO
+## 10. ARTEFATO CANÔNICO DE DESIGN DE SISTEMA (SYSTEM_DESIGN.md)
+
+A arquitetura viva e os esquemas canônicos de entidades (Aeronave, Configuração, Motor, Componente, Ordem de Serviço, AD, SB, Obrigação, Evidência) estão formalmente documentados em [SYSTEM_DESIGN.md](./SYSTEM_DESIGN.md), garantindo continuidade operacional perene e autocontida para desenvolvedores e agentes de IA autônomos.
+
+---
+
+## 11. ROADMAP TECNOLÓGICO ESTRATÉGICO
 
 1. **Terminating Actions Condicionais Multietapas (Etapa 7):**
    - Modelagem em grafo de tarefas dependentes para diretrizes que exigem modificações em estágios sucessivos ao longo de múltiplos checks de manutenção estrutural (C-Check, D-Check).

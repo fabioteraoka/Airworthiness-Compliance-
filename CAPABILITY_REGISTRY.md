@@ -1,9 +1,9 @@
 # CAPABILITY REGISTRY — CAMO AIRWORTHINESS COMPLIANCE INTELLIGENCE
 ## Registro Formal de Capacidades do Sistema de Engenharia CAMO
-**Versão do Registro:** Release 9.7.0 (Homologada na Fase 9 Etapa 7: System Design Vivo + Aircraft Master & Configuration + Inteligência AD/SB)  
-**Data da Emissão:** 16 de Setembro de 2026  
+**Versão do Registro:** Release 9.7.1 (Evoluída a partir da Release 9.5.2 e 9.7.0 • Fase 9 Etapa 7.1: Orquestração de IA & Upgrade Contínuo com Gemini 3.8 Flash)  
+**Data da Emissão:** 17 de Setembro de 2026  
 **Autoridade de Governança:** Diretoria Técnica de Engenharia & Governança CAMO  
-**Status do Registro:** VIVO • HOMOLOGADO • SINCRONIZADO COM CÓDIGO-FONTE (152/152 TESTES VERDES)  
+**Status do Registro:** VIVO • HOMOLOGADO • SINCRONIZADO COM CÓDIGO-FONTE (159/159 TESTES VERDES)  
 
 ---
 
@@ -37,17 +37,19 @@ Este documento constitui o catálogo oficial, versionado e independente de capac
 ---
 
 ### CAP-002: Gemini AI Regulatory Document Extraction
-* **NAME:** Extração de Diretrizes Técnicas via Inteligência Artificial Confinada
-* **DESCRIPTION:** Leitura, OCR e conversão estruturada de texto narrativo não estruturado de PDFs de ADs em esquemas tipados (`ExtractedAdData`), identificando autoridade emissora, aplicabilidade declarada, thresholds iniciais, intervalos e parágrafos mandatórios.
+* **NAME:** Extração de Diretrizes Técnicas via Inteligência Artificial Confinada (Gemini 3.8 Flash)
+* **DESCRIPTION:** Leitura, OCR e conversão estruturada de texto narrativo não estruturado de PDFs de ADs em esquemas tipados (`ExtractedAdData`), identificando autoridade emissora, aplicabilidade declarada, thresholds iniciais, intervalos e parágrafos mandatórios via modelo primário homologado Gemini 3.8 Flash orquestrado centralmente com fallback multinível.
 * **STATUS:** `IMPLEMENTED`
-* **VERSION:** 9.4.0
-* **MODULES:** `server/geminiService.ts`, `src/components/AdUploadView.tsx`
+* **VERSION:** 9.7.1
+* **MODULES:** `server/geminiService.ts`, `server/camoEngine/aiModelOrchestrator.ts`, `src/components/AdUploadView.tsx`
 * **ENDPOINTS:** `POST /api/extract-ad`, `POST /api/requirements/:id/retry-extraction`
-* **DEPENDENCIES:** `@google/genai` (Gemini 3.7 Flash), `pdf-parse`
-* **TESTS:** `test/retry-extraction.test.ts`, `test/phase9-e2e-integration.test.ts`
-* **SECURITY:** Execução estritamente server-side (chave `GEMINI_API_KEY` isolada); resposta validada contra schema estrito; fallback determinístico em caso de quota esgotada ou erro de rede.
+* **DEPENDENCIES:** `@google/genai` (Gemini 3.8 Flash), `pdf-parse`
+* **TESTS:** `test/retry-extraction.test.ts`, `test/phase9-e2e-integration.test.ts`, `test/phase9-stage7-1-ai-orchestration.test.ts`
+* **SECURITY:** Execução estritamente server-side (chave `GEMINI_API_KEY` isolada); resposta validada contra schema estrito; hash criptográfico SHA-256 da resposta; fallback determinístico e tracing de auditoria.
 * **ARCHITECTURE:** Camada de extração pura. A IA apenas preenche o draft do requisito técnico; **nunca** determina aplicabilidade ou conformidade na frota.
-* **DOCUMENTATION:** `DOSSIE_ARQUITETURA_SISTEMA_CAMO.md` (Seção 1 e Seção 4).
+* **DOCUMENTATION:** `DOSSIE_ARQUITETURA_SISTEMA_CAMO.md` (Seção 1 e Seção 4), `SYSTEM_DESIGN.md` (Seção 3.7).
+* **ROADMAP:** Suporte a extração multimodal de diagramas estruturais complexos.
+* **LIMITATIONS:** Requer credenciais ativas da API Gemini e conectividade segura.
 * **ROADMAP:** Integração com modelos Gemini multimodal para diagramas de Service Bulletins anexados.
 * **LIMITATIONS:** Sujeito a latência de rede externa e cotas da API de IA.
 
@@ -452,12 +454,63 @@ Este documento constitui o catálogo oficial, versionado e independente de capac
 * **MODULES:** `server.ts`, `src/components/ArchitectureView.tsx`, `src/components/ArchitectureDossierModal.tsx`, `PRODUCT_VISION_ROADMAP.md`, `AI_DEVELOPMENT_GUIDE.md`
 * **ENDPOINTS:** `GET /api/system/capabilities`, `GET /api/system/audit`, `GET /api/system/product-vision`, `GET /api/system/ai-development-guide`, `GET /api/architecture-dossier`
 * **DEPENDENCIES:** Sistema de arquivos e integridade Markdown em UTF-8.
-* **TESTS:** `test/phase9-governance-docs.test.ts`
+* **TESTS:** `test/phase9-governance-docs.test.ts`, `test/phase9-stage6-3-governance-docs.test.ts`
 * **SECURITY:** Rastreabilidade estrita de versões, validação de invariantes regulatórios e bloqueio de criação de arquiteturas paralelas.
-* **ARCHITECTURE:** Cadeia integrada de governança: README (resumo) ➔ Product Vision (direção estratégica) ➔ Capability Registry (capacidades) ➔ Dossiê (arquitetura técnica) ➔ AI Dev Guide (regras de evolução).
-* **DOCUMENTATION:** `DOSSIE_ARQUITETURA_SISTEMA_CAMO.md`, `AI_DEVELOPMENT_GUIDE.md`, `PRODUCT_VISION_ROADMAP.md`.
+* **ARCHITECTURE:** Cadeia integrada de governança: README (resumo) ➔ Product Vision (direção estratégica) ➔ Capability Registry (capacidades) ➔ Dossiê (arquitetura técnica) ➔ AI Dev Guide (regras de evolução) ➔ System Design (design de sistema).
+* **DOCUMENTATION:** `DOSSIE_ARQUITETURA_SISTEMA_CAMO.md`, `AI_DEVELOPMENT_GUIDE.md`, `PRODUCT_VISION_ROADMAP.md`, `SYSTEM_DESIGN.md`.
 * **ROADMAP:** Validação de conformidade de código em tempo de commit contra os invariantes do AI Dev Guide via linter customizado.
 * **LIMITATIONS:** Documentação mantida em sincronia manual disciplinada por agentes e desenvolvedores durante cada pull request ou etapa de desenvolvimento.
+
+---
+
+### CAP-027: Service Bulletin (SB) Intelligence & Engineering Accomplishment Checklists
+* **NAME:** Inteligência de Boletins de Serviço (SB) e Checklists de Cumprimento de Engenharia
+* **DESCRIPTION:** Motor de identificação, extração regex e mapeamento ontológico de Boletins de Serviço (SB), Boletins de Alerta (ASB) e Boletins de Requisitos (RB) referenciados em ADs. Classifica o relacionamento regulatório (`MANDATORY_INCORPORATION`, `TERMINATING_ACTION`, `ALTERNATIVE_METHOD`, `REFERENCE_ONLY`), gera checklists estruturados de cumprimento de engenharia (aplicabilidade, prévia incorporação em serviço, ações mandatórias de inspeção/modificação, peças requeridas) e integra a homologação técnica humana ao ciclo determinístico de análise da AD.
+* **STATUS:** `IMPLEMENTED`
+* **VERSION:** 9.7.0
+* **MODULES:** `server/camoEngine/regulatoryIntelligenceEngine.ts`, `src/types.ts`
+* **ENDPOINTS:** Integrado ao motor de inteligência regulatória e avaliação de completude da AD.
+* **DEPENDENCIES:** `server/dataStore.ts`
+* **TESTS:** `test/phase9-stage7-sb-and-system-design.test.ts`
+* **SECURITY:** Validação de integridade, bloqueio de status ANALYZED se SB mandatório não estiver estruturado, e assinatura técnica obrigatória para homologação de SB.
+* **ARCHITECTURE:** A AD diz o que é mandatório; o SB detalha como a ação técnica é implementada. A inteligência do CAMO conecta ambos e integra ao avaliador determinístico de 8 etapas.
+* **DOCUMENTATION:** `SYSTEM_DESIGN.md` (Seção 3.3), `DOSSIE_ARQUITETURA_SISTEMA_CAMO.md` (Fase 9 Etapa 7).
+* **ROADMAP:** Integração com bibliotecas OEM digitais (Boeing Toolbox / Airbus World) para ingestão automatizada de PDFs de SBs completos.
+* **LIMITATIONS:** Extração textual baseada no texto público da AD e referências documentais; SBs restritos exigem upload manual do operador.
+
+---
+
+### CAP-028: Maintenance Control (PCM) & Cryptographic Aircraft Configuration Ledger
+* **NAME:** Controle de Manutenção (PCM) & Ledger Criptográfico Imutável de Configuração da Aeronave
+* **DESCRIPTION:** Livro-razão (ledger) histórico, indelével e criptograficamente selado para rastrear todas as alterações de configuração física da aeronave. Registra eventos de instalação, remoção, modificação, inspeção, liberação de manutenção e incorporação de SBs (`AircraftConfigurationHistoryRecord`) com carimbo de TSN/CSN no evento, ator/autorizador, referências de ordens de serviço (Work Order / Task Card) e hash de integridade SHA-256 (`auditHash` / `recordHash`), assegurando trilha de auditoria à prova de adulteração.
+* **STATUS:** `IMPLEMENTED`
+* **VERSION:** 9.7.0
+* **MODULES:** `server/dataStore.ts`, `src/types.ts`
+* **ENDPOINTS:** `server/dataStore.ts` (`recordConfigurationChange`)
+* **DEPENDENCIES:** Node.js `crypto`
+* **TESTS:** `test/phase9-stage7-sb-and-system-design.test.ts`
+* **SECURITY:** Cada registro possui hash SHA-256 irrevogável calculado sobre todos os metadados do evento de configuração; audit trail centralizado e inviolável.
+* **ARCHITECTURE:** Base do sistema PCM integrado ao CAMO: a configuração física real é a âncora da aplicabilidade e da conformidade da aeronave.
+* **DOCUMENTATION:** `SYSTEM_DESIGN.md` (Seção 3.6), `DOSSIE_ARQUITETURA_SISTEMA_CAMO.md` (Fase 9 Etapa 7).
+* **ROADMAP:** Encadeamento de blocos em Merkle Tree para auditoria externa de autoridades regulatórias.
+* **LIMITATIONS:** Registros são imutáveis; correções exigem a emissão de um novo evento de ajuste com justificativa técnica.
+
+---
+
+### CAP-029: AI Model Orchestration & Continuous Model Upgrade
+* **NAME:** Orquestração de Modelos de IA & Upgrade Contínuo com Gemini 3.8 Flash
+* **DESCRIPTION:** Módulo de gerenciamento centralizado (`AIModelOrchestrator`) que desacopla o CAMO Engine de modelos de IA fixos ou obsoletos. Implementa políticas dinâmicas (`LATEST_STABLE`, `PINNED`, `FALLBACK`, `DISABLED`), fallback multinível com backoff exponencial para erros 503/429, rastreabilidade criptográfica obrigatória de cada execução (`AiExecutionTrace` com SHA-256 da resposta), monitoramento de saúde em runtime e blindagem absoluta das regras determinísticas de aplicabilidade e conformidade.
+* **STATUS:** `IMPLEMENTED`
+* **VERSION:** 9.7.1
+* **MODULES:** `server/camoEngine/aiModelOrchestrator.ts`, `server/geminiService.ts`, `server.ts`, `src/types.ts`, `src/components/AiOrchestratorStatusModal.tsx`
+* **ENDPOINTS:** `GET /api/ai/models`, `GET /api/ai/runtime-status`, `GET /api/ai/config`, `POST /api/ai/config`, `GET /api/ai/traces`, `POST /api/ai/test-probe`, `POST /api/ai/discover`
+* **DEPENDENCIES:** `@google/genai` (SDK 2.4.0), Node.js `crypto`
+* **TESTS:** `test/phase9-stage7-1-ai-orchestration.test.ts`
+* **SECURITY:** Execução estritamente server-side; isolamento criptográfico; hash SHA-256 para auditoria regulatória; proibição de modelos legados depreciados (`gemini-1.5-*`, `gemini-2.0-*`); invariante de isolamento determinístico.
+* **ARCHITECTURE:** Autoridade centralizada de resolução de modelos. A IA extrai e estrutura; o CAMO Engine decide de forma 100% determinística.
+* **DOCUMENTATION:** `SYSTEM_DESIGN.md` (Seção 3.7), `DOSSIE_ARQUITETURA_SISTEMA_CAMO.md` (Fase 9 Etapa 7.1), `AI_DEVELOPMENT_GUIDE.md` (Regra 10).
+* **ROADMAP:** Benchmarking contínuo automatizado com dataset sintético de 50 ADs de teste a cada novo modelo anunciado pelo Google AI.
+* **LIMITATIONS:** A descoberta de novos modelos requer chave com permissões `models.list`; novos modelos exigem homologação formal prévia antes de promoção a primário.
 
 ---
 
@@ -466,7 +519,7 @@ Este documento constitui o catálogo oficial, versionado e independente de capac
 | CAP-ID | Nome Curto | Status | Versão | Módulos Centrais | Cobertura de Teste |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | **CAP-001** | Domain & Fleet Model | `IMPLEMENTED` | 9.0.0 | `types.ts`, `dataStore.ts`, `FleetView.tsx` | PASS (100%) |
-| **CAP-002** | Gemini AI AD Extraction | `IMPLEMENTED` | 9.4.0 | `geminiService.ts`, `AdUploadView.tsx` | PASS (100%) |
+| **CAP-002** | Gemini AI AD Extraction | `IMPLEMENTED` | 9.7.1 | `geminiService.ts`, `aiModelOrchestrator.ts` | PASS (100%) |
 | **CAP-003** | Rule Engine V2 | `IMPLEMENTED` | 9.3.0 | `ruleEngine.ts`, `applicabilityEvaluator.ts` | PASS (100%) |
 | **CAP-004** | Knowledge Facts & Questions | `IMPLEMENTED` | 9.0.0 | `dataStore.ts`, `AdDetailView.tsx` | PASS (100%) |
 | **CAP-005** | FAPT Digital Signatures | `IMPLEMENTED` | 9.0.0 | `pdfGenerator.ts`, `FaptListView.tsx` | PASS (100%) |
@@ -488,9 +541,12 @@ Este documento constitui o catálogo oficial, versionado e independente de capac
 | **CAP-021** | Live EASA/ANAC Connectors | `PLANNED` | 10.0.0 | `easaSptConnector.ts`, `anacSisacConnector.ts` | Planejado |
 | **CAP-022** | Multi-Step Terminating Action | `PLANNED` | 10.0.0 | `complianceObligationService.ts` | Planejado |
 | **CAP-023** | Partial Supersedence Matrix | `PLANNED` | 10.0.0 | `complianceObligationService.ts`, `ruleEngine.ts` | Planejado |
-| **CAP-024** | SBs & Engineering Orders (EO) | `FUTURE_EXPLORATORY` | 11.0.0 | A definir | Exploratório |
+| **CAP-024** | Engineering Orders (EO) Workflow | `PLANNED` | 11.0.0 | A definir | Planejado |
 | **CAP-025** | Fleet CRUD & Decommissioning | `IMPLEMENTED` | 9.5.2 | `server.ts`, `FleetView.tsx`, `dataStore.ts` | PASS (100%) |
 | **CAP-026** | Living Governance & AI Guide | `IMPLEMENTED` | 9.5.2 | `PRODUCT_VISION_ROADMAP.md`, `AI_DEVELOPMENT_GUIDE.md` | PASS (100%) |
+| **CAP-027** | SB Intelligence & Checklists | `IMPLEMENTED` | 9.7.0 | `regulatoryIntelligenceEngine.ts`, `types.ts` | PASS (100%) |
+| **CAP-028** | PCM Configuration Ledger | `IMPLEMENTED` | 9.7.0 | `dataStore.ts`, `types.ts` | PASS (100%) |
+| **CAP-029** | AI Model Orchestrator & Upgrade | `IMPLEMENTED` | 9.7.1 | `aiModelOrchestrator.ts`, `server.ts` | PASS (100%) |
 
 ---
 *Capability Registry homologado pela Engenharia de Confiabilidade & Governança CAMO.*

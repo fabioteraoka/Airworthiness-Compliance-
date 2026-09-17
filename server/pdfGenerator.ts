@@ -135,7 +135,7 @@ export function generateArchitecturePdf(res: Response, state?: DatabaseState | n
   y += 20;
 
   const flows = [
-    { title: 'Fluxo 1: Upload Manual Avulso', desc: 'Ingestão direta sob demanda para ADs pontuais, ordens locais ou SBs de fabricantes. Aciona IA Gemini 3.7 Flash -> Requisito estruturado -> Rule Engine V2 -> FAPT preliminar.' },
+    { title: 'Fluxo 1: Upload Manual Avulso', desc: 'Ingestão direta sob demanda para ADs pontuais, ordens locais ou SBs de fabricantes. Aciona IA Gemini 3.8 Flash (Orquestrador Multi-Tier com fallback) -> Requisito estruturado -> Rule Engine V2 -> FAPT preliminar.' },
     { title: 'Fluxo 2: Pipeline Autônomo da FAA', desc: 'Varredura periódica e incremental na Federal Register API. Orquestrador de 8 estágios com cofre seguro anti-SSRF, triagem de frota rápida e aprovação humana.' },
     { title: 'Fluxo 3: Inteligência & Lacunas -> CAMO Register -> Fila de Análise', desc: 'Consulta multi-autoridade guiada por frota/modelo. Classificação de deltas (NEW, UPDATED, SUPERSEDED). Importação idempotente PENDING_ANALYSIS (sem acionamento automático de IA). Alimenta a Fila de Análise CAMO e integra com Delivery Assessment.' }
   ];
@@ -168,7 +168,8 @@ export function generateArchitecturePdf(res: Response, state?: DatabaseState | n
     { ph: 'Fase 8', name: 'Central de Ajuda, Manual & Workflow Guiado', desc: 'Manual operacional, FAQs regulatórias e assistente passo a passo integrado à rotina do analista CAMO.' },
     { ph: 'Fase 9.1-3', name: 'Configuração Real & Rotação de Componentes', desc: 'Histórico de P/N e S/N, tracking de motores e componentes rotáveis com impacto direto em aplicabilidade de ADs.' },
     { ph: 'Fase 9.4-5', name: 'Inteligência Regulatória & CAMO Register', desc: 'Screening multi-autoridade, importação PENDING_ANALYSIS (sem IA automática), Fila de Análise e Inventário Unificado.' },
-    { ph: 'Fase 9.6', name: 'Governança Viva & Testes Adversariais', desc: '14 testes de segurança/isolamento, catálogo vivo de APIs (70+ endpoints), 24 capacidades oficiais e 124 testes green.' }
+    { ph: 'Fase 9.6', name: 'Governança Viva & Testes Adversariais', desc: '14 testes de segurança/isolamento, catálogo vivo de APIs (70+ endpoints), 24 capacidades oficiais e 124 testes green.' },
+    { ph: 'Fase 9.7', name: 'Orquestração & Upgrade Contínuo de IA', desc: 'Desacoplamento de modelos, adoção do Gemini 3.8 Flash, fallback multi-tier, rastreabilidade criptográfica SHA-256 e blindagem das regras determinísticas.' }
   ];
 
   fullPhases.forEach((fp, idx) => {
@@ -183,21 +184,22 @@ export function generateArchitecturePdf(res: Response, state?: DatabaseState | n
 
   y += 6;
 
-  // --- SEÇÃO 4: REGISTRO DE CAPACIDADES DO SISTEMA (CAP-001 A CAP-024) ---
+  // --- SEÇÃO 4: REGISTRO DE CAPACIDADES DO SISTEMA (CAP-001 A CAP-025) ---
   doc.fillColor(primaryColor).fontSize(10.5).font('Helvetica-Bold')
-     .text('4. REGISTRO OFICIAL DE CAPACIDADES (24 CAPACIDADES AUDITADAS)', 40, y);
+     .text('4. REGISTRO OFICIAL DE CAPACIDADES (25 CAPACIDADES AUDITADAS)', 40, y);
   doc.rect(40, y + 14, 515, 1).fill(accentColor);
   y += 20;
 
   const capsSummary = [
-    { id: 'CAP-001 a 003', dom: 'Ingestão & Extração', desc: 'Extração Estruturada com Gemini 3.7 Flash, Normalização Tipada e Resolução de Modelos Canônicos.' },
+    { id: 'CAP-001 a 003', dom: 'Ingestão & Extração', desc: 'Extração Estruturada com Gemini 3.8 Flash, Normalização Tipada e Resolução de Modelos Canônicos.' },
     { id: 'CAP-004 a 006', dom: 'Motor Determinístico', desc: 'Avaliação Booleana Determinística, Invariante Zero de Incerteza e Ciclo de Perguntas com Knowledge Facts.' },
     { id: 'CAP-007 a 009', dom: 'Conectores & Cofre', desc: 'Varredura Federal Register, Scoping Filter de Frota e Cofre Seguro com Defesa Anti-SSRF.' },
     { id: 'CAP-010 a 012', dom: 'Pipeline & Ciclo de Vida', desc: 'Pipeline Autônomo 8 Estágios, Ciclo de Vida 13 Estados e Motor de Vencimento Multidimensional.' },
     { id: 'CAP-013 a 015', dom: 'Evidências & Auditoria', desc: 'Cadeia de Custódia Probatória, Laudos Formais FAPT e Auditoria Criptográfica SHA-256 Imutável.' },
     { id: 'CAP-016 a 018', dom: 'Operações & Frota', desc: 'Controle de Aeronavegabilidade da Frota, Sandbox de Delivery Assessment e Manual Operacional Integrado.' },
     { id: 'CAP-019 a 021', dom: 'Configuração Real', desc: 'Configuração Real de Aeronave, Rastreabilidade de Rotáveis P/N e Screening Multi-Autoridade por Frota.' },
-    { id: 'CAP-022 a 024', dom: 'Governança & Análise', desc: 'CAMO Regulatory Register com Fila de Análise, Inventário Unificado de ADs e Governança Viva com Testes Adversariais.' }
+    { id: 'CAP-022 a 024', dom: 'Governança & Análise', desc: 'CAMO Regulatory Register com Fila de Análise, Inventário Unificado de ADs e Governança Viva com Testes Adversariais.' },
+    { id: 'CAP-025', dom: 'Orquestração de IA', desc: 'Orquestração e Upgrade Contínuo de Modelos de IA com Fallback Multi-Tier, Hash SHA-256 e Isolamento Determinístico.' }
   ];
 
   capsSummary.forEach((cs, idx) => {

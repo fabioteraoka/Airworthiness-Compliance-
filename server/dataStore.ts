@@ -31,7 +31,12 @@ import {
   ConfigurationEventType,
   AiOrchestratorConfig,
   AiExecutionTrace,
-  DiscoveredAiModel
+  DiscoveredAiModel,
+  ServiceBulletinDocumentRecord,
+  AdSBDependency,
+  EssentialSbAnalysis,
+  AdSbCrossValidationResult,
+  AdAnalysisCompletenessAssessment
 } from '../src/types';
 
 export interface DatabaseState {
@@ -65,6 +70,11 @@ export interface DatabaseState {
   aiOrchestratorConfig?: AiOrchestratorConfig;
   aiExecutionTraces?: AiExecutionTrace[];
   discoveredAiModels?: DiscoveredAiModel[];
+  sbRepository?: ServiceBulletinDocumentRecord[];
+  adSbDependencies?: AdSBDependency[];
+  sbAnalyses?: EssentialSbAnalysis[];
+  adSbCrossValidations?: AdSbCrossValidationResult[];
+  adCompletenessAssessments?: Record<string, AdAnalysisCompletenessAssessment>;
   lastSuccessfulScan?: string;
 }
 
@@ -903,7 +913,12 @@ Compliance: Within 36 months or 4,500 flight cycles, perform repetitive ultrason
       continuousUpgradeStatus: 'MONITORING'
     },
     aiExecutionTraces: [],
-    discoveredAiModels: []
+    discoveredAiModels: [],
+    sbRepository: [],
+    adSbDependencies: [],
+    sbAnalyses: [],
+    adSbCrossValidations: [],
+    adCompletenessAssessments: {}
   };
 }
 
@@ -1211,6 +1226,21 @@ class DataStore {
         if (!Array.isArray(parsed.discoveredAiModels)) {
           parsed.discoveredAiModels = [];
         }
+        if (!Array.isArray(parsed.sbRepository)) {
+          parsed.sbRepository = [];
+        }
+        if (!Array.isArray(parsed.adSbDependencies)) {
+          parsed.adSbDependencies = [];
+        }
+        if (!Array.isArray(parsed.sbAnalyses)) {
+          parsed.sbAnalyses = [];
+        }
+        if (!Array.isArray(parsed.adSbCrossValidations)) {
+          parsed.adSbCrossValidations = [];
+        }
+        if (!parsed.adCompletenessAssessments || typeof parsed.adCompletenessAssessments !== 'object') {
+          parsed.adCompletenessAssessments = {};
+        }
         parsed.complianceObligations = parsed.obligations;
         if (Array.isArray(parsed.requirements)) {
           for (const req of parsed.requirements) {
@@ -1427,6 +1457,21 @@ Required Actions:
     }
     if (!this.state.configurationHistory || this.state.configurationHistory.length === 0) {
       this.state.configurationHistory = getInitialSeedData().configurationHistory || [];
+    }
+    if (!Array.isArray(this.state.sbRepository)) {
+      this.state.sbRepository = [];
+    }
+    if (!Array.isArray(this.state.adSbDependencies)) {
+      this.state.adSbDependencies = [];
+    }
+    if (!Array.isArray(this.state.sbAnalyses)) {
+      this.state.sbAnalyses = [];
+    }
+    if (!Array.isArray(this.state.adSbCrossValidations)) {
+      this.state.adSbCrossValidations = [];
+    }
+    if (!this.state.adCompletenessAssessments || typeof this.state.adCompletenessAssessments !== 'object') {
+      this.state.adCompletenessAssessments = {};
     }
     return this.state;
   }

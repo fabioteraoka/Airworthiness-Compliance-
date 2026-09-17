@@ -2841,6 +2841,10 @@ export interface AnalysisCompletenessResult {
   complianceStatus?: 'COMPLIANCE_PENDING' | 'COMPLIANCE_EVIDENCED';
   referencedSbsCount?: number;
   sbChecklistsCount?: number;
+  // Phase 9 Stage 8.1 AD-SB Analysis Completion
+  adTechnicalAnalysisCompleteness?: AdTechnicalAnalysisCompleteness;
+  adSbAssessment?: AdAnalysisCompletenessAssessment;
+  fleetApplicabilityState?: 'PENDING_CONFIGURATION' | 'DETERMINED' | 'NOT_APPLICABLE';
 }
 
 export interface RegulatoryRegisterVersionHistory {
@@ -3232,3 +3236,149 @@ export interface AiEngineRuntimeStatus {
   schemaVersion: string;
 }
 
+/**
+ * PHASE 9 — ETAPA 8.1: MVP — AD–SB ANALYSIS COMPLETION
+ */
+
+export type SbRelationshipType = 
+  | 'REQUIRED_BY_AD'
+  | 'REFERENCED_BY_AD'
+  | 'TECHNICAL_DETAIL'
+  | 'APPLICABILITY_SOURCE'
+  | 'ACTION_SOURCE'
+  | 'REVIEW_REQUIRED';
+
+export interface AdSBDependency {
+  id: string;
+  adNumber: string;
+  adId?: string;
+  sbNumber: string;
+  sbRevision?: string;
+  relationshipType: SbRelationshipType;
+  sourcePage?: string | number;
+  sourceSection?: string;
+  sourceText?: string;
+  status: 'PENDING' | 'ANALYZED' | 'NOT_FOUND' | 'CONFLICT' | 'REVIEW_REQUIRED';
+  detectedAt: string;
+  resolvedAt?: string;
+  notes?: string;
+}
+
+export interface ServiceBulletinDocumentRecord {
+  documentId: string;
+  documentType: 'SERVICE_BULLETIN' | 'ALERT_SERVICE_BULLETIN' | 'SERVICE_LETTER' | 'SERVICE_INSTRUCTION';
+  manufacturer: string;
+  documentNumber: string;
+  revision: string;
+  issueDate: string;
+  title: string;
+  source: string;
+  sourceUrl?: string;
+  documentHash: string; // SHA-256
+  retrievedAt: string;
+  rawContent: string; // Original content preserved
+  fileSizeBytes?: number;
+  mimeType?: string;
+}
+
+export interface EssentialSbAnalysis {
+  sbNumber: string;
+  revision: string;
+  manufacturer: string;
+  analyzedAt: string;
+  analyzedBy?: string;
+  aiTraceId?: string;
+  
+  // 1. Applicability / Effectivity
+  applicability: {
+    aircraftModel: string[];
+    msnRange?: { from?: string; to?: string; raw?: string };
+    serialRange?: { from?: string; to?: string; raw?: string };
+    engineModel: string[];
+    componentPn: string[];
+    componentSn: string[];
+    configurationCriteria: string[];
+    effectivityText: string;
+  };
+
+  // 2. Required Action
+  requiredAction: {
+    actionSummary: string;
+    inspectionType: string | null;
+    modificationRequired: boolean;
+    replacementRequired: boolean;
+    repetitiveAction: boolean;
+    terminatingAction: boolean;
+  };
+
+  // 3. Compliance / Threshold Information
+  complianceThreshold: {
+    threshold: string | null;
+    interval: string | null;
+    calendarLimit: string | null;
+    flightHourLimit: number | null;
+    flightCycleLimit: number | null;
+    condition: string | null;
+  };
+
+  // 4. Related Technical Information
+  technicalReferences: Array<{
+    page?: string;
+    section?: string;
+    paragraph?: string;
+    table?: string;
+    figure?: string;
+    notes?: string;
+  }>;
+}
+
+export type CrossValidationStatus = 'CONSISTENT' | 'COMPLEMENTARY' | 'CONFLICT' | 'MISSING' | 'REVIEW_REQUIRED';
+
+export interface AdSbCrossValidationComparison {
+  dimension: 'APPLICABILITY' | 'REQUIRED_ACTION' | 'COMPLIANCE_REQUIREMENT';
+  adValue: string;
+  sbValue: string;
+  status: CrossValidationStatus;
+  details: string;
+  adSourceReference?: { page?: string; section?: string };
+  sbSourceReference?: { page?: string; section?: string };
+}
+
+export interface AdSbCrossValidationResult {
+  adNumber: string;
+  sbNumber: string;
+  sbRevision?: string;
+  overallStatus: CrossValidationStatus;
+  comparisons: {
+    applicability: AdSbCrossValidationComparison;
+    requiredAction: AdSbCrossValidationComparison;
+    complianceRequirement: AdSbCrossValidationComparison;
+  };
+  consolidatedTechnicalKnowledge: {
+    applicabilitySummary: string;
+    actionSummary: string;
+    complianceSummary: string;
+    sources: Array<{ document: string; page?: string; section?: string }>;
+  };
+  requiresHumanReview: boolean;
+  reviewReasons: string[];
+  validatedAt: string;
+}
+
+export type AdTechnicalAnalysisCompleteness = 
+  | 'TECHNICAL_ANALYSIS_COMPLETE' 
+  | 'DEPENDENCY_PENDING' 
+  | 'REVIEW_REQUIRED';
+
+export interface AdAnalysisCompletenessAssessment {
+  adNumber: string;
+  status: AdTechnicalAnalysisCompleteness;
+  summary: string;
+  hasSbDependencies: boolean;
+  totalDependencies: number;
+  resolvedDependencies: number;
+  pendingDependencies: string[];
+  crossValidationResult?: AdSbCrossValidationResult;
+  evaluatedAt: string;
+  fleetApplicabilityState?: 'PENDING_CONFIGURATION' | 'DETERMINED' | 'NOT_APPLICABLE';
+}

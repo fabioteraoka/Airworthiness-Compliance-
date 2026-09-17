@@ -378,7 +378,7 @@
       "issuingAuthority": "FAA",
       "sourceNumber": "2020-24-02",
       "revision": "Original Issue",
-      "title": "Boeing 737 Main Landing Gear (MLG) Actuator Beam Outboard Pin Cracking and Corrosion Inspection",
+      "title": "The Boeing Company Model 737-8 and 737-9 Airplanes - Flight Control Computer (FCC) Software and AOA Sensor System",
       "issueDate": "2020-11-20",
       "effectiveDate": "2021-01-05",
       "emergencyAd": false,
@@ -394,19 +394,15 @@
           "Boeing"
         ],
         "aircraftModels": [
-          "737-600",
-          "737-700",
-          "737-700C",
-          "737-800",
-          "737-900",
-          "737-900ER"
+          "737-8",
+          "737-9"
         ],
         "componentPartNumbers": [
           "65-49200-1",
           "65-49200-2"
         ],
         "affectedConfiguration": "Aircraft equipped with Main Landing Gear Actuator Beam Outboard Pins.",
-        "rawText": "Applicability: The Boeing Company Model 737-600, -700, -700C, -800, -900, and -900ER series airplanes, certificated in any category."
+        "rawText": "The Boeing Company Model 737-8 and 737-9 airplanes, certificated in any category."
       },
       "requirementDetails": {
         "initialThreshold": "Within 36 months or 4,500 flight cycles after effective date of AD.",
@@ -428,7 +424,61 @@
         "mimeType": "application/pdf",
         "documentHash": "9f83a241b77382d56a04871e84a29a3a93c72b83a049d978a3c4839c09931b23",
         "rawExtractedText": "Federal Register / Vol. 85, No. 231 / Tuesday, December 1, 2020 / Rules and Regulations\nFAA AD 2020-24-02: Airworthiness Directives; The Boeing Company Model 737-600, -700, -700C, -800, -900, and -900ER Series Airplanes\nApplicability: This AD applies to The Boeing Company Model 737-600, -700, -700C, -800, -900, and -900ER series airplanes, certificated in any category.\nUnsafe Condition: This AD was prompted by reports of cracked and corroded MLG actuator beam outboard pins.\nCompliance: Within 36 months or 4,500 flight cycles, perform repetitive ultrasonic inspection of pins."
-      }
+      },
+      "softwareRequirements": [
+        {
+          "id": "sw-1789656607780-1",
+          "softwarePartNumber": "2274-COL-AC2-26",
+          "softwareVersion": "P12.1.2",
+          "targetSystem": "Flight Control Computer (FCC)",
+          "targetLru": "FCC A and FCC B",
+          "installationPosition": "Both Left and Right Flight Control Computers",
+          "currentlyInstalledSoftware": [
+            "P11.2",
+            "P11.1",
+            "P10.0",
+            "P10.1"
+          ],
+          "prohibitedSoftware": [
+            "P11.2",
+            "P11.1",
+            "P10.0"
+          ],
+          "mandatedSoftware": "2274-COL-AC2-26",
+          "verificationMethod": "ON_BOARD_DATA_LOAD",
+          "notes": "FCC software version P12.1.2 (P/N 2274-COL-AC2-26) must be loaded on both FCC A and FCC B."
+        }
+      ],
+      "mandatedActions": [
+        {
+          "id": "act-1789656607780-1",
+          "paragraphReference": "Paragraph (g)(1)",
+          "actionType": "AVIONICS_SOFTWARE_LOAD",
+          "description": "Install Flight Control Computer (FCC) software version P12.1.2 (P/N 2274-COL-AC2-26) in both FCC A and FCC B.",
+          "sequence": 1,
+          "accomplishmentReference": {
+            "documentReference": "Boeing Alert Requirements Bulletin 737-22A1011 RB"
+          },
+          "complianceThreshold": {
+            "thresholdType": "BEFORE_FURTHER_FLIGHT",
+            "rawDescription": "Before further flight"
+          }
+        },
+        {
+          "id": "act-1789656607780-2",
+          "paragraphReference": "Paragraph (g)(2)",
+          "actionType": "OPERATIONAL_PROCEDURE",
+          "description": "Revise Airplane Flight Manual (AFM) Certificate Limitations and Non-Normal Procedures.",
+          "sequence": 2,
+          "complianceThreshold": {
+            "thresholdType": "BEFORE_FURTHER_FLIGHT",
+            "rawDescription": "Before further flight"
+          }
+        }
+      ],
+      "missingFields": [],
+      "documentProcessingStatus": "EXTRACTED",
+      "extractionStatus": "SUCCESS"
     }
   ],
   "assessments": [
@@ -881,7 +931,90 @@
           "actor": "Chief Technical Engineer",
           "details": "Análise técnica e extração de regras de aplicabilidade concluídas com sucesso."
         }
-      ]
+      ],
+      "analysisCompleteness": {
+        "isComplete": true,
+        "effectiveStatus": "ANALYZED",
+        "summary": "Todas as etapas obrigatórias da análise técnica foram concluídas com sucesso e dados auditáveis.",
+        "completedStepsCount": 9,
+        "totalMandatorySteps": 9,
+        "steps": [
+          {
+            "stepKey": "IDENTIFICATION",
+            "stepName": "Identificação e Metadados Regulatórios",
+            "isMandatory": true,
+            "status": "SUCCESS",
+            "message": "Identificador oficial (2020-24-02), autoridade (FAA) e escopo de modelos (737-600, 737-700, 737-700C, 737-800, 737-900, 737-900ER) validados."
+          },
+          {
+            "stepKey": "DOCUMENT_RETRIEVAL",
+            "stepName": "Aquisição e Integridade Documental",
+            "isMandatory": true,
+            "status": "SUCCESS",
+            "message": "Documento oficial íntegro com hash SHA-256 verificado (9f83a241b773...)."
+          },
+          {
+            "stepKey": "EXTRACTION_INTELLIGENCE",
+            "stepName": "Inteligência Documental e Extração de Entidades",
+            "isMandatory": true,
+            "status": "SUCCESS",
+            "message": "Parâmetros técnicos e cláusulas contratuais/regulatórias extraídos com sucesso."
+          },
+          {
+            "stepKey": "APPLICABILITY_STRUCTURING",
+            "stepName": "Regras de Aplicabilidade e Configuração",
+            "isMandatory": true,
+            "status": "SUCCESS",
+            "message": "Regra de aplicabilidade estruturada com modelos (737-8, 737-9) e critérios físicos."
+          },
+          {
+            "stepKey": "MANDATED_ACTIONS",
+            "stepName": "Ações Mandatórias e Limiares de Cumprimento",
+            "isMandatory": true,
+            "status": "SUCCESS",
+            "message": "Limiares de cumprimento, inspeções ou ações modificativas estruturados."
+          },
+          {
+            "stepKey": "SB_INTELLIGENCE",
+            "stepName": "Inteligência de Boletins de Serviço (SB)",
+            "isMandatory": true,
+            "status": "SUCCESS",
+            "message": "Inteligência técnica de SB concluída: 1 Boletim(ns) de Serviço analisado(s) com checklist de cumprimento e condições de prévia incorporação estruturados."
+          },
+          {
+            "stepKey": "KNOWLEDGE_COMPILATION",
+            "stepName": "Compilação da Base de Conhecimento Regulatório",
+            "isMandatory": true,
+            "status": "SUCCESS",
+            "message": "Conhecimento consolidado com 1 parâmetros de configuração requeridos."
+          },
+          {
+            "stepKey": "FLEET_EVALUATION",
+            "stepName": "Avaliação de Aplicabilidade na Frota",
+            "isMandatory": true,
+            "status": "SUCCESS",
+            "message": "Avaliação de frota realizada com sucesso para 3 aeronave(s) do modelo."
+          },
+          {
+            "stepKey": "AUDIT_LINKAGE",
+            "stepName": "Rastreabilidade e Vinculação Auditável",
+            "isMandatory": true,
+            "status": "SUCCESS",
+            "message": "Vínculo bidirecional auditável validado com o Requisito req-faa-2020-24-02."
+          }
+        ],
+        "failedSteps": [],
+        "reviewSteps": [],
+        "missingRequirement": false,
+        "canTransitionToAnalyzed": true,
+        "evaluatedAt": "2026-09-17T14:50:08.554Z",
+        "adAnalysisComplete": true,
+        "sbAnalysisStatus": "SB_ANALYZED",
+        "applicabilityStatus": "APPLICABILITY_DETERMINED",
+        "complianceStatus": "COMPLIANCE_EVIDENCED",
+        "referencedSbsCount": 1,
+        "sbChecklistsCount": 1
+      }
     },
     {
       "id": "reg-faa-2024-12-05",
@@ -935,7 +1068,90 @@
           "actor": "Safety Inspector",
           "details": "Análise técnica concluída."
         }
-      ]
+      ],
+      "analysisCompleteness": {
+        "isComplete": true,
+        "effectiveStatus": "ANALYZED",
+        "summary": "Todas as etapas obrigatórias da análise técnica foram concluídas com sucesso e dados auditáveis.",
+        "completedStepsCount": 9,
+        "totalMandatorySteps": 9,
+        "steps": [
+          {
+            "stepKey": "IDENTIFICATION",
+            "stepName": "Identificação e Metadados Regulatórios",
+            "isMandatory": true,
+            "status": "SUCCESS",
+            "message": "Identificador oficial (2024-12-05), autoridade (FAA) e escopo de modelos (737-8, 737-9, 737-8200, 737-800) validados."
+          },
+          {
+            "stepKey": "DOCUMENT_RETRIEVAL",
+            "stepName": "Aquisição e Integridade Documental",
+            "isMandatory": true,
+            "status": "SUCCESS",
+            "message": "Documento oficial íntegro com hash SHA-256 verificado (4b7911bca0e7...)."
+          },
+          {
+            "stepKey": "EXTRACTION_INTELLIGENCE",
+            "stepName": "Inteligência Documental e Extração de Entidades",
+            "isMandatory": true,
+            "status": "SUCCESS",
+            "message": "Parâmetros técnicos e cláusulas contratuais/regulatórias extraídos com sucesso."
+          },
+          {
+            "stepKey": "APPLICABILITY_STRUCTURING",
+            "stepName": "Regras de Aplicabilidade e Configuração",
+            "isMandatory": true,
+            "status": "SUCCESS",
+            "message": "Regra de aplicabilidade estruturada com modelos (737-700, 737-800, 737-900, 737-900ER) e critérios físicos."
+          },
+          {
+            "stepKey": "MANDATED_ACTIONS",
+            "stepName": "Ações Mandatórias e Limiares de Cumprimento",
+            "isMandatory": true,
+            "status": "SUCCESS",
+            "message": "Limiares de cumprimento, inspeções ou ações modificativas estruturados."
+          },
+          {
+            "stepKey": "SB_INTELLIGENCE",
+            "stepName": "Inteligência de Boletins de Serviço (SB)",
+            "isMandatory": true,
+            "status": "SUCCESS",
+            "message": "Inteligência técnica de SB concluída: 1 Boletim(ns) de Serviço analisado(s) com checklist de cumprimento e condições de prévia incorporação estruturados."
+          },
+          {
+            "stepKey": "KNOWLEDGE_COMPILATION",
+            "stepName": "Compilação da Base de Conhecimento Regulatório",
+            "isMandatory": true,
+            "status": "SUCCESS",
+            "message": "Conhecimento consolidado com 1 parâmetros de configuração requeridos."
+          },
+          {
+            "stepKey": "FLEET_EVALUATION",
+            "stepName": "Avaliação de Aplicabilidade na Frota",
+            "isMandatory": true,
+            "status": "SUCCESS",
+            "message": "Avaliação de frota realizada com sucesso para 3 aeronave(s) do modelo."
+          },
+          {
+            "stepKey": "AUDIT_LINKAGE",
+            "stepName": "Rastreabilidade e Vinculação Auditável",
+            "isMandatory": true,
+            "status": "SUCCESS",
+            "message": "Vínculo bidirecional auditável validado com o Requisito req-ad-2024-12-05."
+          }
+        ],
+        "failedSteps": [],
+        "reviewSteps": [],
+        "missingRequirement": false,
+        "canTransitionToAnalyzed": true,
+        "evaluatedAt": "2026-09-17T14:50:08.562Z",
+        "adAnalysisComplete": true,
+        "sbAnalysisStatus": "SB_ANALYZED",
+        "applicabilityStatus": "APPLICABILITY_DETERMINED",
+        "complianceStatus": "COMPLIANCE_EVIDENCED",
+        "referencedSbsCount": 1,
+        "sbChecklistsCount": 1
+      }
     },
     {
       "id": "reg-faa-2023-18-04",
@@ -1095,9 +1311,39 @@
     "schemaVersion": "9.7.1-airworthiness-json",
     "maxRetries": 2,
     "timeoutMs": 12000,
-    "lastModelUpdate": "2026-09-17T00:00:00.000Z",
-    "continuousUpgradeStatus": "MONITORING"
+    "lastModelUpdate": "2026-09-17T14:51:53.113Z",
+    "continuousUpgradeStatus": "MONITORING",
+    "pinnedModel": "gemini-3.8-flash"
   },
-  "aiExecutionTraces": [],
-  "discoveredAiModels": []
+  "aiExecutionTraces": [
+    {
+      "traceId": "trace-test-1789656713110",
+      "provider": "Google Gemini",
+      "requestedModel": "gemini-3.8-flash",
+      "resolvedModel": "gemini-3.8-flash",
+      "timestamp": "2026-09-17T14:51:53.110Z",
+      "pipelineVersion": "9.7.1",
+      "promptVersion": "9.7.1-camov4",
+      "schemaVersion": "9.7.1-airworthiness-json",
+      "requestCorrelationId": "ad-extract-test-01",
+      "documentRef": "FAA-AD-2020-24-02.pdf",
+      "executionDurationMs": 420,
+      "retryCount": 0,
+      "fallbackUsed": false,
+      "fallbackChain": [
+        "gemini-3.8-flash",
+        "gemini-flash-latest"
+      ],
+      "validationResult": {
+        "passed": true,
+        "rulesChecked": 10,
+        "failedRules": [],
+        "details": "Mandatory CAMO compliance criteria successfully validated"
+      },
+      "responseHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "finalStatus": "SUCCESS"
+    }
+  ],
+  "discoveredAiModels": [],
+  "complianceObligations": []
 }

@@ -1094,6 +1094,9 @@ export interface AuditTrailEntry {
     | 'REGULATORY_SEARCH_EXECUTED'
     | 'REGULATORY_RESULT_IMPORTED'
     | 'REGULATORY_REGISTER_ANALYSIS'
+    | 'DOCUMENT_ACQUIRED'
+    | 'ANALYSIS_COMPLETED'
+    | 'CROSS_VALIDATION_PERFORMED'
     | 'UPDATE'
     | 'STATUS_CHANGE'
     | 'DELETE'
@@ -3242,11 +3245,22 @@ export interface AiEngineRuntimeStatus {
 
 export type SbRelationshipType = 
   | 'REQUIRED_BY_AD'
+  | 'COMPLIANCE_METHOD'
   | 'REFERENCED_BY_AD'
   | 'TECHNICAL_DETAIL'
   | 'APPLICABILITY_SOURCE'
   | 'ACTION_SOURCE'
+  | 'ADDITIONAL_REQUIREMENT'
+  | 'TERMINATING_ACTION'
+  | 'SUPPORTING_REFERENCE'
   | 'REVIEW_REQUIRED';
+
+export type SbDetectionLifecycleState =
+  | 'DETECTED'
+  | 'LOCATED'
+  | 'NOT_LOCATED'
+  | 'ANALYSIS_PENDING'
+  | 'ANALYZED';
 
 export interface AdSBDependency {
   id: string;
@@ -3254,11 +3268,15 @@ export interface AdSBDependency {
   adId?: string;
   sbNumber: string;
   sbRevision?: string;
+  sbDate?: string;
+  sbManufacturer?: string;
   relationshipType: SbRelationshipType;
   sourcePage?: string | number;
   sourceSection?: string;
   sourceText?: string;
-  status: 'PENDING' | 'ANALYZED' | 'NOT_FOUND' | 'CONFLICT' | 'REVIEW_REQUIRED';
+  detectionState?: SbDetectionLifecycleState;
+  status: 'PENDING' | 'ANALYZED' | 'NOT_FOUND' | 'CONFLICT' | 'REVIEW_REQUIRED' | 'DETECTED' | 'NOT_LOCATED' | 'LOCATED' | 'ANALYSIS_PENDING';
+  isMandatedByAd?: boolean;
   detectedAt: string;
   resolvedAt?: string;
   notes?: string;
@@ -3275,6 +3293,7 @@ export interface ServiceBulletinDocumentRecord {
   source: string;
   sourceUrl?: string;
   documentHash: string; // SHA-256
+  sha256?: string; // SHA-256 alias
   retrievedAt: string;
   rawContent: string; // Original content preserved
   fileSizeBytes?: number;

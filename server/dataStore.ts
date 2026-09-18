@@ -506,7 +506,9 @@ Comply with this AD within the compliance times specified, unless already done.
 FAA AD 2020-24-02: Airworthiness Directives; The Boeing Company Model 737-600, -700, -700C, -800, -900, and -900ER Series Airplanes
 Applicability: This AD applies to The Boeing Company Model 737-600, -700, -700C, -800, -900, and -900ER series airplanes, certificated in any category.
 Unsafe Condition: This AD was prompted by reports of cracked and corroded MLG actuator beam outboard pins.
-Compliance: Within 36 months or 4,500 flight cycles, perform repetitive ultrasonic inspection of pins.`
+(g) Required Actions: Within 36 months or 4,500 flight cycles after the effective date of this AD, perform repetitive ultrasonic inspection of MLG actuator beam outboard pins in accordance with Boeing Alert Requirements Bulletin 737-22A1011 RB, dated November 16, 2020.
+(h) Exceptions to Service Information: Where Boeing Alert Requirements Bulletin 737-22A1011 RB specifies contacting Boeing, contact Seattle ACO.
+(i) Terminating Action: Accomplishment of terminating actions in accordance with Boeing Alert Requirements Bulletin 737-22A1011 RB terminates the repetitive inspection requirements of this AD.`
     }
   };
 
@@ -903,12 +905,12 @@ Compliance: Within 36 months or 4,500 flight cycles, perform repetitive ultrason
       provider: 'Google Gemini',
       selectionPolicy: 'LATEST_STABLE',
       primaryModel: 'gemini-3.8-flash',
-      fallbackModels: ['gemini-flash-latest', 'gemini-3.1-flash-lite'],
+      fallbackModels: ['gemini-3.1-flash-lite', 'gemini-flash-latest'],
       pipelineVersion: '9.7.1',
       promptVersion: '9.7.1-camov4',
       schemaVersion: '9.7.1-airworthiness-json',
       maxRetries: 2,
-      timeoutMs: 12000,
+      timeoutMs: 45000,
       lastModelUpdate: '2026-09-17T00:00:00.000Z',
       continuousUpgradeStatus: 'MONITORING'
     },
@@ -1210,15 +1212,20 @@ class DataStore {
             provider: 'Google Gemini',
             selectionPolicy: 'LATEST_STABLE',
             primaryModel: 'gemini-3.8-flash',
-            fallbackModels: ['gemini-flash-latest', 'gemini-3.1-flash-lite'],
+            fallbackModels: ['gemini-3.1-flash-lite', 'gemini-flash-latest'],
             pipelineVersion: '9.7.1',
             promptVersion: '9.7.1-camov4',
             schemaVersion: '9.7.1-airworthiness-json',
             maxRetries: 2,
-            timeoutMs: 12000,
+            timeoutMs: 45000,
             lastModelUpdate: '2026-09-17T00:00:00.000Z',
             continuousUpgradeStatus: 'MONITORING'
           };
+        } else if (!parsed.aiOrchestratorConfig.timeoutMs || parsed.aiOrchestratorConfig.timeoutMs < 35000) {
+          parsed.aiOrchestratorConfig.timeoutMs = 45000;
+          if (!parsed.aiOrchestratorConfig.fallbackModels || parsed.aiOrchestratorConfig.fallbackModels.length === 0) {
+            parsed.aiOrchestratorConfig.fallbackModels = ['gemini-3.1-flash-lite', 'gemini-flash-latest'];
+          }
         }
         if (!Array.isArray(parsed.aiExecutionTraces)) {
           parsed.aiExecutionTraces = [];
@@ -1369,11 +1376,13 @@ This AD applies to The Boeing Company Model 737-8 and 737-9 airplanes, certifica
 Unsafe Condition:
 This AD was prompted by two fatal accidents involving Boeing Model 737-8 airplanes. The Maneuvering Characteristics Augmentation System (MCAS) flight control law was activated by erroneous AOA sensor data.
 
-Required Actions:
-(1) Install Flight Control Computer (FCC) software version P12.1.2 (P/N 2274-COL-AC2-26).
-(2) Revise Airplane Flight Manual (AFM) Certificate Limitations and Non-Normal Procedures.
-(3) Perform Angle of Attack (AOA) Sensor System Operational and Calibration Test.
-(4) Accomplish Operational Readiness Return-to-Service Flight before passenger service.`;
+(g) Required Actions:
+(1) For Model 737-8 and 737-9 airplanes: Except as specified by paragraph (h) of this AD, at the applicable times specified in Boeing Alert Requirements Bulletin 737-22A1011 RB, dated November 16, 2020: Do all applicable actions identified in, and in accordance with, the Accomplishment Instructions of Boeing Alert Requirements Bulletin 737-22A1011 RB, dated November 16, 2020.
+(2) For Model 737-8 and 737-9 airplanes: Do all applicable actions identified in, and in accordance with, the Accomplishment Instructions of Boeing Alert Requirements Bulletin 737-34A1088 RB, dated November 16, 2020.
+(h) Exceptions to Service Information Specifications:
+Where Boeing Alert Requirements Bulletin 737-22A1011 RB specifies contacting Boeing, this AD requires using a method approved in accordance with Seattle ACO.
+(i) Terminating Action:
+Accomplishment of the actions specified in Boeing Alert Requirements Bulletin 737-22A1011 RB terminates repetitive inspection requirements of this AD.`;
               } else {
                 const lines = [
                   `AIRWORTHINESS DIRECTIVE (REGULATORY OFFICIAL RECORD)`,

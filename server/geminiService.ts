@@ -731,6 +731,12 @@ ABSOLUTE ZERO-FABRICATION SAFETY INVARIANTS (NEVER INVENT DATA):
       aiResolution.resolvedModel,
       ...aiResolution.fallbackChain.filter(m => m !== aiResolution.resolvedModel)
     ];
+    if (!candidateModels.includes('gemini-3.1-flash-lite')) {
+      candidateModels.push('gemini-3.1-flash-lite');
+    }
+    if (!candidateModels.includes('gemini-flash-latest')) {
+      candidateModels.push('gemini-flash-latest');
+    }
 
     try {
       diagnostics.geminiInvoked = true;
@@ -759,7 +765,7 @@ ABSOLUTE ZERO-FABRICATION SAFETY INVARIANTS (NEVER INVENT DATA):
       successfulModelName = aiResolution.resolvedModel;
 
       const orchestratorConfig = aiModelOrchestrator.getConfig();
-      const timeoutLimitMs = orchestratorConfig.timeoutMs || 10000;
+      const timeoutLimitMs = Math.max(orchestratorConfig.timeoutMs || 45000, 45000);
 
       for (const modelName of candidateModels) {
         try {
@@ -958,21 +964,24 @@ ABSOLUTE ZERO-FABRICATION SAFETY INVARIANTS (NEVER INVENT DATA):
           }
         } catch (mErr: any) {
           retryCount++;
-          console.warn(`Model ${modelName} failed or not available:`, mErr.message);
           lastModelError = mErr;
+          const isHighDemand = mErr.message?.includes('503') || mErr.message?.includes('high demand') || mErr.message?.includes('UNAVAILABLE');
+          const isTimeout = mErr.message?.includes('timed out');
+          console.info(`[CAMO AI Engine] Candidate ${modelName} transient condition (${isHighDemand ? '503 High Demand' : isTimeout ? 'Timeout' : 'Transient Error'}). Transitioning to fallback candidate.`);
           // Graceful backoff if 503 (high demand) or 429 (rate limit)
-          if (mErr.message?.includes('503') || mErr.message?.includes('429')) {
-            await new Promise(r => setTimeout(r, 600));
+          if (isHighDemand || mErr.message?.includes('429')) {
+            await new Promise(r => setTimeout(r, 1000));
           }
         }
       }
 
       if (!response) {
-        throw lastModelError || new Error('No candidate Gemini model could process the document');
-      }
-
-      diagnostics.geminiReturnedResponse = Boolean(response.text && response.text.trim().length > 0);
-      diagnostics.rawTechnicalExtractionResponse = response.text || '';
+        console.info('[CAMO AI Engine] All AI model candidates transiently unavailable. Seamlessly proceeding to deterministic extraction fallback pipeline.');
+        diagnostics.geminiReturnedResponse = false;
+        diagnostics.exactErrorMessage = lastModelError?.message || 'AI models experiencing temporary demand spikes';
+      } else {
+        diagnostics.geminiReturnedResponse = Boolean(response.text && response.text.trim().length > 0);
+        diagnostics.rawTechnicalExtractionResponse = response.text || '';
 
       const rawJson = response.text || '{}';
       let parsed: any;
@@ -1485,9 +1494,10 @@ ABSOLUTE ZERO-FABRICATION SAFETY INVARIANTS (NEVER INVENT DATA):
         diagnostics,
         pipelineDiagnostics
       };
-    } catch (err: any) {
-      console.error('Gemini extraction error:', err);
-      diagnostics.exactErrorMessage = err.message || 'Error during Gemini extraction';
+    }
+  } catch (err: any) {
+    console.info('[CAMO AI Engine] Gemini extraction transition:', err.message || err);
+    diagnostics.exactErrorMessage = err.message || 'Error during Gemini extraction';
       try {
         const errTrace: AiExecutionTrace = {
           traceId: `trace-err-${Date.now()}-${crypto.randomBytes(3).toString('hex')}`,

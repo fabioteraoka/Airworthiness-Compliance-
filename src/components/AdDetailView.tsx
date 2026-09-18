@@ -25,13 +25,15 @@ import {
   Trash2,
   Activity,
   RefreshCw,
-  XCircle
+  XCircle,
+  BookOpen
 } from 'lucide-react';
 import { DatabaseState } from '../../server/dataStore';
 import { ComplianceRequirement, UserQuestion } from '../types';
 import FullTechnicalReportModal from './FullTechnicalReportModal';
 import DeleteAdConfirmationModal from './DeleteAdConfirmationModal';
 import ExtractionDiagnosticsModal from './ExtractionDiagnosticsModal';
+import { AdTechnicalReferencesTab } from './AdTechnicalReferencesTab';
 
 interface AdDetailViewProps {
   requirementId: string;
@@ -41,7 +43,7 @@ interface AdDetailViewProps {
 }
 
 export default function AdDetailView({ requirementId, state, onBack, onRefreshState }: AdDetailViewProps) {
-  const [activeTab, setActiveTab] = useState<'matrix' | 'document' | 'questions' | 'fapt' | 'evidence' | 'audit'>('matrix');
+  const [activeTab, setActiveTab] = useState<'matrix' | 'document' | 'technical-refs' | 'questions' | 'fapt' | 'evidence' | 'audit'>('matrix');
   const [isRecalculating, setIsRecalculating] = useState(false);
   const [isRetryingExtraction, setIsRetryingExtraction] = useState(false);
   const [isAnswering, setIsAnswering] = useState(false);
@@ -408,6 +410,18 @@ export default function AdDetailView({ requirementId, state, onBack, onRefreshSt
         >
           <FileText className="w-3.5 h-3.5" />
           <span>Extracted Technical Data & Rules</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('technical-refs')}
+          className={`px-4 py-2.5 text-xs font-semibold rounded-t-lg transition border-b-2 flex items-center space-x-2 ${
+            activeTab === 'technical-refs'
+              ? 'border-indigo-500 text-indigo-300 bg-white/5'
+              : 'border-transparent text-slate-400 hover:text-slate-200'
+          }`}
+        >
+          <BookOpen className="w-3.5 h-3.5" />
+          <span>Technical References (SB)</span>
         </button>
 
         <button
@@ -924,6 +938,16 @@ export default function AdDetailView({ requirementId, state, onBack, onRefreshSt
             </div>
           </div>
         </div>
+      )}
+
+      {/* TAB: TECHNICAL REFERENCES (SERVICE BULLETINS) */}
+      {activeTab === 'technical-refs' && (
+        <AdTechnicalReferencesTab
+          adNumber={requirement.sourceNumber || requirement.id}
+          requirement={requirement}
+          state={state}
+          onRefreshState={onRefreshState}
+        />
       )}
 
       {/* TAB 4: AD REVIEW SHEET (FAPT) */}

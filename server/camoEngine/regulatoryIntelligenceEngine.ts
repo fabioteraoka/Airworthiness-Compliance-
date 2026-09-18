@@ -38,6 +38,7 @@ import {
   SbAnalysisStatus
 } from '../../src/types';
 import { camoDb } from '../dataStore';
+import { AdSbAnalysisEngine } from './adSbAnalysisEngine';
 import { 
   matchesModel, 
   matchesEngineModel, 
@@ -3426,6 +3427,16 @@ export class RegulatoryIntelligenceEngine {
     const complianceStatus: 'COMPLIANCE_PENDING' | 'COMPLIANCE_EVIDENCED' = 
       (relatedObligations.length > 0 && hasOpenObligations) ? 'COMPLIANCE_PENDING' : 'COMPLIANCE_EVIDENCED';
 
+    // Phase 9 Stage 8.1: AD–SB Analysis Completion Engine Evaluation
+    const adSbEngine = AdSbAnalysisEngine.getInstance();
+    const existingDeps = (state.adSbDependencies || []).filter((d: any) => 
+      d.adNumber.toLowerCase() === adNumber.toLowerCase()
+    );
+    if (existingDeps.length === 0 && (sourceText || record?.rawApplicabilityText)) {
+      adSbEngine.detectAndRegisterDependencies(adNumber, sourceText || record?.rawApplicabilityText || '', requirement);
+    }
+    const adSbAssessment = adSbEngine.evaluateAdTechnicalAnalysisCompleteness(adNumber);
+
     return {
       isComplete,
       effectiveStatus,
@@ -3438,12 +3449,15 @@ export class RegulatoryIntelligenceEngine {
       missingRequirement: !requirement,
       canTransitionToAnalyzed,
       evaluatedAt: now,
-      adAnalysisComplete,
+      adAnalysisComplete: adAnalysisComplete && (adSbAssessment.status === 'TECHNICAL_ANALYSIS_COMPLETE'),
       sbAnalysisStatus,
       applicabilityStatus,
       complianceStatus,
       referencedSbsCount,
-      sbChecklistsCount
+      sbChecklistsCount,
+      adTechnicalAnalysisCompleteness: adSbAssessment.status,
+      adSbAssessment,
+      fleetApplicabilityState: adSbAssessment.fleetApplicabilityState
     };
   }
 

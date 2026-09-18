@@ -62,23 +62,6 @@ export class AIModelOrchestrator {
       homologatedAt: '2026-09-17T00:00:00.000Z'
     },
     {
-      id: 'gemini-flash-latest',
-      displayName: 'Gemini Flash Latest',
-      provider: 'Google Gemini',
-      version: 'flash-latest',
-      status: 'HOMOLOGATED',
-      isPrimary: false,
-      isFallbackCandidate: true,
-      supportsStructuredOutput: true,
-      supportsJsonSchema: true,
-      supportsMultimodal: true,
-      tokenLimitInput: 1048576,
-      tokenLimitOutput: 8192,
-      recommendedRole: 'FAST_FALLBACK',
-      compatibilityNotes: 'Homologated tier-1 fallback for high-availability transient outages.',
-      homologatedAt: '2026-09-17T00:00:00.000Z'
-    },
-    {
       id: 'gemini-3.1-flash-lite',
       displayName: 'Gemini 3.1 Flash Lite',
       provider: 'Google Gemini',
@@ -92,7 +75,24 @@ export class AIModelOrchestrator {
       tokenLimitInput: 1048576,
       tokenLimitOutput: 8192,
       recommendedRole: 'FAST_FALLBACK',
-      compatibilityNotes: 'Homologated tier-2 fast fallback for low-latency JSON extraction.',
+      compatibilityNotes: 'Homologated tier-1 fast fallback for low-latency resilient JSON extraction under server demand spikes.',
+      homologatedAt: '2026-09-17T00:00:00.000Z'
+    },
+    {
+      id: 'gemini-flash-latest',
+      displayName: 'Gemini Flash Latest',
+      provider: 'Google Gemini',
+      version: 'flash-latest',
+      status: 'HOMOLOGATED',
+      isPrimary: false,
+      isFallbackCandidate: true,
+      supportsStructuredOutput: true,
+      supportsJsonSchema: true,
+      supportsMultimodal: true,
+      tokenLimitInput: 1048576,
+      tokenLimitOutput: 8192,
+      recommendedRole: 'FAST_FALLBACK',
+      compatibilityNotes: 'Homologated tier-2 fallback for high-availability transient outages.',
       homologatedAt: '2026-09-17T00:00:00.000Z'
     },
     {
@@ -154,18 +154,29 @@ export class AIModelOrchestrator {
   public getConfig(): AiOrchestratorConfig {
     const state = camoDb.getState();
     if (state.aiOrchestratorConfig) {
+      // Auto-heal / upgrade timeout if too short (< 35000ms)
+      if (!state.aiOrchestratorConfig.timeoutMs || state.aiOrchestratorConfig.timeoutMs < 35000) {
+        camoDb.update(draft => {
+          if (draft.aiOrchestratorConfig) {
+            draft.aiOrchestratorConfig.timeoutMs = 45000;
+            draft.aiOrchestratorConfig.fallbackModels = ['gemini-3.1-flash-lite', 'gemini-flash-latest'];
+          }
+        });
+        state.aiOrchestratorConfig.timeoutMs = 45000;
+        state.aiOrchestratorConfig.fallbackModels = ['gemini-3.1-flash-lite', 'gemini-flash-latest'];
+      }
       return state.aiOrchestratorConfig;
     }
     const defaultConfig: AiOrchestratorConfig = {
       provider: 'Google Gemini',
       selectionPolicy: 'LATEST_STABLE',
       primaryModel: this.PRIMARY_MODEL_ID,
-      fallbackModels: ['gemini-flash-latest', 'gemini-3.1-flash-lite'],
+      fallbackModels: ['gemini-3.1-flash-lite', 'gemini-flash-latest'],
       pipelineVersion: this.ORCHESTRATOR_VERSION,
       promptVersion: this.PROMPT_VERSION,
       schemaVersion: this.SCHEMA_VERSION,
       maxRetries: 2,
-      timeoutMs: 12000,
+      timeoutMs: 45000,
       lastModelUpdate: this.lastModelUpdateTimestamp,
       continuousUpgradeStatus: 'MONITORING'
     };
@@ -481,6 +492,13 @@ export class AIModelOrchestrator {
         candidateModels.push(fb);
       }
     }
+    // Ensure fast fallback candidate exists in chain
+    if (!candidateModels.includes('gemini-3.1-flash-lite')) {
+      candidateModels.push('gemini-3.1-flash-lite');
+    }
+    if (!candidateModels.includes('gemini-flash-latest')) {
+      candidateModels.push('gemini-flash-latest');
+    }
 
     let successfulModel = resolution.resolvedModel;
     let successfulRawText = '';
@@ -491,59 +509,76 @@ export class AIModelOrchestrator {
     let retryCount = 0;
     let lastError: Error | null = null;
 
-    const timeoutLimit = params.timeoutMs || this.getConfig().timeoutMs;
+    const timeoutLimit = Math.max(params.timeoutMs || this.getConfig().timeoutMs || 45000, 45000);
 
     // 2. Iterate through candidate chain
     for (const modelCandidate of candidateModels) {
       attemptedModels.push(modelCandidate);
-      try {
-        const timeoutPromise = new Promise<never>((_, reject) => 
-          setTimeout(() => reject(new Error(`Model ${modelCandidate} timed out after ${timeoutLimit}ms`)), timeoutLimit)
-        );
 
-        const generatePromise = ai.models.generateContent({
-          model: modelCandidate,
-          contents: { parts: params.parts },
-          config: {
-            systemInstruction: params.systemInstruction,
-            responseMimeType: 'application/json',
-            responseSchema: params.responseSchema
+      const maxModelAttempts = 2;
+      let modelAttemptSucceeded = false;
+
+      for (let attempt = 1; attempt <= maxModelAttempts; attempt++) {
+        try {
+          const timeoutPromise = new Promise<never>((_, reject) => 
+            setTimeout(() => reject(new Error(`Model ${modelCandidate} timed out after ${timeoutLimit}ms`)), timeoutLimit)
+          );
+
+          const generatePromise = ai.models.generateContent({
+            model: modelCandidate,
+            contents: { parts: params.parts },
+            config: {
+              systemInstruction: params.systemInstruction,
+              responseMimeType: 'application/json',
+              responseSchema: params.responseSchema
+            }
+          });
+
+          const response: any = await Promise.race([generatePromise, timeoutPromise]);
+          const text = response?.text || '';
+
+          if (!text || text.trim().length === 0) {
+            throw new Error(`Empty response from model ${modelCandidate}`);
           }
-        });
 
-        const response: any = await Promise.race([generatePromise, timeoutPromise]);
-        const text = response?.text || '';
+          // Try parsing JSON
+          const parsed = JSON.parse(text) as T;
 
-        if (!text || text.trim().length === 0) {
-          throw new Error(`Empty response from model ${modelCandidate}`);
-        }
+          // Custom validation check if provided
+          if (params.validationFn) {
+            const valRes = params.validationFn(parsed);
+            if (!valRes.passed) {
+              throw new Error(`Model ${modelCandidate} failed validation rules: ${valRes.failedRules.join(', ')}`);
+            }
+          }
 
-        // Try parsing JSON
-        const parsed = JSON.parse(text) as T;
-
-        // Custom validation check if provided
-        if (params.validationFn) {
-          const valRes = params.validationFn(parsed);
-          if (!valRes.passed) {
-            throw new Error(`Model ${modelCandidate} failed validation rules: ${valRes.failedRules.join(', ')}`);
+          successfulModel = modelCandidate;
+          successfulRawText = text;
+          parsedData = parsed;
+          if (modelCandidate !== resolution.resolvedModel) {
+            fallbackUsed = true;
+            fallbackReason = `Primary model ${resolution.resolvedModel} failed. Successfully recovered via fallback ${modelCandidate}.`;
+          }
+          modelAttemptSucceeded = true;
+          break; // Success for this model attempt
+        } catch (candErr: any) {
+          lastError = candErr;
+          retryCount++;
+          const isHighDemand = candErr.message?.includes('503') || candErr.message?.includes('high demand') || candErr.message?.includes('UNAVAILABLE');
+          const isTimeout = candErr.message?.includes('timed out');
+          
+          if (attempt < maxModelAttempts && (isHighDemand || isTimeout)) {
+            console.info(`[AIModelOrchestrator] Candidate ${modelCandidate} attempt ${attempt} encountered transient status (${isHighDemand ? '503 High Demand' : 'Timeout'}). Retrying with backoff...`);
+            await new Promise(r => setTimeout(r, 1200 * attempt));
+          } else {
+            console.info(`[AIModelOrchestrator] Candidate ${modelCandidate} transient status (${isHighDemand ? '503 High Demand' : isTimeout ? 'Timeout' : 'Unavailable'}). Transitioning to fallback candidate.`);
+            break;
           }
         }
+      }
 
-        successfulModel = modelCandidate;
-        successfulRawText = text;
-        parsedData = parsed;
-        if (modelCandidate !== resolution.resolvedModel) {
-          fallbackUsed = true;
-          fallbackReason = `Primary model ${resolution.resolvedModel} failed. Successfully recovered via fallback ${modelCandidate}.`;
-        }
-        break; // Success!
-      } catch (candErr: any) {
-        lastError = candErr;
-        retryCount++;
-        console.warn(`[AIModelOrchestrator] Candidate ${modelCandidate} failed:`, candErr.message);
-        if (candErr.message?.includes('503') || candErr.message?.includes('429')) {
-          await new Promise(r => setTimeout(r, 400));
-        }
+      if (modelAttemptSucceeded) {
+        break; // Overall success
       }
     }
 

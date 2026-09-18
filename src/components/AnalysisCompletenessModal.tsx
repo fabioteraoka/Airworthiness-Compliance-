@@ -283,6 +283,47 @@ export default function AnalysisCompletenessModal({
                 </div>
               </div>
 
+              {/* Phase 9 Stage 8.1 Dual Indicators */}
+              {(completeness.adTechnicalAnalysisCompleteness || completeness.fleetApplicabilityState) && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs font-mono">
+                  <div className="p-3 bg-slate-950/60 rounded-xl border border-white/5 space-y-1">
+                    <span className="text-[10px] text-slate-500 uppercase font-sans font-bold block">
+                      Status da Análise Técnica da AD
+                    </span>
+                    <span className={`text-[10px] px-2 py-0.5 rounded font-bold uppercase inline-block ${
+                      completeness.adTechnicalAnalysisCompleteness === 'TECHNICAL_ANALYSIS_COMPLETE'
+                        ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                        : completeness.adTechnicalAnalysisCompleteness === 'DEPENDENCY_PENDING'
+                        ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                        : 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
+                    }`}>
+                      {completeness.adTechnicalAnalysisCompleteness || 'EM AVALIAÇÃO'}
+                    </span>
+                    <p className="text-[11px] text-slate-400 font-sans mt-0.5">
+                      Determina se a diretriz e seus SBs associados possuem completude técnica suficiente.
+                    </p>
+                  </div>
+
+                  <div className="p-3 bg-slate-950/60 rounded-xl border border-white/5 space-y-1">
+                    <span className="text-[10px] text-slate-500 uppercase font-sans font-bold block">
+                      Status de Aplicabilidade na Frota (Decoupled)
+                    </span>
+                    <span className={`text-[10px] px-2 py-0.5 rounded font-bold uppercase inline-block ${
+                      completeness.fleetApplicabilityState === 'DETERMINED'
+                        ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                        : completeness.fleetApplicabilityState === 'PENDING_CONFIGURATION'
+                        ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30'
+                        : 'bg-slate-800 text-slate-300 border border-slate-700'
+                    }`}>
+                      {completeness.fleetApplicabilityState || 'DETERMINED'}
+                    </span>
+                    <p className="text-[11px] text-slate-400 font-sans mt-0.5">
+                      Separado do status da análise da AD: aplicabilidade operacional na frota.
+                    </p>
+                  </div>
+                </div>
+              )}
+
               {/* Technical Summary */}
               <div className={`p-4 rounded-xl border text-xs leading-relaxed ${
                 completeness.isComplete

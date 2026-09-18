@@ -22,6 +22,7 @@ import { fleetAirworthinessControlEngine, FleetAirworthinessControlEngine } from
 import { aircraftDeliveryAssessmentEngine } from './server/camoEngine/aircraftDeliveryAssessmentEngine';
 import { regulatoryIntelligenceEngine } from './server/camoEngine/regulatoryIntelligenceEngine';
 import { aiModelOrchestrator } from './server/camoEngine/aiModelOrchestrator';
+import { AdSbAnalysisEngine } from './server/camoEngine/adSbAnalysisEngine';
 import { helpCenterService } from './server/helpCenterService';
 import { generateArchitecturePdf } from './server/pdfGenerator';
 import { 
@@ -3994,6 +3995,182 @@ async function startServer() {
         models,
         primaryModel: aiModelOrchestrator.PRIMARY_MODEL_ID
       });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // ==========================================
+  // PHASE 9 — ETAPA 8.1: AD–SB ANALYSIS COMPLETION API
+  // ==========================================
+
+  const adSbEngine = AdSbAnalysisEngine.getInstance();
+
+  // 1. Get Dependencies for AD
+  app.get('/api/ad-sb/dependencies/:adNumber', (req, res) => {
+    try {
+      const adNumber = req.params.adNumber;
+      const state = camoDb.getState();
+      const deps = (state.adSbDependencies || []).filter(d => 
+        d.adNumber.toLowerCase() === adNumber.toLowerCase() ||
+        d.adNumber.toLowerCase().includes(adNumber.toLowerCase()) ||
+        adNumber.toLowerCase().includes(d.adNumber.toLowerCase())
+      );
+      res.json({ success: true, count: deps.length, dependencies: deps });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // 2. Detect & Register Dependencies from AD text
+  app.post('/api/ad-sb/dependencies/detect', (req, res) => {
+    try {
+      const { adNumber, adText, requirementId } = req.body;
+      if (!adNumber) {
+        return res.status(400).json({ error: 'adNumber is required' });
+      }
+      const state = camoDb.getState();
+      const allReqs = state.requirements || (state as any).complianceRequirements || [];
+      const requirement = requirementId 
+        ? allReqs.find((r: any) => r.id === requirementId)
+        : allReqs.find((r: any) => 
+            r.sourceNumber?.toLowerCase() === adNumber.toLowerCase() ||
+            (r.sourceNumber && adNumber.toLowerCase().includes(r.sourceNumber.toLowerCase())) ||
+            (r.sourceNumber && r.sourceNumber.toLowerCase().includes(adNumber.toLowerCase()))
+          );
+
+      const deps = adSbEngine.detectAndRegisterDependencies(adNumber, adText || '', requirement);
+      const completeness = adSbEngine.evaluateAdTechnicalAnalysisCompleteness(adNumber);
+
+      res.json({
+        success: true,
+        count: deps.length,
+        dependencies: deps,
+        completeness
+      });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // 3. SB Repository - List Documents
+  app.get('/api/ad-sb/repository', (req, res) => {
+    try {
+      const state = camoDb.getState();
+      const docs = (state.sbRepository || []).map(d => ({
+        documentId: d.documentId,
+        documentType: d.documentType,
+        manufacturer: d.manufacturer,
+        documentNumber: d.documentNumber,
+        revision: d.revision,
+        issueDate: d.issueDate,
+        title: d.title,
+        source: d.source,
+        sourceUrl: d.sourceUrl,
+        documentHash: d.documentHash,
+        retrievedAt: d.retrievedAt,
+        fileSizeBytes: d.fileSizeBytes,
+        hasContent: Boolean(d.rawContent && d.rawContent.length > 0)
+      }));
+      res.json({ success: true, count: docs.length, documents: docs });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // 4. SB Repository - Get Document by Document Number
+  app.get('/api/ad-sb/repository/:documentNumber', (req, res) => {
+    try {
+      const docNum = req.params.documentNumber.toUpperCase();
+      const state = camoDb.getState();
+      const doc = (state.sbRepository || []).find(d => 
+        d.documentNumber.toUpperCase() === docNum ||
+        d.documentNumber.toUpperCase().replace(/\s+/g, '') === docNum.replace(/\s+/g, '')
+      );
+      if (!doc) {
+        return res.status(404).json({ error: `Service Bulletin ${docNum} not found in repository` });
+      }
+      res.json({ success: true, document: doc });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // 5. SB Repository - Store Service Bulletin Document
+  app.post('/api/ad-sb/repository', (req, res) => {
+    try {
+      const { documentNumber, manufacturer, revision, issueDate, title, source, sourceUrl, rawContent, documentType } = req.body;
+      if (!documentNumber || !rawContent) {
+        return res.status(400).json({ error: 'documentNumber and rawContent are required' });
+      }
+      const record = adSbEngine.storeServiceBulletinDocument({
+        documentNumber,
+        manufacturer,
+        revision,
+        issueDate,
+        title,
+        source,
+        sourceUrl,
+        rawContent,
+        documentType
+      });
+      res.json({ success: true, document: record });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // 6. Get Essential SB Analysis
+  app.get('/api/ad-sb/analysis/:sbNumber', (req, res) => {
+    try {
+      const sbNum = req.params.sbNumber.toUpperCase();
+      const state = camoDb.getState();
+      const analysis = (state.sbAnalyses || []).find(a => 
+        a.sbNumber.toUpperCase() === sbNum ||
+        a.sbNumber.toUpperCase().replace(/\s+/g, '') === sbNum.replace(/\s+/g, '')
+      );
+      if (!analysis) {
+        return res.status(404).json({ error: `Analysis for Service Bulletin ${sbNum} not found` });
+      }
+      res.json({ success: true, analysis });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // 7. Trigger Essential SB Analysis
+  app.post('/api/ad-sb/analyze/:sbNumber', async (req, res) => {
+    try {
+      const sbNum = req.params.sbNumber.toUpperCase();
+      const { revision } = req.body || {};
+      const analysis = await adSbEngine.analyzeServiceBulletin(sbNum, revision);
+      res.json({ success: true, analysis });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // 8. Trigger AD x SB Cross-Validation
+  app.post('/api/ad-sb/cross-validate', (req, res) => {
+    try {
+      const { adNumber, sbNumber } = req.body;
+      if (!adNumber || !sbNumber) {
+        return res.status(400).json({ error: 'adNumber and sbNumber are required' });
+      }
+      const result = adSbEngine.crossValidateAdWithSb(adNumber, sbNumber);
+      const completeness = adSbEngine.evaluateAdTechnicalAnalysisCompleteness(adNumber);
+      res.json({ success: true, crossValidation: result, completeness });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // 9. Get Completeness Assessment for AD
+  app.get('/api/ad-sb/completeness/:adNumber', (req, res) => {
+    try {
+      const adNumber = req.params.adNumber;
+      const completeness = adSbEngine.evaluateAdTechnicalAnalysisCompleteness(adNumber);
+      res.json({ success: true, completeness });
     } catch (err: any) {
       res.status(500).json({ error: err.message });
     }

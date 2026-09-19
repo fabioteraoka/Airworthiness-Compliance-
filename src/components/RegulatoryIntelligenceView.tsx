@@ -42,21 +42,32 @@ import {
   Download,
   Filter
 } from 'lucide-react';
+import RegulatorySourcesView from './RegulatorySourcesView';
 
 interface RegulatoryIntelligenceViewProps {
   state: DatabaseState | null;
   onRefreshState: (state: DatabaseState) => void;
   onSelectAd?: (id: string) => void;
   onSelectView?: (view: string) => void;
+  initialTab?: 'discovery' | 'connectors' | 'vault' | 'assessment';
 }
 
 export default function RegulatoryIntelligenceView({
   state,
   onRefreshState,
   onSelectAd,
-  onSelectView
+  onSelectView,
+  initialTab = 'discovery'
 }: RegulatoryIntelligenceViewProps) {
-  const [activeTab, setActiveTab] = useState<'discovery' | 'assessment' | 'diagnostics'>('discovery');
+  const [activeTab, setActiveTab] = useState<'discovery' | 'connectors' | 'vault' | 'assessment'>(
+    initialTab === 'connectors' || initialTab === 'vault' || initialTab === 'assessment' ? initialTab : 'discovery'
+  );
+
+  useEffect(() => {
+    if (initialTab) {
+      setActiveTab(initialTab === 'connectors' || initialTab === 'vault' || initialTab === 'assessment' ? initialTab : 'discovery');
+    }
+  }, [initialTab]);
 
   // =========================================================================
   // 1. DISCOVERY & INTAKE STATE (Phase 9 — Etapa 5.2 Flow)
@@ -458,7 +469,7 @@ export default function RegulatoryIntelligenceView({
         </div>
 
         {/* Tab Selection */}
-        <div className="flex items-center gap-2 bg-slate-900 p-1.5 rounded-xl border border-slate-800">
+        <div className="flex items-center gap-2 bg-slate-900 p-1.5 rounded-xl border border-slate-800 flex-wrap">
           <button
             onClick={() => setActiveTab('discovery')}
             className={`px-3.5 py-2 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 ${
@@ -468,7 +479,29 @@ export default function RegulatoryIntelligenceView({
             }`}
           >
             <Search className="w-3.5 h-3.5" />
-            <span>1. Descoberta de ADs</span>
+            <span>1. Descoberta Operacional</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('connectors')}
+            className={`px-3.5 py-2 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 ${
+              activeTab === 'connectors'
+                ? 'bg-blue-600 text-white shadow-sm'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <Globe className="w-3.5 h-3.5" />
+            <span>2. Fontes Oficiais & Conectores</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('vault')}
+            className={`px-3.5 py-2 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 ${
+              activeTab === 'vault'
+                ? 'bg-blue-600 text-white shadow-sm'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <Database className="w-3.5 h-3.5" />
+            <span>3. Cofre Regulatório & Vault</span>
           </button>
           <button
             onClick={() => setActiveTab('assessment')}
@@ -479,23 +512,12 @@ export default function RegulatoryIntelligenceView({
             }`}
           >
             <Plane className="w-3.5 h-3.5" />
-            <span>2. Avaliação de Lacunas</span>
+            <span>4. Avaliação de Lacunas</span>
             {currentAssessment && (
               <span className="text-[10px] px-1.5 py-0.2 rounded font-mono bg-emerald-500/30 text-emerald-300">
                 {currentAssessment.completionPercentage}%
               </span>
             )}
-          </button>
-          <button
-            onClick={() => setActiveTab('diagnostics')}
-            className={`px-3.5 py-2 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 ${
-              activeTab === 'diagnostics'
-                ? 'bg-blue-600 text-white shadow-sm'
-                : 'text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            <Terminal className="w-3.5 h-3.5" />
-            <span>3. Diagnóstico de Fontes</span>
           </button>
         </div>
       </div>
@@ -1171,15 +1193,34 @@ export default function RegulatoryIntelligenceView({
       )}
 
       {/* ========================================================================= */}
-      {/* TAB 3: DIAGNÓSTICO DE FONTES & CONECTORES (STAGE 4.1)                     */}
+      {/* TAB 2: FONTES OFICIAIS & CONECTORES (CONSOLIDATED REGULATORY SOURCES)       */}
       {/* ========================================================================= */}
-      {activeTab === 'diagnostics' && (
+      {activeTab === 'connectors' && (
+        <div className="space-y-6">
+          <RegulatorySourcesView state={state} onRefreshState={onRefreshState} />
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* TAB 3: COFRE REGULATÓRIO & DIAGNÓSTICO DE FONTES & VAULT                   */}
+      {/* ========================================================================= */}
+      {activeTab === 'vault' && (
         <div className="space-y-6">
           <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-lg space-y-4">
-            <h3 className="text-base font-bold text-white">Diagnóstico das Conexões Oficiais</h3>
-            <p className="text-xs text-slate-400">
-              Relatório em tempo real de latência, status de conectores e telemetria de requisições às autoridades.
-            </p>
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-base font-bold text-white flex items-center gap-2">
+                  <Database className="w-4 h-4 text-blue-400" />
+                  <span>Cofre Regulatório & Telemetria das Fontes Oficiais</span>
+                </h3>
+                <p className="text-xs text-slate-400">
+                  Relatório em tempo real de integridade do acervo local, status de conectores e telemetria de requisições às autoridades.
+                </p>
+              </div>
+              <div className="px-3 py-1 bg-blue-600/20 text-blue-300 border border-blue-500/30 rounded-lg text-xs font-mono">
+                {state.requirements.length} Diretrizes no Vault
+              </div>
+            </div>
 
             {searchResult?.diagnostic ? (
               <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 font-mono text-xs text-slate-300 max-h-96 overflow-y-auto">
@@ -1187,7 +1228,7 @@ export default function RegulatoryIntelligenceView({
               </div>
             ) : (
               <div className="p-6 text-center text-xs text-slate-500 bg-slate-950/40 rounded-lg border border-slate-800">
-                Execute uma busca na aba 1 para gerar o diagnóstico em tempo real das APIs da FAA, EASA e ANAC.
+                Execute uma busca na aba de Descoberta para gerar o diagnóstico em tempo real das conexões oficiais.
               </div>
             )}
           </div>

@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useState, useEffect, type FormEvent } from 'react';
 import { 
   Plane, 
   Plus, 
@@ -18,18 +18,37 @@ import {
   Search,
   FileText,
   Ban,
-  Filter
+  Filter,
+  FileSpreadsheet,
+  ChevronRight
 } from 'lucide-react';
 import { DatabaseState } from '../../server/dataStore';
 import { Aircraft, Component, ComponentInstallation, AircraftOperationalStatus } from '../types';
+import FleetAdSearchView from './FleetAdSearchView';
 
 interface FleetViewProps {
   state: DatabaseState;
   onRefreshState: (newState: DatabaseState) => void;
+  initialTab?: 'aircraft' | 'engines' | 'components' | 'fleet-matrix';
+  onSelectAd?: (adId: string) => void;
+  onSelectView?: (view: string, subTab?: string, entityId?: string | null) => void;
 }
 
-export default function FleetView({ state, onRefreshState }: FleetViewProps) {
-  const [activeTab, setActiveTab] = useState<'aircraft' | 'engines' | 'components'>('aircraft');
+export default function FleetView({ 
+  state, 
+  onRefreshState,
+  initialTab = 'aircraft',
+  onSelectAd,
+  onSelectView
+}: FleetViewProps) {
+  const [activeTab, setActiveTab] = useState<'aircraft' | 'engines' | 'components' | 'fleet-matrix'>(initialTab);
+
+  useEffect(() => {
+    if (initialTab) {
+      setActiveTab(initialTab);
+    }
+  }, [initialTab]);
+
   const [showAddAircraftModal, setShowAddAircraftModal] = useState(false);
   const [showAddComponentModal, setShowAddComponentModal] = useState(false);
 
@@ -443,6 +462,17 @@ export default function FleetView({ state, onRefreshState }: FleetViewProps) {
           <Wrench className="w-3.5 h-3.5" />
           <span>Componentes & P/Ns Rastreados ({state.components.length})</span>
         </button>
+        <button
+          onClick={() => setActiveTab('fleet-matrix')}
+          className={`px-4 py-2.5 text-xs font-semibold rounded-t-lg transition border-b-2 flex items-center space-x-2 ${
+            activeTab === 'fleet-matrix'
+              ? 'border-indigo-500 text-indigo-300 bg-white/5'
+              : 'border-transparent text-slate-400 hover:text-slate-200'
+          }`}
+        >
+          <FileSpreadsheet className="w-3.5 h-3.5" />
+          <span>Fleet × AD (Matriz de Diretrizes)</span>
+        </button>
       </div>
 
       {/* Tab 1: Aircraft Fleet */}
@@ -661,6 +691,24 @@ export default function FleetView({ state, onRefreshState }: FleetViewProps) {
                           </span>
                         )}
                       </div>
+
+                      <button
+                        onClick={() => {
+                          if (onSelectView) {
+                            onSelectView('fleet', 'fleet-matrix');
+                          } else {
+                            setActiveTab('fleet-matrix');
+                          }
+                        }}
+                        className="w-full mt-2 flex items-center justify-between px-3 py-1.5 rounded-lg bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 text-xs font-semibold transition"
+                        title={`Ver Matriz Frota × AD para ${ac.registration}`}
+                      >
+                        <span className="flex items-center gap-1.5">
+                          <FileSpreadsheet className="w-3.5 h-3.5 text-indigo-400" />
+                          <span>Ver Diretrizes Aplicáveis (Fleet × AD)</span>
+                        </span>
+                        <ChevronRight className="w-3.5 h-3.5" />
+                      </button>
                     </div>
 
                     {/* ACTION BUTTONS: EDIT, INACTIVATE / STATUS, DELETE */}
@@ -776,6 +824,16 @@ export default function FleetView({ state, onRefreshState }: FleetViewProps) {
             </tbody>
           </table>
         </div>
+      )}
+
+      {/* Tab 4: Fleet × AD Matrix (Phase 2 Architectural Integration) */}
+      {activeTab === 'fleet-matrix' && (
+        <FleetAdSearchView
+          state={state}
+          onSelectAd={onSelectAd || (() => {})}
+          onSelectView={onSelectView || (() => {})}
+          onRefreshState={onRefreshState}
+        />
       )}
 
       {/* MODAL: ADD AIRCRAFT */}

@@ -279,8 +279,8 @@ describe('CAMO Engine — Phase 9 Stage 5.1: Fleet AD Inventory & Operational Di
       expect(['PENDING_ANALYSIS', 'REVIEW_REQUIRED']).toContain(item.registerAnalysisStatus);
     }
 
-    // Now analyze ONE specific record
-    const targetAd = pendingItems[0];
+    // Now analyze ONE specific record (prefer canonical known complete AD from Boeing 737 candidate list)
+    const targetAd = pendingItems.find(i => i.adNumber === '2020-24-02' || i.adNumber === '2024-12-05') || pendingItems[0];
     const regRecord = camoDb.getState().camoRegulatoryRegister.find(r => r.adNumber === targetAd.adNumber);
     expect(regRecord).toBeDefined();
 

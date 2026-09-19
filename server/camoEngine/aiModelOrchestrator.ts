@@ -262,6 +262,10 @@ export class AIModelOrchestrator {
       fallbackUsed = true;
     }
 
+    const effectiveFallbackChain: string[] = (effectivePolicy === 'PINNED' && resolvedModel && resolvedModel !== 'disabled')
+      ? [resolvedModel, ...config.fallbackModels.filter(m => m !== resolvedModel)]
+      : [...config.fallbackModels];
+
     return {
       requestedModel: requestedModelStr,
       resolvedModel,
@@ -269,7 +273,7 @@ export class AIModelOrchestrator {
       modelVersion: resolvedModel.replace('gemini-', ''),
       selectionPolicy: effectivePolicy,
       fallbackUsed,
-      fallbackChain,
+      fallbackChain: effectiveFallbackChain,
       isPrimary: resolvedModel === this.PRIMARY_MODEL_ID
     };
   }

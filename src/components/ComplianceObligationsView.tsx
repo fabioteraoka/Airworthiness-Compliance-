@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   Calculator, 
   Clock, 
@@ -27,18 +27,29 @@ import {
   DueDateCalculationResult, 
   ObligationStatus 
 } from '../types';
+import FaptListView from './FaptListView';
 
 interface ComplianceObligationsViewProps {
   state: DatabaseState | null;
   onRefreshState: (newState: DatabaseState) => void;
   onSelectAd?: (adId: string) => void;
+  initialTab?: 'deadlines' | 'fapt';
 }
 
 export default function ComplianceObligationsView({
   state,
   onRefreshState,
-  onSelectAd
+  onSelectAd,
+  initialTab = 'deadlines'
 }: ComplianceObligationsViewProps) {
+  const [activeTab, setActiveTab] = useState<'deadlines' | 'fapt'>(initialTab || 'deadlines');
+
+  useEffect(() => {
+    if (initialTab) {
+      setActiveTab(initialTab);
+    }
+  }, [initialTab]);
+
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [aircraftFilter, setAircraftFilter] = useState<string>('ALL');
@@ -308,18 +319,51 @@ export default function ComplianceObligationsView({
         </div>
       </div>
 
-      {/* Sync Feedback Toast */}
-      {syncFeedback && (
-        <div className="p-3.5 bg-indigo-950/80 border border-indigo-500/50 rounded-xl flex items-center justify-between text-xs text-indigo-200 font-mono animate-fadeIn">
-          <div className="flex items-center space-x-2">
-            <Check className="w-4 h-4 text-emerald-400" />
-            <span>{syncFeedback}</span>
-          </div>
-          <button onClick={() => setSyncFeedback(null)} className="text-slate-400 hover:text-white">
-            Dismiss
-          </button>
-        </div>
+      {/* Workspace Sub-Tabs: Due Dates vs FAPT Repository */}
+      <div className="flex border-b border-white/10 space-x-2">
+        <button
+          onClick={() => setActiveTab('deadlines')}
+          className={`px-4 py-2.5 text-xs font-semibold rounded-t-lg transition border-b-2 flex items-center space-x-2 ${
+            activeTab === 'deadlines'
+              ? 'border-indigo-500 text-indigo-300 bg-white/5'
+              : 'border-transparent text-slate-400 hover:text-slate-200'
+          }`}
+        >
+          <Calculator className="w-3.5 h-3.5" />
+          <span>Prazos Limites & Limiares de Cumprimento ({obligations.length})</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('fapt')}
+          className={`px-4 py-2.5 text-xs font-semibold rounded-t-lg transition border-b-2 flex items-center space-x-2 ${
+            activeTab === 'fapt'
+              ? 'border-indigo-500 text-indigo-300 bg-white/5'
+              : 'border-transparent text-slate-400 hover:text-slate-200'
+          }`}
+        >
+          <FileCheck2 className="w-3.5 h-3.5" />
+          <span>Acervo Oficial de Pareceres Técnicos (FAPT) ({state?.fapts?.length || 0})</span>
+        </button>
+      </div>
+
+      {activeTab === 'fapt' && state && (
+        <FaptListView state={state as any} onSelectAd={onSelectAd || (() => {})} />
       )}
+
+      {activeTab === 'deadlines' && (
+        <>
+          {/* Sync Feedback Toast */}
+          {syncFeedback && (
+            <div className="p-3.5 bg-indigo-950/80 border border-indigo-500/50 rounded-xl flex items-center justify-between text-xs text-indigo-200 font-mono animate-fadeIn">
+              <div className="flex items-center space-x-2">
+                <Check className="w-4 h-4 text-emerald-400" />
+                <span>{syncFeedback}</span>
+              </div>
+              <button onClick={() => setSyncFeedback(null)} className="text-slate-400 hover:text-white">
+                Dismiss
+              </button>
+            </div>
+          )}
 
       {/* Metrics Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
@@ -826,6 +870,8 @@ export default function ComplianceObligationsView({
             </div>
           ) : null}
         </div>
+      )}
+        </>
       )}
 
       {/* AD TEXT PARSER SANDBOX MODAL */}

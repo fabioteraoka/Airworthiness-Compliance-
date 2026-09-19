@@ -21,20 +21,67 @@ import ContextualHelpDrawer from './components/ContextualHelpDrawer';
 import RegulatoryIntelligenceView from './components/RegulatoryIntelligenceView';
 import CamoRegulatoryRegisterView from './components/CamoRegulatoryRegisterView';
 import AnalysisPhaseView from './components/AnalysisPhaseView';
+import AdsWorkspaceView from './components/AdsWorkspaceView';
+import TechnicalReferencesView from './components/TechnicalReferencesView';
+import GovernanceView from './components/GovernanceView';
+import BreadcrumbBar from './components/BreadcrumbBar';
+import { 
+  parseHashRoute, 
+  buildHashRoute, 
+  generateBreadcrumbs, 
+  NavigationState, 
+  BreadcrumbItem, 
+  PrimaryView 
+} from './services/navigationService';
 import { Loader2, AlertCircle, HelpCircle, Compass } from 'lucide-react';
 import { ComplianceRequirement } from './types';
 
 export default function App() {
   const [state, setState] = useState<DatabaseState | null>(null);
-  const [currentView, setCurrentView] = useState<string>('dashboard');
-  const [selectedAdId, setSelectedAdId] = useState<string | null>(null);
+  const [navState, setNavState] = useState<NavigationState>(() => parseHashRoute());
+  const [currentView, setCurrentView] = useState<string>(() => {
+    const initial = parseHashRoute();
+    return initial.view;
+  });
+  const [selectedAdId, setSelectedAdId] = useState<string | null>(() => {
+    const initial = parseHashRoute();
+    return initial.view === 'detail' ? initial.entityId || null : null;
+  });
   const [showArchitectureDossierModal, setShowArchitectureDossierModal] = useState<boolean>(false);
   const [showContextualDrawer, setShowContextualDrawer] = useState<boolean>(false);
-  const [selectedHelpArticleId, setSelectedHelpArticleId] = useState<string | undefined>(undefined);
+  const [selectedHelpArticleId, setSelectedHelpArticleId] = useState<string | undefined>(() => {
+    const initial = parseHashRoute();
+    return initial.helpArticleId;
+  });
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isResetting, setIsResetting] = useState<boolean>(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [currentTimestamp, setCurrentTimestamp] = useState<string>('');
+
+  // Synchronize navState with URL hash and legacy state variables
+  useEffect(() => {
+    const hash = buildHashRoute(navState);
+    if (window.location.hash !== hash) {
+      window.location.hash = hash;
+    }
+    if (navState.view === 'detail') {
+      setCurrentView('detail');
+      setSelectedAdId(navState.entityId || null);
+    } else {
+      setCurrentView(navState.view);
+      setSelectedAdId(null);
+    }
+  }, [navState]);
+
+  // Listen to external hash changes (browser back/forward & direct URL entry)
+  useEffect(() => {
+    const handleHashChange = () => {
+      const parsed = parseHashRoute(window.location.hash);
+      setNavState(parsed);
+    };
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
 
   useEffect(() => {
     const updateTime = () => {
@@ -77,6 +124,15 @@ export default function App() {
     fetchState(3, 800);
   }, []);
 
+  const navigateTo = (view: string, subTab?: string, entityId?: string | null, context?: any) => {
+    setNavState(prev => ({
+      view: view as PrimaryView,
+      subTab,
+      entityId,
+      context: context || { fromView: prev.view, fromSubTab: prev.subTab }
+    }));
+  };
+
   const handleResetSeed = async () => {
     if (!window.confirm('Reset the CAMO database to demonstration seed data?')) return;
     setIsResetting(true);
@@ -85,7 +141,7 @@ export default function App() {
       if (res.ok) {
         const data = await res.json();
         setState(data.state);
-        setCurrentView('dashboard');
+        navigateTo('dashboard');
       }
     } catch (err) {
       console.error('Reset error:', err);
@@ -94,16 +150,58 @@ export default function App() {
     }
   };
 
-  const handleSelectAd = (id: string) => {
-    setSelectedAdId(id);
-    setCurrentView('detail');
+  const handleSelectAd = (id: string, subTab?: string) => {
+    setNavState(prev => ({
+      view: 'detail',
+      entityId: id,
+      subTab: subTab || 'matrix',
+      context: { fromView: prev.view, fromSubTab: prev.subTab }
+    }));
   };
 
   const handleAdProcessed = (requirement: ComplianceRequirement) => {
-    setSelectedAdId(requirement.id);
     fetchState();
-    setCurrentView('detail');
+    handleSelectAd(requirement.id);
   };
+
+  const handleBreadcrumbNavigate = (item: BreadcrumbItem) => {
+    if (item.view === 'detail' && item.entityId) {
+      setNavState(prev => ({
+        ...prev,
+        view: 'detail',
+        entityId: item.entityId,
+        subTab: item.subTab
+      }));
+    } else {
+      setNavState(prev => ({
+        view: item.view,
+        subTab: item.subTab,
+        entityId: null,
+        context: { fromView: prev.view, fromSubTab: prev.subTab }
+      }));
+    }
+  };
+
+  const handleBreadcrumbBack = () => {
+    if (navState.context?.fromView) {
+      setNavState({
+        view: navState.context.fromView,
+        subTab: navState.context.fromSubTab,
+        entityId: null
+      });
+    } else if (navState.view === 'detail') {
+      setNavState({
+        view: 'ads',
+        subTab: 'active'
+      });
+    } else {
+      setNavState({
+        view: 'dashboard'
+      });
+    }
+  };
+
+  const breadcrumbs = generateBreadcrumbs(navState, state);
 
   if (isLoading) {
     return (
@@ -142,10 +240,7 @@ export default function App() {
       {/* Top Header */}
       <Header
         state={state}
-        onResetSeed={handleResetSeed}
-        onSelectView={setCurrentView}
-        onOpenDossier={() => setShowArchitectureDossierModal(true)}
-        isResetting={isResetting}
+        onSelectView={navigateTo}
       />
 
       {/* Main Layout Body */}
@@ -153,8 +248,8 @@ export default function App() {
         {/* Navigation Sidebar */}
         <Sidebar
           currentView={currentView}
-          onSelectView={(view) => {
-            setCurrentView(view);
+          onSelectView={(view, subTab) => {
+            navigateTo(view, subTab);
             if (view === 'ads') setSelectedAdId(null);
           }}
           state={state}
@@ -162,64 +257,31 @@ export default function App() {
 
         {/* Content View Container */}
         <div className="flex-1 flex flex-col overflow-hidden">
+          {/* Breadcrumb Navigation Bar (Phase 1) */}
+          <BreadcrumbBar
+            breadcrumbs={breadcrumbs}
+            onNavigate={handleBreadcrumbNavigate}
+            onBack={handleBreadcrumbBack}
+            canGoBack={breadcrumbs.length > 1}
+          />
+
           <main className="flex-1 overflow-y-auto bg-[#0F172A]/70">
             {currentView === 'dashboard' && (
               <DashboardView
                 state={state}
-                onSelectView={setCurrentView}
+                onSelectView={navigateTo}
                 onSelectAd={handleSelectAd}
               />
             )}
 
-            {currentView === 'analysis-phase' && (
-              <AnalysisPhaseView
+            {/* Workspace 1: Frota & Operações */}
+            {currentView === 'fleet' && (
+              <FleetView
                 state={state}
                 onRefreshState={setState}
                 onSelectAd={handleSelectAd}
-                onSelectView={setCurrentView}
-              />
-            )}
-
-            {currentView === 'camo-register' && (
-              <CamoRegulatoryRegisterView
-                state={state}
-                onRefreshState={setState}
-                onSelectAd={handleSelectAd}
-                onSelectView={setCurrentView}
-              />
-            )}
-
-            {currentView === 'regulatory-intel' && (
-              <RegulatoryIntelligenceView
-                state={state}
-                onRefreshState={setState}
-                onSelectAd={handleSelectAd}
-                onSelectView={setCurrentView}
-              />
-            )}
-
-            {currentView === 'fleet-ad-search' && state && (
-              <FleetAdSearchView
-                state={state}
-                onSelectAd={handleSelectAd}
-                onSelectView={setCurrentView}
-                onRefreshState={setState}
-              />
-            )}
-
-            {currentView === 'regulatory' && (
-              <RegulatorySourcesView
-                state={state}
-                onRefreshState={setState}
-                onSelectAd={handleSelectAd}
-              />
-            )}
-
-            {currentView === 'obligations' && (
-              <ComplianceObligationsView
-                state={state}
-                onRefreshState={setState}
-                onSelectAd={handleSelectAd}
+                onSelectView={navigateTo}
+                initialTab={navState.subTab as any}
               />
             )}
 
@@ -231,73 +293,186 @@ export default function App() {
               />
             )}
 
-            {currentView === 'upload' && (
-              <AdUploadView
-                onAdProcessed={handleAdProcessed}
-                onSelectView={setCurrentView}
+            {/* Workspace 2: Engenharia Regulatória */}
+            {currentView === 'regulatory-intel' && (
+              <RegulatoryIntelligenceView
+                state={state}
+                onRefreshState={setState}
+                onSelectAd={handleSelectAd}
+                onSelectView={navigateTo}
+                initialTab={navState.subTab as any}
               />
             )}
 
             {currentView === 'ads' && (
-              <AdListView
+              <AdsWorkspaceView
                 state={state}
                 onSelectAd={handleSelectAd}
-                onSelectView={setCurrentView}
+                onSelectView={navigateTo}
                 onRefreshState={setState}
+                onAdProcessed={handleAdProcessed}
+                initialTab={navState.subTab as any}
               />
             )}
 
+            {currentView === 'technical-references' && (
+              <TechnicalReferencesView
+                state={state}
+                onRefreshState={setState}
+                onSelectAd={handleSelectAd}
+                onSelectView={navigateTo}
+                initialTab={navState.subTab as any}
+              />
+            )}
+
+            {/* Workspace 3: Conformidade & Aeronavegabilidade */}
+            {currentView === 'obligations' && (
+              <ComplianceObligationsView
+                state={state}
+                onRefreshState={setState}
+                onSelectAd={handleSelectAd}
+                initialTab={navState.subTab as any}
+              />
+            )}
+
+            {/* Workspace 4: Governança, Conhecimento & Sistema */}
+            {currentView === 'governance' && (
+              <GovernanceView
+                state={state}
+                onRefreshState={setState}
+                onSelectAd={handleSelectAd}
+                onNavigateView={navigateTo}
+                onOpenDossier={() => setShowArchitectureDossierModal(true)}
+                onResetSeed={handleResetSeed}
+                isResetting={isResetting}
+                initialTab={navState.subTab as any}
+                initialArticleId={selectedHelpArticleId}
+              />
+            )}
+
+            {/* Contextual Detail View */}
             {currentView === 'detail' && selectedAdId && (
               <AdDetailView
                 requirementId={selectedAdId}
                 state={state}
-                onBack={() => setCurrentView('ads')}
+                onBack={handleBreadcrumbBack}
                 onRefreshState={setState}
               />
             )}
 
-            {currentView === 'fleet' && (
+            {/* Backward-compatibility aliases for direct legacy view rendering */}
+            {currentView === 'analysis-phase' && (
+              <AdsWorkspaceView
+                state={state}
+                onSelectAd={handleSelectAd}
+                onSelectView={navigateTo}
+                onRefreshState={setState}
+                onAdProcessed={handleAdProcessed}
+                initialTab="analysis"
+              />
+            )}
+
+            {currentView === 'camo-register' && (
+              <AdsWorkspaceView
+                state={state}
+                onSelectAd={handleSelectAd}
+                onSelectView={navigateTo}
+                onRefreshState={setState}
+                onAdProcessed={handleAdProcessed}
+                initialTab="register"
+              />
+            )}
+
+            {currentView === 'upload' && (
+              <AdsWorkspaceView
+                state={state}
+                onSelectAd={handleSelectAd}
+                onSelectView={navigateTo}
+                onRefreshState={setState}
+                onAdProcessed={handleAdProcessed}
+                initialTab="upload"
+              />
+            )}
+
+            {currentView === 'fleet-ad-search' && (
               <FleetView
                 state={state}
                 onRefreshState={setState}
+                onSelectAd={handleSelectAd}
+                onSelectView={navigateTo}
+                initialTab="fleet-matrix"
               />
             )}
 
-            {currentView === 'knowledge' && (
-              <KnowledgeBaseView
+            {currentView === 'regulatory' && (
+              <RegulatoryIntelligenceView
                 state={state}
                 onRefreshState={setState}
                 onSelectAd={handleSelectAd}
+                onSelectView={navigateTo}
+                initialTab="connectors"
               />
             )}
 
             {currentView === 'fapt' && (
-              <FaptListView
+              <ComplianceObligationsView
                 state={state}
+                onRefreshState={setState}
                 onSelectAd={handleSelectAd}
+                initialTab="fapt"
               />
             )}
 
             {currentView === 'audit' && (
-              <AuditTrailView
+              <GovernanceView
                 state={state}
+                onRefreshState={setState}
+                onSelectAd={handleSelectAd}
+                onNavigateView={navigateTo}
+                onOpenDossier={() => setShowArchitectureDossierModal(true)}
+                onResetSeed={handleResetSeed}
+                isResetting={isResetting}
+                initialTab="audit"
               />
             )}
 
             {currentView === 'architecture' && (
-              <ArchitectureView
+              <GovernanceView
+                state={state}
+                onRefreshState={setState}
+                onSelectAd={handleSelectAd}
+                onNavigateView={navigateTo}
                 onOpenDossier={() => setShowArchitectureDossierModal(true)}
+                onResetSeed={handleResetSeed}
+                isResetting={isResetting}
+                initialTab="dossier"
               />
             )}
 
             {currentView === 'help' && (
-              <HelpCenterView
-                initialArticleId={selectedHelpArticleId}
-                onNavigateView={(view) => {
-                  setSelectedHelpArticleId(undefined);
-                  setCurrentView(view);
-                }}
+              <GovernanceView
+                state={state}
+                onRefreshState={setState}
+                onSelectAd={handleSelectAd}
+                onNavigateView={navigateTo}
                 onOpenDossier={() => setShowArchitectureDossierModal(true)}
+                onResetSeed={handleResetSeed}
+                isResetting={isResetting}
+                initialTab="manual"
+                initialArticleId={selectedHelpArticleId}
+              />
+            )}
+
+            {currentView === 'knowledge' && (
+              <GovernanceView
+                state={state}
+                onRefreshState={setState}
+                onSelectAd={handleSelectAd}
+                onNavigateView={navigateTo}
+                onOpenDossier={() => setShowArchitectureDossierModal(true)}
+                onResetSeed={handleResetSeed}
+                isResetting={isResetting}
+                initialTab="knowledge"
               />
             )}
           </main>

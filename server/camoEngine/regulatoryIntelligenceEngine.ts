@@ -2082,13 +2082,32 @@ export class RegulatoryIntelligenceEngine {
     const lowerText = text.toLowerCase();
     const adClean = (adNumber || '').trim();
 
+    const normalizeSbKey = (num: string) => {
+      return (num || '')
+        .toUpperCase()
+        .replace(/^BOEING\s*/i, '')
+        .replace(/^AIRBUS\s*/i, '')
+        .replace(/^EMBRAER\s*/i, '')
+        .replace(/^(?:B|A|ERJ)(?=\d)/i, '')
+        .replace(/[^A-Z0-9]/g, '');
+    };
+
     // Helper to add or update
     const addSb = (sb: Omit<ReferencedServiceBulletin, 'id' | 'adNumber' | 'authority' | 'extractedAt'>) => {
-      const existing = results.find(s => s.sbNumber.toLowerCase() === sb.sbNumber.toLowerCase());
+      const existing = results.find(s => 
+        s.sbNumber.toLowerCase() === sb.sbNumber.toLowerCase() ||
+        (normalizeSbKey(s.sbNumber) && normalizeSbKey(s.sbNumber) === normalizeSbKey(sb.sbNumber))
+      );
       if (existing) {
         if (!existing.checklist && sb.checklist) existing.checklist = sb.checklist;
-        if (existing.analysisStatus === 'PENDING_RETRIEVAL' && sb.analysisStatus !== 'PENDING_RETRIEVAL') {
-          existing.analysisStatus = sb.analysisStatus;
+        if (existing.analysisStatus === 'PENDING_RETRIEVAL' || (sb.analysisStatus === 'ANALYZED' && existing.analysisStatus !== 'ANALYZED')) {
+          existing.analysisStatus = sb.analysisStatus !== 'PENDING_RETRIEVAL' ? sb.analysisStatus : 'CHECKLIST_GENERATED';
+        }
+        if (sb.title && (!existing.title || existing.title.startsWith('Service Bulletin'))) {
+          existing.title = sb.title;
+        }
+        if (sb.sbNumber.length > existing.sbNumber.length) {
+          existing.sbNumber = sb.sbNumber;
         }
         return;
       }
@@ -2263,6 +2282,15 @@ export class RegulatoryIntelligenceEngine {
           isMandatedByAd: detectedRelationship === 'MANDATORY_INCORPORATION' || detectedRelationship === 'TERMINATING_ACTION',
           analysisStatus: 'CHECKLIST_GENERATED'
         });
+      }
+    }
+
+    for (const sb of results) {
+      if (!sb.checklist) {
+        sb.checklist = this.generateSbAnalysisChecklist(sb, { text, requirement });
+      }
+      if (sb.analysisStatus === 'PENDING_RETRIEVAL' && sb.checklist) {
+        sb.analysisStatus = 'CHECKLIST_GENERATED';
       }
     }
 

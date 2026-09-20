@@ -1452,19 +1452,19 @@ Accomplishment of the actions specified in Boeing Alert Requirements Bulletin 73
     if (!this.state.deliveryAssessments) {
       this.state.deliveryAssessments = [];
     }
-    if (!this.state.adCandidates || this.state.adCandidates.length === 0) {
+    if (!this.state.adCandidates) {
       this.state.adCandidates = getInitialSeedData().adCandidates || [];
     }
-    if (!this.state.regulatoryKnowledgeBase || this.state.regulatoryKnowledgeBase.length === 0) {
+    if (!this.state.regulatoryKnowledgeBase) {
       this.state.regulatoryKnowledgeBase = getInitialSeedData().regulatoryKnowledgeBase || [];
     }
     if (!this.state.configurationAssessments) {
       this.state.configurationAssessments = [];
     }
-    if (!this.state.camoRegulatoryRegister || this.state.camoRegulatoryRegister.length === 0) {
+    if (!this.state.camoRegulatoryRegister) {
       this.state.camoRegulatoryRegister = getInitialRegulatoryRegister();
     }
-    if (!this.state.configurationHistory || this.state.configurationHistory.length === 0) {
+    if (!this.state.configurationHistory) {
       this.state.configurationHistory = getInitialSeedData().configurationHistory || [];
     }
     if (!Array.isArray(this.state.sbRepository)) {

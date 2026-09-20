@@ -3041,6 +3041,14 @@ export interface CamoRegulatoryRecord {
   analyzedRequirementId?: string;
   knowledgeId?: string; // RegulatoryKnowledgeItem ID when analyzed
   rawApplicabilityText?: string;
+  sourceDocument?: {
+    fileName: string;
+    fileSize: number;
+    mimeType: string;
+    fileData?: string;
+    rawExtractedText?: string;
+    documentHash?: string;
+  };
   operationalPriority?: 'CRITICAL_URGENT' | 'HIGH' | 'NORMAL';
   // Phase 9 Stage 7: Service Bulletins and multi-dimensional analysis status
   referencedSbs?: ReferencedServiceBulletin[];

@@ -319,96 +319,25 @@ async function startServer() {
         return res.status(400).json({ error: 'Please provide either a PDF file (base64) or text content of the AD.' });
       }
 
-      const extracted = await extractAdWithGemini({ pdfBase64, text, fileName });
-      
-      const reqId = `req-${Date.now()}`;
-      const ruleId = `rule-${Date.now()}`;
+      const effectiveActor = camoDb.getState().currentUser?.name || 'CAMO Technical Analyst';
 
-      const requirement: ComplianceRequirement = {
-        id: reqId,
-        sourceType: 'AD',
-        sourceNumber: extracted.sourceNumber,
-        revision: extracted.revision || 'Original',
-        title: extracted.title,
-        issuingAuthority: extracted.issuingAuthority,
-        issueDate: extracted.issueDate || new Date().toISOString().split('T')[0],
-        effectiveDate: extracted.effectiveDate || new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0],
-        emergencyAd: Boolean(extracted.emergencyAd),
-        supersedes: extracted.supersedes,
-        sourceDocument: {
-          fileName: fileName || 'Airworthiness_Directive.pdf',
-          fileSize: pdfBase64 ? Math.round(pdfBase64.length * 0.75) : (text?.length || 0),
-          mimeType: pdfBase64 ? 'application/pdf' : 'text/plain',
-          fileData: pdfBase64,
-          rawExtractedText: text || extracted.technicalSummary
-        },
-        applicabilityRule: {
-          id: ruleId,
-          complianceRequirementId: reqId,
-          aircraftManufacturers: extracted.aircraftManufacturers || [],
-          aircraftModels: extracted.aircraftModels || [],
-          aircraftSerialRanges: extracted.aircraftSerialRangesFrom ? {
-            from: extracted.aircraftSerialRangesFrom,
-            to: extracted.aircraftSerialRangesTo,
-            list: extracted.aircraftSerialRangesList,
-            description: extracted.aircraftSerialRangesDescription
-          } : undefined,
-          engineManufacturers: extracted.engineManufacturers,
-          engineModels: extracted.engineModels,
-          componentPartNumbers: extracted.componentPartNumbers || [],
-          componentSerialRanges: (extracted.componentSerialRangesFrom || extracted.componentSerialRangesDescription) ? {
-            from: extracted.componentSerialRangesFrom,
-            to: extracted.componentSerialRangesTo,
-            list: extracted.componentSerialRangesList,
-            description: extracted.componentSerialRangesDescription
-          } : undefined,
-          affectedConfiguration: extracted.affectedConfiguration,
-          otherEffectivityCriteria: extracted.otherEffectivityCriteria,
-          rawText: extracted.applicabilityRawSummary
-        },
-        requirementDetails: {
-          initialThreshold: extracted.initialThreshold || undefined,
-          complianceTime: extracted.complianceTime || undefined,
-          repetitiveInterval: extracted.repetitiveInterval || undefined,
-          requiredInspection: extracted.requiredInspection || undefined,
-          modification: extracted.modification || undefined,
-          replacement: extracted.replacement || undefined,
-          optionalMethod: extracted.optionalMethod || undefined,
-          terminatingAction: extracted.terminatingAction || undefined,
-          requiredParts: extracted.requiredParts || [],
-          requiredDocumentation: extracted.requiredDocumentation || undefined
-        },
-        actions: (extracted.actions || []).map((act, idx) => ({
-          id: `act-${Date.now()}-${idx}`,
-          complianceRequirementId: `req-${Date.now()}`,
-          ...act
-        })),
-        applicabilityCriteria: extracted.applicabilityCriteria,
-        mandatedActions: extracted.mandatedActions || [],
-        softwareRequirements: extracted.softwareRequirements || [],
-        externalEffectivityReferences: extracted.externalEffectivityReferences || [],
-        rawExtraction: extracted.rawExtraction,
-        referencedDocuments: (extracted.referencedDocuments || []).map((ref, idx) => ({
-          id: `ref-${Date.now()}-${idx}`,
-          complianceRequirementId: `req-${Date.now()}`,
-          ...ref
-        })),
-        documentProcessingStatus: extracted.documentProcessingStatus || 'EXTRACTED',
-        extractionStatus: extracted.extractionStatus || 'SUCCESS',
-        extractionError: extracted.extractionError,
-        missingFields: extracted.missingFields,
-        provenanceMap: extracted.provenanceMap || {},
-        extractionFailureRecord: extracted.extractionFailureRecord,
-        diagnostics: extracted.diagnostics,
-        pipelineDiagnostics: extracted.pipelineDiagnostics,
-        status: extracted.documentProcessingStatus === 'EXTRACTION_FAILED' ? 'DRAFT' : 'EXTRACTED',
-        createdAt: new Date().toISOString(),
-        createdBy: camoDb.getState().currentUser.name,
-        updatedAt: new Date().toISOString(),
-        updatedBy: camoDb.getState().currentUser.name
-      };
+      // Phase 3B.1: Route strictly through CamoRegulatoryRecord intake & analysis
+      const result = await regulatoryIntelligenceEngine.ingestUploadedAdDocument({
+        pdfBase64,
+        text,
+        fileName,
+        actor: effectiveActor
+      });
 
-      res.json({ success: true, requirement, extracted, diagnostics: extracted.pipelineDiagnostics });
+      res.json({
+        success: result.success,
+        record: result.record,
+        requirement: result.requirement,
+        completeness: result.completeness,
+        isDuplicate: result.isDuplicate,
+        extracted: result.record.originalPayload,
+        diagnostics: result.diagnostics
+      });
     } catch (err: any) {
       console.error('Extraction route error:', err);
       res.status(500).json({ error: err.message || 'Failed to extract Airworthiness Directive' });

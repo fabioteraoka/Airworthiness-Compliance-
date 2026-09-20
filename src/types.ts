@@ -2792,7 +2792,8 @@ export type RegulatoryRegisterAnalysisStatus =
   | 'ANALYSIS_FAILED'
   | 'REVIEW_REQUIRED'
   | 'ANALYZED'
-  | 'FAILED';
+  | 'FAILED'
+  | 'DEPENDENCY_PENDING';
 
 export type AnalysisStepKey =
   | 'IDENTIFICATION'
@@ -2949,6 +2950,8 @@ export interface ReferencedServiceBulletin {
   relationshipToAd: SbRelationshipToAd;
   isMandatedByAd: boolean;
   analysisStatus: SbAnalysisStatus;
+  documentAvailability?: 'AVAILABLE' | 'NOT_LOCATED' | 'PENDING_RETRIEVAL';
+  checklistStatus?: 'NOT_GENERATED' | 'CHECKLIST_GENERATED';
   checklist?: SbAnalysisChecklist;
   notes?: string;
   extractedAt?: string;
@@ -3050,9 +3053,14 @@ export interface CamoRegulatoryRecord {
     documentHash?: string;
   };
   operationalPriority?: 'CRITICAL_URGENT' | 'HIGH' | 'NORMAL';
+  emergencyAd?: boolean;
+  supersedes?: string[];
+  importedAt?: string;
+  importedBy?: string;
   // Phase 9 Stage 7: Service Bulletins and multi-dimensional analysis status
   referencedSbs?: ReferencedServiceBulletin[];
   sbIntelligenceStatus?: 'NO_SB_REFERENCED' | 'SB_ANALYSIS_REQUIRED' | 'SB_ANALYZED' | 'SB_PENDING_RETRIEVAL';
+  adTechnicalAnalysisCompleteness?: 'TECHNICAL_ANALYSIS_COMPLETE' | 'DEPENDENCY_PENDING' | 'REVIEW_REQUIRED';
   applicabilityPendingStatus?: 'APPLICABILITY_PENDING' | 'APPLICABILITY_DETERMINED';
   compliancePendingStatus?: 'COMPLIANCE_PENDING' | 'COMPLIANCE_EVIDENCED';
   auditTrail?: Array<{

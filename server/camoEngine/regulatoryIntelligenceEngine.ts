@@ -47,6 +47,7 @@ import {
 } from '../ruleEngine';
 import { regulatorySourceRegistry } from '../regulatoryConnectors/sourceRegistry';
 import crypto from 'crypto';
+import { extractAdWithGemini } from '../geminiService';
 
 export interface CandidateSearchParams {
   make?: string;
@@ -1935,6 +1936,31 @@ export class RegulatoryIntelligenceEngine {
     reqId: string
   ): ComplianceRequirement {
     const now = new Date().toISOString();
+    const regRecord = camoDb.getState().camoRegulatoryRegister?.find(r => r.adNumber === candidate.adNumber || r.id === candidate.id);
+    const payload = (regRecord?.originalPayload as any) || (candidate as any).originalPayload;
+
+    const compParts = (payload?.componentPartNumbers && payload.componentPartNumbers.length > 0)
+      ? payload.componentPartNumbers
+      : (candidate.adNumber.includes('2024-0120') ? ['762300-1', '762300-2'] : 
+         candidate.adNumber.includes('2023-0188') ? ['47145-series'] : []);
+
+    const engModels = (payload?.engineModels && payload.engineModels.length > 0)
+      ? payload.engineModels
+      : (candidate.adNumber.includes('2024-15-08') ? ['CFM56-5B4', 'CFM56-5B4/P', 'CFM56-5B6', 'CFM56-5B7'] : []);
+
+    const engMfgs = (payload?.engineManufacturers && payload.engineManufacturers.length > 0)
+      ? payload.engineManufacturers
+      : undefined;
+
+    const initialThresh = payload?.initialThreshold || 
+      (candidate.adNumber.includes('2024-15-08') ? 'Within 30 days or 150 flight hours after effective date' : 'Within 500 flight hours or 6 months');
+
+    const repInterval = payload?.repetitiveInterval || 
+      (candidate.adNumber.includes('2024-0120') ? 'Repetitive inspection every 1000 flight hours or 12 months' : undefined);
+
+    const termAction = payload?.terminatingAction || 
+      (candidate.adNumber.includes('2024-0120') ? 'Replacement of RAT deployment actuator with redesigned standard terminates repetitive inspections.' : undefined);
+
     return {
       id: reqId,
       sourceType: 'AD',
@@ -1946,6 +1972,7 @@ export class RegulatoryIntelligenceEngine {
       effectiveDate: candidate.effectiveDate,
       emergencyAd: candidate.operationalPriority === 'CRITICAL_URGENT',
       status: 'ASSESSED',
+      actions: payload?.actions || undefined,
       createdAt: now,
       createdBy: 'CAMO Regulatory Intelligence Engine (Phase 9.4)',
       updatedAt: now,
@@ -1955,18 +1982,30 @@ export class RegulatoryIntelligenceEngine {
         complianceRequirementId: reqId,
         aircraftManufacturers: [candidate.manufacturer],
         aircraftModels: candidate.modelScope,
-        componentPartNumbers: candidate.adNumber.includes('2024-0120') ? ['762300-1', '762300-2'] : 
-                              candidate.adNumber.includes('2023-0188') ? ['47145-series'] : [],
-        engineModels: candidate.adNumber.includes('2024-15-08') ? ['CFM56-5B4', 'CFM56-5B4/P', 'CFM56-5B6', 'CFM56-5B7'] : [],
+        componentPartNumbers: compParts,
+        engineManufacturers: engMfgs,
+        engineModels: engModels,
+        aircraftSerialRanges: payload?.aircraftSerialRangesFrom ? {
+          from: payload.aircraftSerialRangesFrom,
+          to: payload.aircraftSerialRangesTo,
+          list: payload.aircraftSerialRangesList,
+          description: payload.aircraftSerialRangesDescription
+        } : undefined,
+        componentSerialRanges: (payload?.componentSerialRangesFrom || payload?.componentSerialRangesDescription) ? {
+          from: payload.componentSerialRangesFrom,
+          to: payload.componentSerialRangesTo,
+          list: payload.componentSerialRangesList,
+          description: payload.componentSerialRangesDescription
+        } : undefined,
         affectedConfiguration: candidate.rawApplicabilityText,
         rawText: candidate.rawApplicabilityText
       },
       requirementDetails: {
-        initialThreshold: candidate.adNumber.includes('2024-15-08') ? 'Within 30 days or 150 flight hours after effective date' : 'Within 500 flight hours or 6 months',
-        complianceTime: 'Initial inspection mandate',
-        repetitiveInterval: candidate.adNumber.includes('2024-0120') ? 'Repetitive inspection every 1000 flight hours or 12 months' : undefined,
-        requiredInspection: 'Detailed visual and functional inspection per manufacturer service bulletin instructions.',
-        terminatingAction: candidate.adNumber.includes('2024-0120') ? 'Replacement of RAT deployment actuator with redesigned standard terminates repetitive inspections.' : undefined
+        initialThreshold: initialThresh,
+        complianceTime: payload?.complianceTime || 'Initial inspection mandate',
+        repetitiveInterval: repInterval,
+        requiredInspection: payload?.requiredInspection || 'Detailed visual and functional inspection per manufacturer service bulletin instructions.',
+        terminatingAction: termAction
       },
       softwareRequirements: candidate.adNumber.includes('2024-03-01') ? [
         {
@@ -1983,7 +2022,7 @@ export class RegulatoryIntelligenceEngine {
           notes: 'Software version L102 (P/N 3945128215) must be loaded on both ELAC 1 and ELAC 2.'
         }
       ] : undefined,
-      sourceDocument: {
+      sourceDocument: (regRecord?.sourceDocument as any) || {
         fileName: `${candidate.adNumber.replace(/[^a-zA-Z0-9_-]/g, '_')}.pdf`,
         fileSize: (candidate.rawApplicabilityText || '').length + 300,
         mimeType: 'text/plain',
@@ -2092,17 +2131,33 @@ export class RegulatoryIntelligenceEngine {
         .replace(/[^A-Z0-9]/g, '');
     };
 
+    const state = camoDb.getState();
+
     // Helper to add or update
     const addSb = (sb: Omit<ReferencedServiceBulletin, 'id' | 'adNumber' | 'authority' | 'extractedAt'>) => {
+      const normKey = normalizeSbKey(sb.sbNumber);
       const existing = results.find(s => 
         s.sbNumber.toLowerCase() === sb.sbNumber.toLowerCase() ||
-        (normalizeSbKey(s.sbNumber) && normalizeSbKey(s.sbNumber) === normalizeSbKey(sb.sbNumber))
+        (normalizeSbKey(s.sbNumber) && normalizeSbKey(s.sbNumber) === normKey)
       );
+
+      const isDocInRepo = (state.sbRepository || []).some(s => normalizeSbKey(s.documentNumber) === normKey);
+      const isAnalyzed = (state.sbAnalyses || []).some(a => normalizeSbKey(a.sbNumber) === normKey);
+
+      const effectiveAvailability = sb.documentAvailability || (isAnalyzed || isDocInRepo ? 'AVAILABLE' : 'NOT_LOCATED');
+      const effectiveAnalysisStatus = sb.analysisStatus === 'ANALYZED' || isAnalyzed ? 'ANALYZED' : 'PENDING_RETRIEVAL';
+
       if (existing) {
         if (!existing.checklist && sb.checklist) existing.checklist = sb.checklist;
-        if (existing.analysisStatus === 'PENDING_RETRIEVAL' || (sb.analysisStatus === 'ANALYZED' && existing.analysisStatus !== 'ANALYZED')) {
-          existing.analysisStatus = sb.analysisStatus !== 'PENDING_RETRIEVAL' ? sb.analysisStatus : 'CHECKLIST_GENERATED';
+        if (existing.analysisStatus !== 'ANALYZED' && effectiveAnalysisStatus === 'ANALYZED') {
+          existing.analysisStatus = 'ANALYZED';
         }
+        if (effectiveAvailability === 'AVAILABLE') {
+          existing.documentAvailability = 'AVAILABLE';
+        } else if (!existing.documentAvailability) {
+          existing.documentAvailability = effectiveAvailability;
+        }
+        existing.checklistStatus = 'CHECKLIST_GENERATED';
         if (sb.title && (!existing.title || existing.title.startsWith('Service Bulletin'))) {
           existing.title = sb.title;
         }
@@ -2117,7 +2172,10 @@ export class RegulatoryIntelligenceEngine {
         authority: authority as IssuingAuthority,
         complianceRequirementId: requirement?.id,
         extractedAt: new Date().toISOString(),
-        ...sb
+        ...sb,
+        documentAvailability: effectiveAvailability,
+        checklistStatus: 'CHECKLIST_GENERATED',
+        analysisStatus: effectiveAnalysisStatus
       };
       if (!newSb.checklist) {
         newSb.checklist = this.generateSbAnalysisChecklist(newSb, { text, requirement });
@@ -2289,8 +2347,15 @@ export class RegulatoryIntelligenceEngine {
       if (!sb.checklist) {
         sb.checklist = this.generateSbAnalysisChecklist(sb, { text, requirement });
       }
-      if (sb.analysisStatus === 'PENDING_RETRIEVAL' && sb.checklist) {
-        sb.analysisStatus = 'CHECKLIST_GENERATED';
+      sb.checklistStatus = 'CHECKLIST_GENERATED';
+      if (!sb.documentAvailability) {
+        const normKey = normalizeSbKey(sb.sbNumber);
+        const isDocInRepo = (state.sbRepository || []).some(s => normalizeSbKey(s.documentNumber) === normKey);
+        const isAnalyzed = (state.sbAnalyses || []).some(a => normalizeSbKey(a.sbNumber) === normKey);
+        sb.documentAvailability = isAnalyzed || isDocInRepo ? 'AVAILABLE' : 'NOT_LOCATED';
+        if (isAnalyzed) {
+          sb.analysisStatus = 'ANALYZED';
+        }
       }
     }
 
@@ -3183,6 +3248,15 @@ export class RegulatoryIntelligenceEngine {
 
     let sbAnalysisStatus: 'NO_SB_REFERENCED' | 'SB_ANALYSIS_REQUIRED' | 'SB_ANALYZED' | 'SB_PENDING_RETRIEVAL';
 
+    const mandatorySbs = extractedSbs.filter(s => 
+      s.isMandatedByAd || 
+      s.relationshipToAd === 'MANDATORY_INCORPORATION' || 
+      s.relationshipToAd === 'TERMINATING_ACTION' ||
+      s.relationshipToAd === 'PARTIAL_INSTRUCTION'
+    );
+    const pendingMandatorySbs = mandatorySbs.filter(s => s.analysisStatus !== 'ANALYZED');
+    const reviewMandatorySbs = mandatorySbs.filter(s => s.analysisStatus === 'REVIEW_REQUIRED');
+
     if (extractedSbs.length === 0) {
       sbAnalysisStatus = 'NO_SB_REFERENCED';
       steps.push({
@@ -3192,48 +3266,53 @@ export class RegulatoryIntelligenceEngine {
         status: 'SUCCESS',
         message: 'Nenhum Boletim de Serviço (SB) técnico ou mandatório referenciado no texto normativo da AD.'
       });
+    } else if (mandatorySbs.length === 0) {
+      // All SBs referenced are informational / reference-only
+      sbAnalysisStatus = 'SB_ANALYZED';
+      steps.push({
+        stepKey: 'SB_INTELLIGENCE',
+        stepName: 'Inteligência de Boletins de Serviço (SB)',
+        isMandatory: false,
+        status: 'SUCCESS',
+        message: `Identificado(s) ${extractedSbs.length} Boletim(ns) de Serviço em caráter de referência/informativo. Não bloqueia a conclusão técnica da AD.`
+      });
+    } else if (isPendingIntake) {
+      sbAnalysisStatus = 'SB_PENDING_RETRIEVAL';
+      steps.push({
+        stepKey: 'SB_INTELLIGENCE',
+        stepName: 'Inteligência de Boletins de Serviço (SB)',
+        isMandatory: true,
+        status: 'PENDING',
+        message: `Identificado(s) ${mandatorySbs.length} Boletim(ns) de Serviço mandatório(s). Análise de métodos de cumprimento pendente.`
+      });
+    } else if (pendingMandatorySbs.length > 0) {
+      sbAnalysisStatus = 'SB_PENDING_RETRIEVAL';
+      steps.push({
+        stepKey: 'SB_INTELLIGENCE',
+        stepName: 'Inteligência de Boletins de Serviço (SB)',
+        isMandatory: true,
+        status: 'INCOMPLETE',
+        message: `A AD referencia ${mandatorySbs.length} SB(s) obrigatório(s). Checklist de itens estruturado (${extractedSbs.filter(s => s.checklist).length} gerado(s)), porém ${pendingMandatorySbs.length} SB(s) pendente(s) de localização no repositório / análise de engenharia.`,
+        error: `SBs obrigatórios pendentes: ${pendingMandatorySbs.map(s => s.sbNumber).join(', ')}`
+      });
+    } else if (reviewMandatorySbs.length > 0) {
+      sbAnalysisStatus = 'SB_ANALYSIS_REQUIRED';
+      steps.push({
+        stepKey: 'SB_INTELLIGENCE',
+        stepName: 'Inteligência de Boletins de Serviço (SB)',
+        isMandatory: true,
+        status: 'REVIEW_REQUIRED',
+        message: `Checklist técnico do Boletim de Serviço gerado com ressalvas. Requer validação de engenharia CAMO: ${reviewMandatorySbs.map(s => s.sbNumber).join(', ')}.`
+      });
     } else {
-      const pendingSbs = extractedSbs.filter(s => s.analysisStatus === 'PENDING_RETRIEVAL' || s.analysisStatus === 'FAILED');
-      const reviewSbs = extractedSbs.filter(s => s.analysisStatus === 'REVIEW_REQUIRED');
-
-      if (isPendingIntake) {
-        sbAnalysisStatus = 'SB_ANALYSIS_REQUIRED';
-        steps.push({
-          stepKey: 'SB_INTELLIGENCE',
-          stepName: 'Inteligência de Boletins de Serviço (SB)',
-          isMandatory: true,
-          status: 'PENDING',
-          message: `Identificado(s) ${extractedSbs.length} Boletim(ns) de Serviço referenciado(s). Análise de métodos de cumprimento pendente.`
-        });
-      } else if (pendingSbs.length > 0) {
-        sbAnalysisStatus = 'SB_ANALYSIS_REQUIRED';
-        steps.push({
-          stepKey: 'SB_INTELLIGENCE',
-          stepName: 'Inteligência de Boletins de Serviço (SB)',
-          isMandatory: true,
-          status: 'INCOMPLETE',
-          message: `A AD referencia ${extractedSbs.length} Boletim(ns) de Serviço. ${pendingSbs.length} documento(s) técnico(s) pendente(s) de análise de engenharia.`,
-          error: `SBs pendentes: ${pendingSbs.map(s => s.sbNumber).join(', ')}`
-        });
-      } else if (reviewSbs.length > 0) {
-        sbAnalysisStatus = 'SB_ANALYSIS_REQUIRED';
-        steps.push({
-          stepKey: 'SB_INTELLIGENCE',
-          stepName: 'Inteligência de Boletins de Serviço (SB)',
-          isMandatory: true,
-          status: 'REVIEW_REQUIRED',
-          message: `Checklist técnico do Boletim de Serviço gerado com ressalvas. Requer validação de engenharia CAMO: ${reviewSbs.map(s => s.sbNumber).join(', ')}.`
-        });
-      } else {
-        sbAnalysisStatus = 'SB_ANALYZED';
-        steps.push({
-          stepKey: 'SB_INTELLIGENCE',
-          stepName: 'Inteligência de Boletins de Serviço (SB)',
-          isMandatory: true,
-          status: 'SUCCESS',
-          message: `Inteligência técnica de SB concluída: ${extractedSbs.length} Boletim(ns) de Serviço analisado(s) com checklist de cumprimento e condições de prévia incorporação estruturados.`
-        });
-      }
+      sbAnalysisStatus = 'SB_ANALYZED';
+      steps.push({
+        stepKey: 'SB_INTELLIGENCE',
+        stepName: 'Inteligência de Boletins de Serviço (SB)',
+        isMandatory: true,
+        status: 'SUCCESS',
+        message: `Inteligência técnica de SB concluída: ${mandatorySbs.length} Boletim(ns) de Serviço obrigatório(s) analisado(s) com checklist de cumprimento e condições de prévia incorporação estruturados.`
+      });
     }
 
     // STEP 7: KNOWLEDGE BASE COMPILATION
@@ -3409,10 +3488,13 @@ export class RegulatoryIntelligenceEngine {
       canTransitionToAnalyzed = false;
       summary = `Análise técnica requer revisão de engenharia CAMO: ${reviewSteps.map(s => s.stepName).join('; ')}.`;
     } else if (incompleteSteps.length > 0) {
-      effectiveStatus = record?.analysisStatus === 'ANALYSIS_IN_PROGRESS' ? 'ANALYSIS_IN_PROGRESS' : 'PENDING_ANALYSIS';
+      const hasPendingSb = incompleteSteps.some(s => s.stepKey === 'SB_INTELLIGENCE');
+      effectiveStatus = hasPendingSb ? 'DEPENDENCY_PENDING' : (record?.analysisStatus === 'ANALYSIS_IN_PROGRESS' ? 'ANALYSIS_IN_PROGRESS' : 'PENDING_ANALYSIS');
       isComplete = false;
       canTransitionToAnalyzed = false;
-      summary = `Etapas obrigatórias da análise técnica incompletas ou pendentes: ${incompleteSteps.map(s => s.stepName).join('; ')}.`;
+      summary = hasPendingSb
+        ? `Análise técnica da AD estruturada com checklist de cumprimento (CHECKLIST_GENERATED), porém aguardando localização e análise do documento SB obrigatório (DEPENDENCY_PENDING).`
+        : `Etapas obrigatórias da análise técnica incompletas ou pendentes: ${incompleteSteps.map(s => s.stepName).join('; ')}.`;
     } else {
       effectiveStatus = 'ANALYZED';
       isComplete = true;
@@ -3637,6 +3719,12 @@ export class RegulatoryIntelligenceEngine {
           target.applicabilityPendingStatus = completeness.applicabilityStatus;
           target.compliancePendingStatus = completeness.complianceStatus;
 
+          target.adTechnicalAnalysisCompleteness = completeness.effectiveStatus === 'ANALYZED' 
+            ? 'TECHNICAL_ANALYSIS_COMPLETE' 
+            : completeness.effectiveStatus === 'DEPENDENCY_PENDING' 
+              ? 'DEPENDENCY_PENDING' 
+              : 'REVIEW_REQUIRED';
+
           // Clear any previous normative re-review flag since it was re-analyzed
           if (target.versionHistory) {
             target.versionHistory.forEach(v => { v.reReviewRequired = false; });
@@ -3651,7 +3739,13 @@ export class RegulatoryIntelligenceEngine {
           if (!target.auditTrail) target.auditTrail = [];
           target.auditTrail.unshift({
             timestamp: completedTime,
-            action: completeness.isComplete ? 'ANALYSIS_COMPLETED' : completeness.effectiveStatus === 'REVIEW_REQUIRED' ? 'ANALYSIS_REVIEW_REQUIRED' : 'ANALYSIS_FAILED',
+            action: completeness.isComplete 
+              ? 'ANALYSIS_COMPLETED' 
+              : completeness.effectiveStatus === 'REVIEW_REQUIRED' 
+                ? 'ANALYSIS_REVIEW_REQUIRED' 
+                : completeness.effectiveStatus === 'DEPENDENCY_PENDING'
+                  ? 'ANALYSIS_DEPENDENCY_PENDING'
+                  : 'ANALYSIS_FAILED',
             actor: effectiveActor,
             details: `Avaliação técnica concluída. Status determinístico: ${completeness.effectiveStatus} (${completeness.completedStepsCount}/${completeness.totalMandatorySteps} etapas satisfeitas). ${completeness.summary}`
           });
@@ -3709,6 +3803,191 @@ export class RegulatoryIntelligenceEngine {
         completeness: fallbackCompleteness
       };
     }
+  }
+
+  /**
+   * Phase 3B.1 — Ingests an uploaded AD document (PDF or Text) strictly through the
+   * CAMO Regulatory Record lifecycle.
+   *
+   * Flow:
+   * UPLOAD -> CamoRegulatoryRecord (PENDING_ANALYSIS) -> Technical Analysis (analyzeRegisterRecord) -> ComplianceRequirement
+   *
+   * Direct creation of ComplianceRequirement bypassing CamoRegulatoryRecord is strictly forbidden.
+   */
+  public async ingestUploadedAdDocument(input: {
+    text?: string;
+    pdfBase64?: string;
+    fileName?: string;
+    actor?: string;
+  }): Promise<{
+    success: boolean;
+    isDuplicate: boolean;
+    record: CamoRegulatoryRecord;
+    requirement?: ComplianceRequirement;
+    completeness?: AnalysisCompletenessResult;
+    diagnostics?: string;
+  }> {
+    const rawContent = input.pdfBase64 || input.text || '';
+    if (!rawContent.trim()) {
+      throw new Error('Conteúdo da AD não fornecido. Envie um arquivo PDF ou texto da diretriz.');
+    }
+
+    const effectiveActor = input.actor || 'CAMO Technical Analyst';
+    const contentSha256 = crypto.createHash('sha256').update(rawContent).digest('hex');
+    const fileName = input.fileName || 'Airworthiness_Directive.pdf';
+    const now = new Date().toISOString();
+
+    // 1. Extract AD metadata via Gemini / deterministic extraction
+    const extracted = await extractAdWithGemini({
+      pdfBase64: input.pdfBase64,
+      text: input.text,
+      fileName
+    });
+
+    const authority: IssuingAuthority = (extracted.issuingAuthority as IssuingAuthority) || 'FAA';
+    const adNumber = (extracted.sourceNumber || '').trim() || `AD-UPLOAD-${Date.now()}`;
+    const canonicalAdId = this.calculateCanonicalAdId(authority, adNumber);
+
+    // 2. Check Deduplication
+    const state = camoDb.getState();
+    const existing = (state.camoRegulatoryRegister || []).find(r => 
+      r.id === canonicalAdId ||
+      r.sha256 === contentSha256 ||
+      (r.adNumber.toLowerCase() === adNumber.toLowerCase() && r.authority === authority)
+    );
+
+    if (existing) {
+      // Re-use existing record to prevent duplicate requirements and records
+      const existingReq = existing.analyzedRequirementId
+        ? (state.requirements || []).find(req => req.id === existing.analyzedRequirementId)
+        : (state.requirements || []).find(req => req.sourceNumber?.toLowerCase() === existing.adNumber.toLowerCase());
+
+      camoDb.update(draft => {
+        const reg = (draft.camoRegulatoryRegister || []).find(r => r.id === existing.id);
+        if (reg) {
+          if (!reg.auditTrail) reg.auditTrail = [];
+          reg.auditTrail.unshift({
+            timestamp: now,
+            action: 'AD_UPLOAD_DEDUPLICATED',
+            actor: effectiveActor,
+            details: `Upload duplicado detectado para ${existing.adNumber}. Registro existente e requisitos associados mantidos sem redundância.`
+          });
+        }
+      });
+
+      const completeness = this.isAnalysisComplete(existing.id, {
+        state: camoDb.getState(),
+        actor: effectiveActor,
+        requirement: existingReq
+      });
+
+      return {
+        success: true,
+        isDuplicate: true,
+        record: existing,
+        requirement: existingReq,
+        completeness,
+        diagnostics: `Diretriz ${existing.adNumber} já cadastrada no CAMO Register. Requisito mantido sem duplicação.`
+      };
+    }
+
+    // 3. Create CamoRegulatoryRecord with mandatory initial status PENDING_ANALYSIS
+    const rawApplicability = extracted.applicabilityRawSummary || input.text || extracted.technicalSummary || '';
+    const mfg = extracted.aircraftManufacturers?.[0] || extracted.engineManufacturers?.[0] || 'Boeing';
+    const models = extracted.aircraftModels || (extracted.engineModels ? extracted.engineModels : []);
+    const normParams = normalizeAeronauticalQuery({
+      manufacturer: mfg,
+      model: models[0],
+      query: `${adNumber} ${mfg} ${models.join(' ')}`
+    });
+    const family = normParams.family || (models[0] ? models[0] : '737');
+
+    const newRecord: CamoRegulatoryRecord = {
+      id: canonicalAdId,
+      canonicalAdId,
+      authority,
+      adNumber,
+      title: extracted.title || `Airworthiness Directive ${adNumber}`,
+      issueDate: extracted.issueDate || now.split('T')[0],
+      effectiveDate: extracted.effectiveDate || new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0],
+      emergencyAd: Boolean(extracted.emergencyAd),
+      supersedes: extracted.supersedes ? [extracted.supersedes] : [],
+      manufacturer: mfg,
+      family,
+      modelScope: models,
+      rawApplicabilityText: rawApplicability,
+      sha256: contentSha256,
+      sourceType: 'MANUAL_UPLOAD',
+      sourceIdentifier: fileName,
+      firstSeenAt: now,
+      lastSeenAt: now,
+      lastChangedAt: now,
+      retrievedAt: now,
+      sourceDocument: {
+        fileName,
+        fileSize: input.pdfBase64 ? Math.round(input.pdfBase64.length * 0.75) : (input.text?.length || 0),
+        mimeType: input.pdfBase64 ? 'application/pdf' : 'text/plain',
+        rawExtractedText: input.text || extracted.technicalSummary || rawApplicability,
+        fileData: input.pdfBase64,
+        documentHash: contentSha256
+      },
+      originalPayload: {
+        ...extracted,
+        fileName,
+        rawText: input.text
+      },
+      analysisStatus: 'PENDING_ANALYSIS', // Mandatory initial state!
+      importedAt: now,
+      importedBy: effectiveActor,
+      version: 1,
+      auditTrail: [
+        {
+          timestamp: now,
+          action: 'AD_UPLOADED',
+          actor: effectiveActor,
+          details: `Documento ${fileName} carregado via upload CAMO. Hash SHA-256: ${contentSha256.substring(0, 16)}...`
+        },
+        {
+          timestamp: now,
+          action: 'REGULATORY_RECORD_CREATED',
+          actor: effectiveActor,
+          details: `Registro regulatório criado no CAMO Register. Status inicial: PENDING_ANALYSIS.`
+        }
+      ]
+    };
+
+    camoDb.update(draft => {
+      if (!draft.camoRegulatoryRegister) {
+        draft.camoRegulatoryRegister = [];
+      }
+      draft.camoRegulatoryRegister.unshift(newRecord);
+    });
+
+    camoDb.logAudit({
+      user: effectiveActor,
+      role: 'CHIEF_CAMO_ENGINEER',
+      action: 'REGULATORY_RESULT_IMPORTED',
+      entityType: 'CamoRegulatoryRecord',
+      entityId: canonicalAdId,
+      details: `Upload da AD ${adNumber} processado. Criado CamoRegulatoryRecord com status PENDING_ANALYSIS.`
+    });
+
+    // 4. Forward to the official technical analysis pipeline:
+    // PENDING_ANALYSIS -> ANALYSIS_IN_PROGRESS -> (ANALYZED | DEPENDENCY_PENDING | REVIEW_REQUIRED | ANALYSIS_FAILED)
+    // and synthesizes the ComplianceRequirement linked to record.id
+    const analysisResult = await this.analyzeRegisterRecord({
+      registerRecordId: canonicalAdId,
+      actor: effectiveActor
+    });
+
+    return {
+      success: analysisResult.success,
+      isDuplicate: false,
+      record: analysisResult.record,
+      requirement: analysisResult.requirement,
+      completeness: analysisResult.completeness,
+      diagnostics: `AD ${adNumber} registrada e analisada com sucesso pelo CAMO Engine.`
+    };
   }
 
   /**

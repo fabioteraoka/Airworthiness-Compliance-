@@ -183,7 +183,7 @@ export default function AdUploadView({ onAdProcessed, onSelectView }: AdUploadVi
     setProcessingStep(1);
 
     try {
-      // Step 1: AI Gemini Extraction
+      // Step 1: CAMO Regulatory Intake & Extraction (Upload -> CamoRegulatoryRecord PENDING_ANALYSIS -> Technical Analysis)
       setProcessingStep(1);
       const res = await fetch('/api/extract-ad', {
         method: 'POST',
@@ -200,13 +200,14 @@ export default function AdUploadView({ onAdProcessed, onSelectView }: AdUploadVi
         throw new Error(data.error || 'Extraction failed');
       }
 
-      const { requirement } = await res.json();
+      const { requirement, record } = await res.json();
       setExtractedRequirement(requirement);
 
-      // Step 2: Running Deterministic Rule Engine & FAPT Automation
+      // Step 2: Technical Analysis & SB Dependency Resolution
       setProcessingStep(2);
-      await new Promise(r => setTimeout(r, 600));
+      await new Promise(r => setTimeout(r, 500));
 
+      // Step 3: Fleet Applicability Screening & FAPT Sync
       setProcessingStep(3);
       const saveRes = await fetch('/api/requirements', {
         method: 'POST',
@@ -221,10 +222,10 @@ export default function AdUploadView({ onAdProcessed, onSelectView }: AdUploadVi
 
       const finalData = await saveRes.json();
       setProcessingStep(4);
-      await new Promise(r => setTimeout(r, 500));
+      await new Promise(r => setTimeout(r, 400));
 
       setIsProcessing(false);
-      onAdProcessed(finalData.requirement);
+      onAdProcessed(finalData.requirement || requirement);
     } catch (err: any) {
       console.error('Processing error:', err);
       const isFetchErr = err.message?.includes('Failed to fetch');
@@ -320,40 +321,40 @@ export default function AdUploadView({ onAdProcessed, onSelectView }: AdUploadVi
               processingStep >= 1 ? 'bg-indigo-950/50 border-indigo-500/50 text-indigo-200' : 'bg-slate-950/50 border-white/5 text-slate-400'
             }`}>
               <div className="flex items-center justify-between font-mono">
-                <span className="font-bold">1. Gemini 3.7 Flash</span>
+                <span className="font-bold">1. Regulatory Register</span>
                 {processingStep > 1 && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />}
               </div>
-              <p className="text-[11px] text-slate-400">Extracting metadata, part numbers, and effectivity rules.</p>
+              <p className="text-[11px] text-slate-400">Intake into CAMO Register (PENDING_ANALYSIS) & AI extraction.</p>
             </div>
 
             <div className={`p-3 rounded-lg border text-xs space-y-1 ${
               processingStep >= 2 ? 'bg-indigo-950/50 border-indigo-500/50 text-indigo-200' : 'bg-slate-950/50 border-white/5 text-slate-400'
             }`}>
               <div className="flex items-center justify-between font-mono">
-                <span className="font-bold">2. Rule Engine</span>
+                <span className="font-bold">2. Technical Analysis</span>
                 {processingStep > 2 && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />}
               </div>
-              <p className="text-[11px] text-slate-400">Comparing AD criteria against fleet assets & serial ranges.</p>
+              <p className="text-[11px] text-slate-400">Mandated actions, SB dependencies & checklist synthesis.</p>
             </div>
 
             <div className={`p-3 rounded-lg border text-xs space-y-1 ${
               processingStep >= 3 ? 'bg-purple-950/50 border-purple-500/50 text-purple-200' : 'bg-slate-950/50 border-white/5 text-slate-400'
             }`}>
               <div className="flex items-center justify-between font-mono">
-                <span className="font-bold">3. Knowledge Check</span>
+                <span className="font-bold">3. Fleet Evaluation</span>
                 {processingStep > 3 && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />}
               </div>
-              <p className="text-[11px] text-slate-400">Consulting verified Knowledge Base facts and evidence.</p>
+              <p className="text-[11px] text-slate-400">Deterministic applicability check against aircraft & engine assets.</p>
             </div>
 
             <div className={`p-3 rounded-lg border text-xs space-y-1 ${
               processingStep >= 4 ? 'bg-emerald-950/50 border-emerald-500/50 text-emerald-200' : 'bg-slate-950/50 border-white/5 text-slate-400'
             }`}>
               <div className="flex items-center justify-between font-mono">
-                <span className="font-bold">4. FAPT Generation</span>
+                <span className="font-bold">4. FAPT & Audit Record</span>
                 {processingStep >= 4 && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />}
               </div>
-              <p className="text-[11px] text-slate-400">Generating structured CAMO AD Review Sheet.</p>
+              <p className="text-[11px] text-slate-400">Audit trail, compliance items & engineering sign-off readiness.</p>
             </div>
           </div>
         </div>

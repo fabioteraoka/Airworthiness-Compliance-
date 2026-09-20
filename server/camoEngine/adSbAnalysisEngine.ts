@@ -170,8 +170,17 @@ export class AdSbAnalysisEngine {
           continue;
         }
 
-        // Check deduplication
-        const normKey = sbNumber.replace(/\s+/g, '');
+        // Check deduplication with manufacturer/model prefix normalization (e.g. B737-27A1305 vs 737-27A1305)
+        const normalizeSbKey = (num: string): string => {
+          return (num || '')
+            .toUpperCase()
+            .replace(/^BOEING\s*/i, '')
+            .replace(/^AIRBUS\s*/i, '')
+            .replace(/^EMBRAER\s*/i, '')
+            .replace(/^(?:B|A|ERJ)(?=\d)/i, '')
+            .replace(/[^A-Z0-9]/g, '');
+        };
+        const normKey = normalizeSbKey(sbNumber);
         if (seenSbs.has(normKey)) continue;
         seenSbs.add(normKey);
 
@@ -327,15 +336,12 @@ export class AdSbAnalysisEngine {
 
         // Strict Separation of Detection vs Location:
         // SB_DETECTED = true is recorded. Now check physical repository presence:
-        const curClean = normKey.replace(/[^A-Z0-9]/g, '');
         const existingSbDoc = (state.sbRepository || []).find(s => {
-          const docClean = s.documentNumber.toUpperCase().replace(/[^A-Z0-9]/g, '');
-          return docClean === curClean;
+          return normalizeSbKey(s.documentNumber) === normKey;
         });
 
         const existingAnalysis = (state.sbAnalyses || []).find(a => {
-          const aClean = a.sbNumber.toUpperCase().replace(/[^A-Z0-9]/g, '');
-          return aClean === curClean;
+          return normalizeSbKey(a.sbNumber) === normKey;
         });
 
         let detectionState: 'DETECTED' | 'LOCATED' | 'NOT_LOCATED' | 'ANALYSIS_PENDING' | 'ANALYZED' = 'DETECTED';
@@ -847,10 +853,10 @@ Output strict JSON conforming to the schema.`;
     let appStatus: CrossValidationStatus = 'CONSISTENT';
     let appDetails = '';
     const adModels = requirement?.applicabilityRule?.aircraftModels || ['Boeing 737-800'];
-    const sbModels = sbAnalysis?.applicability.aircraftModel || [];
+    const sbModels = sbAnalysis?.applicability?.aircraftModel || [];
 
     const adApplicabilityText = requirement?.applicabilityRule?.rawText || 'Certain Boeing Model 737 airplanes';
-    const sbEffectivityText = sbAnalysis?.applicability.effectivityText || 'MSN and line numbers listed in SB Section 1.A';
+    const sbEffectivityText = sbAnalysis?.applicability?.effectivityText || 'MSN and line numbers listed in SB Section 1.A';
 
     if (!sbAnalysis) {
       appStatus = 'MISSING';
@@ -863,10 +869,10 @@ Output strict JSON conforming to the schema.`;
         appStatus = 'CONFLICT';
         appDetails = `Conflito de aplicabilidade: AD direcionada a família [${adModels.join(', ')}], enquanto o SB ${sbNumber} abrange [${sbModels.join(', ')}].`;
         reviewReasons.push(`Conflict: AD models (${adModels.join(', ')}) contradict SB models (${sbModels.join(', ')}).`);
-      } else if (sbAnalysis.applicability.msnRange || sbAnalysis.applicability.configurationCriteria.length > 0) {
+      } else if (sbAnalysis.applicability?.msnRange || (sbAnalysis.applicability?.configurationCriteria && sbAnalysis.applicability.configurationCriteria.length > 0)) {
         // SB specifies more restrictive MSN or physical configuration criteria -> COMPLEMENTARY
         appStatus = 'COMPLEMENTARY';
-        appDetails = `SB complementa e refina o escopo da AD com limitação por número de série/MSN (${sbAnalysis.applicability.msnRange ? `${sbAnalysis.applicability.msnRange.from} a ${sbAnalysis.applicability.msnRange.to}` : 'critérios físicos'}).`;
+        appDetails = `SB complementa e refina o escopo da AD com limitação por número de série/MSN (${sbAnalysis.applicability?.msnRange ? `${sbAnalysis.applicability.msnRange.from} a ${sbAnalysis.applicability.msnRange.to}` : 'critérios físicos'}).`;
       } else {
         appStatus = 'CONSISTENT';
         appDetails = `Modelos de aeronave compatíveis e consistentes entre a Diretriz de Aeronavegabilidade e o Boletim de Serviço (${adModels.join(', ')}).`;
@@ -891,7 +897,7 @@ Output strict JSON conforming to the schema.`;
       (requirement?.mandatedActions || []).map(a => a.description).join('; ') ||
       'Inspeção detalhada e substituição de conjunto de haste de comando da aleta do profundor';
 
-    const sbActionText = sbAnalysis?.requiredAction.actionSummary || 'Instruções técnicas de cumprimento descritas no Boletim de Serviço';
+    const sbActionText = sbAnalysis?.requiredAction?.actionSummary || 'Instruções técnicas de cumprimento descritas no Boletim de Serviço';
 
     if (!sbAnalysis) {
       actStatus = 'MISSING';
@@ -899,18 +905,18 @@ Output strict JSON conforming to the schema.`;
       reviewReasons.push('SB analysis missing for required action cross-validation.');
     } else {
       const adRequiresInspection = adActionText.toLowerCase().includes('inspect') || adActionText.toLowerCase().includes('dvi');
-      const sbHasInspection = Boolean(sbAnalysis.requiredAction.inspectionType) || sbActionText.toLowerCase().includes('inspect');
+      const sbHasInspection = Boolean(sbAnalysis.requiredAction?.inspectionType) || sbActionText.toLowerCase().includes('inspect');
 
       const adRequiresMod = adActionText.toLowerCase().includes('replace') || adActionText.toLowerCase().includes('modifi');
-      const sbHasMod = sbAnalysis.requiredAction.modificationRequired || sbAnalysis.requiredAction.replacementRequired;
+      const sbHasMod = Boolean(sbAnalysis.requiredAction?.modificationRequired || sbAnalysis.requiredAction?.replacementRequired);
 
       if (adRequiresInspection && !sbHasInspection && !sbHasMod) {
         actStatus = 'CONFLICT';
         actDetails = `Conflito de ações: AD exige inspeção mandatória, mas SB não contém procedimento de inspeção estruturado.`;
         reviewReasons.push('Action conflict: AD mandates inspection but SB lacks inspection procedures.');
-      } else if (sbAnalysis.requiredAction.terminatingAction || sbAnalysis.requiredAction.replacementRequired) {
+      } else if (sbAnalysis.requiredAction?.terminatingAction || sbAnalysis.requiredAction?.replacementRequired) {
         actStatus = 'COMPLEMENTARY';
-        actDetails = `SB complementa a AD fornecendo detalhes de procedimento de inspeção ${sbAnalysis.requiredAction.inspectionType || 'específica'} e critérios de ação terminativa via peça modificada.`;
+        actDetails = `SB complementa a AD fornecendo detalhes de procedimento de inspeção ${sbAnalysis.requiredAction?.inspectionType || 'específica'} e critérios de ação terminativa via peça modificada.`;
       } else {
         actStatus = 'CONSISTENT';
         actDetails = `Ações técnicas entre AD e SB são mutuamente consistentes.`;
@@ -934,8 +940,8 @@ Output strict JSON conforming to the schema.`;
       requirement?.requirementDetails?.complianceTime || 
       'Within 500 flight hours or 6 months';
 
-    const sbThresholdText = sbAnalysis?.complianceThreshold.threshold || 
-      (sbAnalysis?.complianceThreshold.flightHourLimit ? `${sbAnalysis.complianceThreshold.flightHourLimit} Flight Hours` : 'Conforme especificado na AD');
+    const sbThresholdText = sbAnalysis?.complianceThreshold?.threshold || 
+      (sbAnalysis?.complianceThreshold?.flightHourLimit ? `${sbAnalysis.complianceThreshold.flightHourLimit} Flight Hours` : 'Conforme especificado na AD');
 
     if (!sbAnalysis) {
       compStatus = 'MISSING';
@@ -943,14 +949,14 @@ Output strict JSON conforming to the schema.`;
       reviewReasons.push('SB analysis missing for compliance requirement cross-validation.');
     } else {
       const adFh = adThresholdText.match(/([0-9]+)\s*fh/i) || adThresholdText.match(/([0-9]+)\s*flight hours/i);
-      const sbFh = sbAnalysis.complianceThreshold.flightHourLimit;
+      const sbFh = sbAnalysis.complianceThreshold?.flightHourLimit;
 
       if (adFh && sbFh && parseInt(adFh[1], 10) !== sbFh) {
         // Different numeric thresholds
         compStatus = 'CONFLICT';
         compDetails = `Conflito de limiar: AD estipula ${adFh[1]} FH enquanto o SB estipula ${sbFh} FH. Requer determinação da regra mais restritiva por Engenheiro CAMO.`;
         reviewReasons.push(`Threshold conflict: AD (${adFh[1]} FH) vs SB (${sbFh} FH). Human determination required.`);
-      } else if (sbAnalysis.complianceThreshold.interval) {
+      } else if (sbAnalysis.complianceThreshold?.interval) {
         compStatus = 'COMPLEMENTARY';
         compDetails = `SB complementa com especificação técnica do intervalo repetitivo (${sbAnalysis.complianceThreshold.interval}).`;
       } else {
@@ -1074,10 +1080,15 @@ Output strict JSON conforming to the schema.`;
       );
     }
 
-    const hasSbDependencies = dependencies.length > 0;
+    const blockingDependencies = dependencies.filter(d => 
+      d.relationshipType !== 'SUPPORTING_REFERENCE' &&
+      (d.relationshipType as any) !== 'INFORMATIONAL' &&
+      (d.relationshipType as any) !== 'REFERENCE_ONLY'
+    );
+    const hasSbDependencies = blockingDependencies.length > 0;
     const totalDependencies = dependencies.length;
-    const resolvedDependencies = dependencies.filter(d => d.status === 'ANALYZED').length;
-    const pendingDependencies = dependencies.filter(d => d.status !== 'ANALYZED').map(d => d.sbNumber);
+    const resolvedDependencies = blockingDependencies.filter(d => d.status === 'ANALYZED').length;
+    const pendingDependencies = blockingDependencies.filter(d => d.status !== 'ANALYZED').map(d => d.sbNumber);
 
     let status: AdTechnicalAnalysisCompleteness;
     let summary: string;

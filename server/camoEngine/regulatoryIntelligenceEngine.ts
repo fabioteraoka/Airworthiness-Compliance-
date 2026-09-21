@@ -35,7 +35,8 @@ import {
   SbAnalysisChecklist,
   SbDocumentType,
   SbRelationshipToAd,
-  SbAnalysisStatus
+  SbAnalysisStatus,
+  FAPTDocument
 } from '../../src/types';
 import { camoDb } from '../dataStore';
 import { AdSbAnalysisEngine } from './adSbAnalysisEngine';
@@ -43,7 +44,8 @@ import {
   matchesModel, 
   matchesEngineModel, 
   getCanonicalAircraftModel, 
-  isSerialInRange 
+  isSerialInRange,
+  evaluateComplianceRequirement
 } from '../ruleEngine';
 import { regulatorySourceRegistry } from '../regulatoryConnectors/sourceRegistry';
 import crypto from 'crypto';
@@ -1963,6 +1965,7 @@ export class RegulatoryIntelligenceEngine {
 
     return {
       id: reqId,
+      canonicalAdId: regRecord?.canonicalAdId || candidate.canonicalAdId || this.calculateCanonicalAdId(candidate.authority, candidate.adNumber),
       sourceType: 'AD',
       sourceNumber: candidate.adNumber,
       revision: 'Original Issue',
@@ -3686,6 +3689,102 @@ export class RegulatoryIntelligenceEngine {
         const famMatch = !record.family || (ac.series && ac.series.toLowerCase().includes(record.family.toLowerCase())) || ac.model.toLowerCase().includes(record.family.toLowerCase()) || ((ac as any).family && (ac as any).family.toLowerCase() === record.family.toLowerCase());
         const modelMatch = record.modelScope.length === 0 || matchesModel(ac.model, record.modelScope);
         return mfgMatch && (famMatch || modelMatch);
+      });
+
+      // Execute deterministic CAMO Rule Engine for fleet applicability
+      const evalResult = evaluateComplianceRequirement(analysisResult.requirement, {
+        aircraft: state.aircraft || [],
+        engines: state.engines || [],
+        components: state.components || [],
+        installations: state.installations || [],
+        knowledgeFacts: state.knowledgeFacts || [],
+        existingQuestions: state.questions || []
+      });
+
+      const affectedCount = evalResult.assessments.filter(a => a.result === 'APPLICABLE').length;
+      const notApplicableCount = evalResult.assessments.filter(a => a.result === 'NOT_APPLICABLE').length;
+      const reviewRequiredCount = evalResult.assessments.filter(a => a.result === 'REVIEW_REQUIRED').length;
+      const hasReviewRequired = reviewRequiredCount > 0;
+
+      const safeAdNumber = analysisResult.requirement.sourceNumber || `AD-${Date.now()}`;
+      const faptDoc: FAPTDocument = {
+        id: `fapt-${analysisResult.requirement.id}`,
+        complianceRequirementId: analysisResult.requirement.id,
+        documentNumber: `FAPT-${safeAdNumber.replace(/\s+/g, '-').replace(/[^a-zA-Z0-9-]/g, '')}`,
+        revision: 'Rev 0 (Preliminary)',
+        dateCreated: new Date().toISOString(),
+        adNumber: analysisResult.requirement.sourceNumber || 'UNKNOWN_AD',
+        adRevision: analysisResult.requirement.revision,
+        authority: analysisResult.requirement.issuingAuthority,
+        issueDate: analysisResult.requirement.issueDate,
+        effectiveDate: analysisResult.requirement.effectiveDate,
+        title: analysisResult.requirement.title,
+        emergency: analysisResult.requirement.emergencyAd,
+        affectedFleetCount: affectedCount,
+        notApplicableCount,
+        reviewRequiredCount,
+        applicabilityMatrix: evalResult.assessments.map(ass => {
+          const compMatches = ass.matchedCriteria?.componentMatch?.matched ? [ass.matchedCriteria.componentMatch.detail] : [];
+          return {
+            aircraftRegistration: ass.entityRegistration || 'N/A',
+            msn: ass.entityMsn || '',
+            model: ass.entityModel || '',
+            installedEngine: (state.engines || []).find(e => e.aircraftId === ass.entityId)?.model,
+            affectedComponentsFound: compMatches,
+            result: ass.result,
+            reasoningSummary: ass.reasoning[0] || 'Evaluated by CAMO Rule Engine'
+          };
+        }),
+        initialThreshold: analysisResult.requirement.requirementDetails?.initialThreshold || 'As defined in AD',
+        complianceTime: analysisResult.requirement.requirementDetails?.complianceTime || '',
+        repetitiveInterval: analysisResult.requirement.requirementDetails?.repetitiveInterval || 'N/A',
+        requiredInspection: analysisResult.requirement.requirementDetails?.requiredInspection || '',
+        modification: analysisResult.requirement.requirementDetails?.modification || '',
+        replacement: analysisResult.requirement.requirementDetails?.replacement || '',
+        terminatingAction: analysisResult.requirement.requirementDetails?.terminatingAction || '',
+        requiredParts: analysisResult.requirement.requirementDetails?.requiredParts || [],
+        requiredDocumentation: analysisResult.requirement.requirementDetails?.requiredDocumentation || 'Logbook entry',
+        evidenceReferences: evalResult.appliedKnowledgeFacts.map(f => f.source),
+        knowledgeFactsApplied: evalResult.appliedKnowledgeFacts.map(f => f.id),
+        preparedBy: effectiveActor,
+        preparedDate: new Date().toISOString().split('T')[0],
+        status: 'DRAFT'
+      };
+
+      camoDb.update(draft => {
+        const reqIdx = (draft.requirements || []).findIndex(r => r.id === analysisResult.requirement.id);
+        if (reqIdx >= 0) {
+          draft.requirements[reqIdx].canonicalAdId = record.canonicalAdId || record.id;
+          if (hasReviewRequired && draft.requirements[reqIdx].status !== 'APPROVED') {
+            draft.requirements[reqIdx].status = 'UNDER_REVIEW';
+          }
+        }
+
+        if (!draft.assessments) draft.assessments = [];
+        for (const ass of evalResult.assessments) {
+          const assIdx = draft.assessments.findIndex(a => a.id === ass.id);
+          if (assIdx >= 0) {
+            draft.assessments[assIdx] = ass;
+          } else {
+            draft.assessments.push(ass);
+          }
+        }
+
+        if (!draft.questions) draft.questions = [];
+        for (const q of evalResult.generatedQuestions) {
+          if (!draft.questions.some(existing => existing.id === q.id)) {
+            draft.questions.push(q);
+          }
+        }
+
+        if (!draft.fapts) draft.fapts = [];
+        const fIdx = draft.fapts.findIndex(f => f.complianceRequirementId === analysisResult.requirement.id);
+        if (fIdx >= 0) {
+          draft.fapts[fIdx] = faptDoc;
+        } else {
+          draft.fapts.unshift(faptDoc);
+        }
+        draft.faptDocuments = draft.fapts;
       });
 
       // 6. Run Deterministic Completeness Check

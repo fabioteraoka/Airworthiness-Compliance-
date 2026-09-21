@@ -14,7 +14,7 @@ describe('FASE 3B.1 — Surgical Stabilization Gate Audit Verification', () => {
   });
 
   describe('Audit Issue 1: AdUpload Lifecycle (Upload -> CamoRegulatoryRecord -> Analysis -> ComplianceRequirement)', () => {
-    it('should create CamoRegulatoryRecord with PENDING_ANALYSIS and audit trail before generating ComplianceRequirement', async () => {
+    it('should create CamoRegulatoryRecord with PENDING_ANALYSIS and audit trail before generating ComplianceRequirement with canonicalAdId', async () => {
       const adText = `
         AIRWORTHINESS DIRECTIVE
         AD Number: FAA-2026-99-88
@@ -32,24 +32,42 @@ describe('FASE 3B.1 — Surgical Stabilization Gate Audit Verification', () => {
       expect(result.success).toBe(true);
       expect(result.record).toBeDefined();
       expect(result.record.adNumber).toContain('2026-99-88');
+      expect(result.record.canonicalAdId).toBeDefined();
 
       // Verify the record was registered in camoRegulatoryRegister
       const state = camoDb.getState();
       const storedRecord = state.camoRegulatoryRegister?.find(r => r.adNumber.includes('2026-99-88'));
       expect(storedRecord).toBeDefined();
+      expect(storedRecord?.canonicalAdId).toBe(result.record.canonicalAdId);
 
-      // Verify audit trail captures the initial ingestion and regulatory record creation
+      // Verify audit trail captures the initial ingestion and regulatory record creation with PENDING_ANALYSIS
       const auditActions = storedRecord?.auditTrail?.map(a => a.action) || [];
       expect(auditActions).toContain('AD_UPLOADED');
       expect(auditActions).toContain('REGULATORY_RECORD_CREATED');
+      const creationAudit = storedRecord?.auditTrail?.find(a => a.action === 'REGULATORY_RECORD_CREATED');
+      expect(creationAudit?.details).toContain('PENDING_ANALYSIS');
 
-      // Verify that requirement was synthesized and linked to the record
+      // Verify that requirement was synthesized and linked to the canonicalAdId
       expect(result.requirement).toBeDefined();
       expect(storedRecord?.analyzedRequirementId).toBe(result.requirement?.id);
 
       const storedReq = state.requirements.find(r => r.id === storedRecord?.analyzedRequirementId);
       expect(storedReq).toBeDefined();
       expect(storedReq?.sourceNumber).toContain('2026-99-88');
+      expect(storedReq?.canonicalAdId).toBe(storedRecord?.canonicalAdId);
+
+      // Verify exactly one ComplianceRequirement exists for this canonicalAdId
+      const allMatchingReqs = state.requirements.filter(r => r.canonicalAdId === storedRecord?.canonicalAdId);
+      expect(allMatchingReqs.length).toBe(1);
+
+      // Verify fleet applicability evaluation and FAPT document were generated deterministically by backend
+      const fapt = state.faptDocuments?.find(f => f.complianceRequirementId === storedReq?.id);
+      expect(fapt).toBeDefined();
+      expect(fapt?.status).toBe('DRAFT');
+      expect(fapt?.adNumber).toContain('2026-99-88');
+
+      const assessments = state.assessments?.filter(a => a.complianceRequirementId === storedReq?.id) || [];
+      expect(assessments.length).toBeGreaterThan(0);
     });
 
     it('should deduplicate subsequent uploads of the same AD without creating duplicate requirements', async () => {
@@ -67,6 +85,8 @@ describe('FASE 3B.1 — Surgical Stabilization Gate Audit Verification', () => {
       });
 
       expect(firstResult.isDuplicate).toBe(false);
+      expect(firstResult.record.canonicalAdId).toBeDefined();
+      expect(firstResult.requirement?.canonicalAdId).toBe(firstResult.record.canonicalAdId);
 
       const secondResult = await regulatoryIntelligenceEngine.ingestUploadedAdDocument({
         text: adText,
@@ -76,11 +96,13 @@ describe('FASE 3B.1 — Surgical Stabilization Gate Audit Verification', () => {
 
       expect(secondResult.isDuplicate).toBe(true);
       expect(secondResult.record.id).toBe(firstResult.record.id);
+      expect(secondResult.record.canonicalAdId).toBe(firstResult.record.canonicalAdId);
 
       // Verify no duplicate requirements were inserted into database
       const state = camoDb.getState();
       const matchingReqs = state.requirements.filter(r => r.sourceNumber.includes('2026-11-22'));
       expect(matchingReqs.length).toBe(1);
+      expect(matchingReqs[0].canonicalAdId).toBe(firstResult.record.canonicalAdId);
     });
   });
 

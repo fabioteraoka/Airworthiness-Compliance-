@@ -72,8 +72,9 @@ describe('CAMO Engine — Phase 9 Stage 7: Living System Design, Aircraft Master
   it('3. Deve permitir análise individual de Boletim de Serviço com checklists de engenharia', () => {
     const state = camoDb.getState();
     const register = state.camoRegulatoryRegister || [];
-    const target = register[0];
+    const target = register.find(r => r.adNumber === '2020-24-02' || r.adNumber.includes('2020-24-02'));
     expect(target).toBeDefined();
+    if (!target) throw new Error('Expected canonical fixture AD 2020-24-02 not found in register');
 
     // Attach synthetic referenced SB
     const sbs = regulatoryIntelligenceEngine.extractReferencedServiceBulletins(
@@ -110,8 +111,9 @@ describe('CAMO Engine — Phase 9 Stage 7: Living System Design, Aircraft Master
 
   it('4. Deve registrar alterações de configuração no Aircraft Configuration Ledger com SHA-256 e rastreabilidade imutável', () => {
     const state = camoDb.getState();
-    const testAircraft = state.aircraft?.[0];
+    const testAircraft = state.aircraft?.find(a => a.registration === 'PR-GUO');
     expect(testAircraft).toBeDefined();
+    if (!testAircraft) throw new Error('Expected fixture aircraft PR-GUO not found');
 
     const historyRecord = camoDb.recordConfigurationChange({
       aircraftId: testAircraft.id,

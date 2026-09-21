@@ -63,6 +63,7 @@ export interface DatabaseState {
   knowledgeFacts: KnowledgeFact[];
   auditTrail: AuditTrailEntry[];
   fapts: FAPTDocument[];
+  faptDocuments?: FAPTDocument[];
   acquiredDocuments: OfficialDocumentRecord[];
   discoveryRecords: RegulatoryDiscoveryRecord[];
   screeningAssessments: RegulatoryScreeningAssessment[];

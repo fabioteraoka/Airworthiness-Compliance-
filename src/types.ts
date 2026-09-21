@@ -799,6 +799,7 @@ export interface ComplianceRequirement {
   isSuperseded?: boolean;
   supersededByAdNumber?: string;
   targetAircraftModel?: string;
+  canonicalAdId?: string;
 
   createdAt: string;
   createdBy: string;
@@ -2625,6 +2626,7 @@ export interface RequiredConfigurationParameter {
 
 export interface RegulatoryAdCandidate {
   id: string;
+  canonicalAdId?: string;
   adNumber: string;
   authority: IssuingAuthority;
   title: string;

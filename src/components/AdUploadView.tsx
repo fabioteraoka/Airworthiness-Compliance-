@@ -203,29 +203,16 @@ export default function AdUploadView({ onAdProcessed, onSelectView }: AdUploadVi
       const { requirement, record } = await res.json();
       setExtractedRequirement(requirement);
 
-      // Step 2: Technical Analysis & SB Dependency Resolution
+      // Smooth visual progression reflecting completed backend CAMO pipeline
       setProcessingStep(2);
-      await new Promise(r => setTimeout(r, 500));
-
-      // Step 3: Fleet Applicability Screening & FAPT Sync
+      await new Promise(r => setTimeout(r, 350));
       setProcessingStep(3);
-      const saveRes = await fetch('/api/requirements', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(requirement)
-      });
-
-      if (!saveRes.ok) {
-        const saveData = await saveRes.json();
-        throw new Error(saveData.error || 'Failed to evaluate requirement against fleet');
-      }
-
-      const finalData = await saveRes.json();
+      await new Promise(r => setTimeout(r, 350));
       setProcessingStep(4);
-      await new Promise(r => setTimeout(r, 400));
+      await new Promise(r => setTimeout(r, 250));
 
       setIsProcessing(false);
-      onAdProcessed(finalData.requirement || requirement);
+      onAdProcessed(requirement);
     } catch (err: any) {
       console.error('Processing error:', err);
       const isFetchErr = err.message?.includes('Failed to fetch');

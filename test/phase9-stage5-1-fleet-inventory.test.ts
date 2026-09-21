@@ -280,7 +280,7 @@ describe('CAMO Engine — Phase 9 Stage 5.1: Fleet AD Inventory & Operational Di
     }
 
     // Now analyze ONE specific record (exact canonical known complete AD from Boeing 737 candidate list)
-    const targetAd = pendingItems.find(i => i.adNumber === 'FAA AD 2024-12-05');
+    const targetAd = pendingItems.find(i => i.adNumber.includes('2025-25-04'));
     expect(targetAd).toBeDefined();
     const regRecord = camoDb.getState().camoRegulatoryRegister.find(r => r.adNumber === targetAd!.adNumber);
     expect(regRecord).toBeDefined();

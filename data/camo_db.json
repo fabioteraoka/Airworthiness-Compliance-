@@ -25,13 +25,14 @@
       "model": "737-800",
       "series": "Next Generation (NG)",
       "aircraftType": "Commercial Transport",
-      "status": "OPERATIONAL",
+      "status": "DECOMMISSIONED",
       "totalFlightHours": 28450,
       "totalCycles": 14200,
       "totalLandings": 14200,
       "variableNumber": "YC123",
       "lineNo": "3452",
-      "manufactureDate": "2014-06-18"
+      "manufactureDate": "2014-06-18",
+      "statusReason": "Baixada do registro de voo"
     },
     {
       "id": "ac-02",
@@ -309,48 +310,6 @@
   ],
   "requirements": [
     {
-      "id": "req-intel-1789904634116",
-      "sourceType": "AD",
-      "sourceNumber": "FAA-2026-SB-COMPLETE",
-      "revision": "Original Issue",
-      "title": "AD with Available and Analyzed SB",
-      "issuingAuthority": "FAA",
-      "issueDate": "2026-03-01",
-      "effectiveDate": "2026-03-15",
-      "emergencyAd": false,
-      "status": "ASSESSED",
-      "createdAt": "2026-09-20T11:43:54.116Z",
-      "createdBy": "CAMO Regulatory Intelligence Engine (Phase 9.4)",
-      "updatedAt": "2026-09-20T11:43:54.116Z",
-      "updatedBy": "CAMO Regulatory Intelligence Engine (Phase 9.4)",
-      "applicabilityRule": {
-        "id": "rule-req-intel-1789904634116",
-        "complianceRequirementId": "req-intel-1789904634116",
-        "aircraftManufacturers": [
-          "Boeing"
-        ],
-        "aircraftModels": [
-          "737-800"
-        ],
-        "componentPartNumbers": [],
-        "engineModels": [],
-        "affectedConfiguration": "Applies to Boeing 737-800 airplanes. Accomplish Boeing Service Bulletin B737-77-7777 terminating action.",
-        "rawText": "Applies to Boeing 737-800 airplanes. Accomplish Boeing Service Bulletin B737-77-7777 terminating action."
-      },
-      "requirementDetails": {
-        "initialThreshold": "Within 500 flight hours or 6 months",
-        "complianceTime": "Initial inspection mandate",
-        "requiredInspection": "Detailed visual and functional inspection per manufacturer service bulletin instructions."
-      },
-      "sourceDocument": {
-        "fileName": "FAA-2026-SB-COMPLETE.pdf",
-        "fileSize": 404,
-        "mimeType": "text/plain",
-        "rawExtractedText": "AIRWORTHINESS DIRECTIVE (REGULATORY OFFICIAL RECORD)\n\nAD Number: FAA-2026-SB-COMPLETE\n\nAuthority: FAA\n\nTitle: AD with Available and Analyzed SB\n\nManufacturer: Boeing\n\nTarget Family: B737\n\nIssue Date: 2026-03-01\n\nEffective Date: 2026-03-15\n\nDocket: N/A\n\nApplicability:\n\nApplies to Boeing 737-800 airplanes. Accomplish Boeing Service Bulletin B737-77-7777 terminating action.",
-        "documentHash": "a9ade0210513d8704c7ed86f679ea8738f3bc776e7f3203b6d2529e6ae596b4b"
-      }
-    },
-    {
       "id": "req-ad-2024-12-05",
       "sourceType": "AD",
       "sourceNumber": "FAA AD 2024-12-05",
@@ -419,7 +378,7 @@
       "issuingAuthority": "FAA",
       "sourceNumber": "2020-24-02",
       "revision": "Original Issue",
-      "title": "The Boeing Company Model 737-8 and 737-9 Airplanes - Flight Control Computer (FCC) Software and AOA Sensor System",
+      "title": "Boeing 737 Main Landing Gear (MLG) Actuator Beam Outboard Pin Cracking and Corrosion Inspection",
       "issueDate": "2020-11-20",
       "effectiveDate": "2021-01-05",
       "emergencyAd": false,
@@ -435,15 +394,19 @@
           "Boeing"
         ],
         "aircraftModels": [
-          "737-8",
-          "737-9"
+          "737-600",
+          "737-700",
+          "737-700C",
+          "737-800",
+          "737-900",
+          "737-900ER"
         ],
         "componentPartNumbers": [
           "65-49200-1",
           "65-49200-2"
         ],
         "affectedConfiguration": "Aircraft equipped with Main Landing Gear Actuator Beam Outboard Pins.",
-        "rawText": "The Boeing Company Model 737-8 and 737-9 airplanes, certificated in any category."
+        "rawText": "Applicability: The Boeing Company Model 737-600, -700, -700C, -800, -900, and -900ER series airplanes, certificated in any category."
       },
       "requirementDetails": {
         "initialThreshold": "Within 36 months or 4,500 flight cycles after effective date of AD.",
@@ -465,61 +428,7 @@
         "mimeType": "application/pdf",
         "documentHash": "9f83a241b77382d56a04871e84a29a3a93c72b83a049d978a3c4839c09931b23",
         "rawExtractedText": "Federal Register / Vol. 85, No. 231 / Tuesday, December 1, 2020 / Rules and Regulations\nFAA AD 2020-24-02: Airworthiness Directives; The Boeing Company Model 737-600, -700, -700C, -800, -900, and -900ER Series Airplanes\nApplicability: This AD applies to The Boeing Company Model 737-600, -700, -700C, -800, -900, and -900ER series airplanes, certificated in any category.\nUnsafe Condition: This AD was prompted by reports of cracked and corroded MLG actuator beam outboard pins.\n(g) Required Actions: Within 36 months or 4,500 flight cycles after the effective date of this AD, perform repetitive ultrasonic inspection of MLG actuator beam outboard pins in accordance with Boeing Alert Requirements Bulletin 737-22A1011 RB, dated November 16, 2020.\n(h) Exceptions to Service Information: Where Boeing Alert Requirements Bulletin 737-22A1011 RB specifies contacting Boeing, contact Seattle ACO.\n(i) Terminating Action: Accomplishment of terminating actions in accordance with Boeing Alert Requirements Bulletin 737-22A1011 RB terminates the repetitive inspection requirements of this AD."
-      },
-      "softwareRequirements": [
-        {
-          "id": "sw-1789904639236-1",
-          "softwarePartNumber": "2274-COL-AC2-26",
-          "softwareVersion": "P12.1.2",
-          "targetSystem": "Flight Control Computer (FCC)",
-          "targetLru": "FCC A and FCC B",
-          "installationPosition": "Both Left and Right Flight Control Computers",
-          "currentlyInstalledSoftware": [
-            "P11.2",
-            "P11.1",
-            "P10.0",
-            "P10.1"
-          ],
-          "prohibitedSoftware": [
-            "P11.2",
-            "P11.1",
-            "P10.0"
-          ],
-          "mandatedSoftware": "2274-COL-AC2-26",
-          "verificationMethod": "ON_BOARD_DATA_LOAD",
-          "notes": "FCC software version P12.1.2 (P/N 2274-COL-AC2-26) must be loaded on both FCC A and FCC B."
-        }
-      ],
-      "mandatedActions": [
-        {
-          "id": "act-1789904639236-1",
-          "paragraphReference": "Paragraph (g)(1)",
-          "actionType": "AVIONICS_SOFTWARE_LOAD",
-          "description": "Install Flight Control Computer (FCC) software version P12.1.2 (P/N 2274-COL-AC2-26) in both FCC A and FCC B.",
-          "sequence": 1,
-          "accomplishmentReference": {
-            "documentReference": "Boeing Alert Requirements Bulletin 737-22A1011 RB"
-          },
-          "complianceThreshold": {
-            "thresholdType": "BEFORE_FURTHER_FLIGHT",
-            "rawDescription": "Before further flight"
-          }
-        },
-        {
-          "id": "act-1789904639236-2",
-          "paragraphReference": "Paragraph (g)(2)",
-          "actionType": "OPERATIONAL_PROCEDURE",
-          "description": "Revise Airplane Flight Manual (AFM) Certificate Limitations and Non-Normal Procedures.",
-          "sequence": 2,
-          "complianceThreshold": {
-            "thresholdType": "BEFORE_FURTHER_FLIGHT",
-            "rawDescription": "Before further flight"
-          }
-        }
-      ],
-      "missingFields": [],
-      "documentProcessingStatus": "EXTRACTED",
-      "extractionStatus": "SUCCESS"
+      }
     }
   ],
   "assessments": [
@@ -690,26 +599,6 @@
   ],
   "auditTrail": [
     {
-      "id": "aud-1789904634122-5ax6s",
-      "timestamp": "2026-09-20T11:43:54.122Z",
-      "user": "CAMO QA Auditor",
-      "role": "CHIEF_CAMO_ENGINEER",
-      "action": "REGULATORY_KNOWLEDGE_COMPILED",
-      "entityType": "RegulatoryKnowledgeItem",
-      "entityId": "kb-faa-faa-2026-sb-complete",
-      "details": "Conhecimento regulatório consolidado para FAA-2026-SB-COMPLETE (FAA) na família B737. Status: ANALYZED. Derivados 1 parâmetros de configuração requeridos."
-    },
-    {
-      "id": "aud-1789904634120-w54md",
-      "timestamp": "2026-09-20T11:43:54.120Z",
-      "user": "CAMO Rule Engine v2.1",
-      "role": "CHIEF_CAMO_ENGINEER",
-      "action": "CROSS_VALIDATION_PERFORMED",
-      "entityType": "AdSbCrossValidationResult",
-      "entityId": "FAA-2026-SB-COMPLETE-B737-77-7777",
-      "details": "Validação cruzada AD x SB concluída com status: CONFLICT. Requer revisão humana: SIM."
-    },
-    {
       "id": "aud-01",
       "timestamp": "2026-08-16T14:00:00.000Z",
       "user": "Eng. Fábio Teraoka",
@@ -837,76 +726,8 @@
   "screeningAssessments": [],
   "pipelineExecutions": [],
   "deliveryAssessments": [],
-  "adCandidates": [
-    {
-      "id": "camo-faa-ad-2026-sb-complete-test",
-      "authority": "FAA",
-      "adNumber": "FAA-2026-SB-COMPLETE",
-      "title": "AD with Available and Analyzed SB",
-      "effectiveDate": "2026-03-15",
-      "issueDate": "2026-03-01",
-      "manufacturer": "Boeing",
-      "family": "B737",
-      "modelScope": [
-        "737-800"
-      ],
-      "rawApplicabilityText": "Applies to Boeing 737-800 airplanes. Accomplish Boeing Service Bulletin B737-77-7777 terminating action.",
-      "source": "MANUAL_UPLOAD",
-      "sourceUrl": "",
-      "status": "DISCOVERED",
-      "analysisStatus": "ANALYZED",
-      "operationalPriority": "HIGH",
-      "discoveryTimestamp": "2026-09-20T11:43:54.115Z",
-      "retrievedAt": "2026-09-20T11:43:54.115Z",
-      "analyzedRequirementId": "req-intel-1789904634116"
-    }
-  ],
+  "adCandidates": [],
   "regulatoryKnowledgeBase": [
-    {
-      "id": "kb-faa-faa-2026-sb-complete",
-      "requirementId": "req-intel-1789904634116",
-      "adNumber": "FAA-2026-SB-COMPLETE",
-      "authority": "FAA",
-      "title": "AD with Available and Analyzed SB",
-      "effectiveDate": "2026-03-15",
-      "manufacturer": "Boeing",
-      "family": "B737",
-      "modelScope": [
-        "737-800"
-      ],
-      "engineScope": [],
-      "componentScope": [],
-      "requiredConfigurationData": [
-        {
-          "id": "param-model-req-intel-1789904634116",
-          "parameterKey": "AIRCRAFT_MODEL",
-          "label": "Modelo da Aeronave (Aircraft Model & Variant)",
-          "category": "AIRFRAME",
-          "statusInAd": "EXPLICITLY_REQUIRED",
-          "targetValues": [
-            "737-800"
-          ],
-          "description": "Modelo específico homologado da aeronave (737-800)",
-          "traceability": {
-            "adNumber": "FAA-2026-SB-COMPLETE",
-            "requirementId": "req-intel-1789904634116",
-            "authority": "FAA",
-            "ruleCitation": "Applicability Paragraph: Applicable Aircraft Models",
-            "sourceExcerpt": "Applies to Boeing 737-800 airplanes. Accomplish Boeing Service Bulletin B737-77-7777 terminating action."
-          }
-        }
-      ],
-      "complianceThresholdSummary": "Within 500 flight hours or 6 months",
-      "isRepetitive": false,
-      "hasTerminatingAction": false,
-      "applicabilityRuleSummary": "Applies to Boeing 737-800 airplanes. Accomplish Boeing Service Bulletin B737-77-7777 terminating action.",
-      "analyzedAt": "2026-09-20T11:43:54.116Z",
-      "documentSha256": "a9ade0210513d8704c7ed86f679ea8738f3bc776e7f3203b6d2529e6ae596b4b",
-      "provenance": {
-        "source": "MANUAL_UPLOAD",
-        "documentNumber": "camo-faa-ad-2026-sb-complete-test"
-      }
-    },
     {
       "id": "kb-faa-2024-12-05",
       "requirementId": "req-ad-2024-12-05",
@@ -1042,7 +863,7 @@
       },
       "version": 1,
       "deltaStatus": "UNCHANGED",
-      "analysisStatus": "ANALYSIS_IN_PROGRESS",
+      "analysisStatus": "ANALYZED",
       "analysisId": "req-faa-2020-24-02",
       "knowledgeId": "kb-faa-2020-24-02",
       "rawApplicabilityText": "The Boeing Company Model 737-600, -700, -700C, -800, -900, and -900ER series airplanes, certificated in any category.",
@@ -1060,139 +881,7 @@
           "actor": "Chief Technical Engineer",
           "details": "Análise técnica e extração de regras de aplicabilidade concluídas com sucesso."
         }
-      ],
-      "referencedSbs": [
-        {
-          "id": "sb-2020-24-02-737-22A1011_RB",
-          "adNumber": "2020-24-02",
-          "authority": "FAA",
-          "sbNumber": "737-22A1011 RB",
-          "revision": "Original",
-          "manufacturer": "Boeing",
-          "documentType": "ALERT_SERVICE_BULLETIN",
-          "title": "Service Bulletin 737-22A1011 RB",
-          "issueDate": "November 16, 2020",
-          "citedParagraphInAd": "Paragraph (g)",
-          "relationshipToAd": "TERMINATING_ACTION",
-          "isMandatedByAd": true,
-          "analysisStatus": "PENDING_RETRIEVAL"
-        },
-        {
-          "id": "sb-2020-24-02-737-34A1088_RB",
-          "adNumber": "2020-24-02",
-          "authority": "FAA",
-          "sbNumber": "737-34A1088 RB",
-          "revision": "Original",
-          "manufacturer": "Boeing",
-          "documentType": "ALERT_SERVICE_BULLETIN",
-          "title": "Service Bulletin 737-34A1088 RB",
-          "issueDate": "November 16, 2020",
-          "citedParagraphInAd": "Paragraph (g)",
-          "relationshipToAd": "MANDATORY_INCORPORATION",
-          "isMandatedByAd": true,
-          "analysisStatus": "PENDING_RETRIEVAL"
-        }
-      ],
-      "sbIntelligenceStatus": "SB_ANALYSIS_REQUIRED",
-      "analysisCompleteness": {
-        "isComplete": true,
-        "effectiveStatus": "ANALYZED",
-        "summary": "Todas as etapas obrigatórias da análise técnica foram concluídas com sucesso e dados auditáveis.",
-        "completedStepsCount": 9,
-        "totalMandatorySteps": 9,
-        "steps": [
-          {
-            "stepKey": "IDENTIFICATION",
-            "stepName": "Identificação e Metadados Regulatórios",
-            "isMandatory": true,
-            "status": "SUCCESS",
-            "message": "Identificador oficial (2020-24-02), autoridade (FAA) e escopo de modelos (737-600, 737-700, 737-700C, 737-800, 737-900, 737-900ER) validados."
-          },
-          {
-            "stepKey": "DOCUMENT_RETRIEVAL",
-            "stepName": "Aquisição e Integridade Documental",
-            "isMandatory": true,
-            "status": "SUCCESS",
-            "message": "Documento oficial íntegro com hash SHA-256 verificado (9f83a241b773...)."
-          },
-          {
-            "stepKey": "EXTRACTION_INTELLIGENCE",
-            "stepName": "Inteligência Documental e Extração de Entidades",
-            "isMandatory": true,
-            "status": "SUCCESS",
-            "message": "Parâmetros técnicos e cláusulas contratuais/regulatórias extraídos com sucesso."
-          },
-          {
-            "stepKey": "APPLICABILITY_STRUCTURING",
-            "stepName": "Regras de Aplicabilidade e Configuração",
-            "isMandatory": true,
-            "status": "SUCCESS",
-            "message": "Regra de aplicabilidade estruturada com modelos (737-8, 737-9) e critérios físicos."
-          },
-          {
-            "stepKey": "MANDATED_ACTIONS",
-            "stepName": "Ações Mandatórias e Limiares de Cumprimento",
-            "isMandatory": true,
-            "status": "SUCCESS",
-            "message": "Limiares de cumprimento, inspeções ou ações modificativas estruturados."
-          },
-          {
-            "stepKey": "SB_INTELLIGENCE",
-            "stepName": "Inteligência de Boletins de Serviço (SB)",
-            "isMandatory": true,
-            "status": "SUCCESS",
-            "message": "Inteligência técnica de SB concluída: 1 Boletim(ns) de Serviço obrigatório(s) analisado(s) com checklist de cumprimento e condições de prévia incorporação estruturados."
-          },
-          {
-            "stepKey": "KNOWLEDGE_COMPILATION",
-            "stepName": "Compilação da Base de Conhecimento Regulatório",
-            "isMandatory": true,
-            "status": "SUCCESS",
-            "message": "Conhecimento consolidado com 1 parâmetros de configuração requeridos."
-          },
-          {
-            "stepKey": "FLEET_EVALUATION",
-            "stepName": "Avaliação de Aplicabilidade na Frota",
-            "isMandatory": true,
-            "status": "SUCCESS",
-            "message": "Avaliação de frota realizada com sucesso para 3 aeronave(s) do modelo."
-          },
-          {
-            "stepKey": "AUDIT_LINKAGE",
-            "stepName": "Rastreabilidade e Vinculação Auditável",
-            "isMandatory": true,
-            "status": "SUCCESS",
-            "message": "Vínculo bidirecional auditável validado com o Requisito req-faa-2020-24-02."
-          }
-        ],
-        "failedSteps": [],
-        "reviewSteps": [],
-        "missingRequirement": false,
-        "canTransitionToAnalyzed": true,
-        "evaluatedAt": "2026-09-20T11:43:59.791Z",
-        "adAnalysisComplete": false,
-        "sbAnalysisStatus": "SB_ANALYZED",
-        "applicabilityStatus": "APPLICABILITY_DETERMINED",
-        "complianceStatus": "COMPLIANCE_EVIDENCED",
-        "referencedSbsCount": 1,
-        "sbChecklistsCount": 1,
-        "adTechnicalAnalysisCompleteness": "DEPENDENCY_PENDING",
-        "adSbAssessment": {
-          "adNumber": "2020-24-02",
-          "status": "DEPENDENCY_PENDING",
-          "summary": "AD possui dependência técnica de 2 SB(s) detectado(s). 2 documento(s) pendente(s) de localização/análise: 737-22A1011 RB, 737-34A1088 RB.",
-          "hasSbDependencies": true,
-          "totalDependencies": 2,
-          "resolvedDependencies": 0,
-          "pendingDependencies": [
-            "737-22A1011 RB",
-            "737-34A1088 RB"
-          ],
-          "evaluatedAt": "2026-09-20T11:43:59.804Z",
-          "fleetApplicabilityState": "PENDING_CONFIGURATION"
-        },
-        "fleetApplicabilityState": "PENDING_CONFIGURATION"
-      }
+      ]
     },
     {
       "id": "reg-faa-2024-12-05",
@@ -1228,7 +917,7 @@
       },
       "version": 1,
       "deltaStatus": "UNCHANGED",
-      "analysisStatus": "ANALYSIS_IN_PROGRESS",
+      "analysisStatus": "ANALYZED",
       "analysisId": "req-ad-2024-12-05",
       "knowledgeId": "kb-faa-2024-12-05",
       "rawApplicabilityText": "The Boeing Company Model 737-8, 737-9, 737-8200, and 737-800 airplanes, equipped with Collins Aerospace AOA sensors.",
@@ -1246,123 +935,7 @@
           "actor": "Safety Inspector",
           "details": "Análise técnica concluída."
         }
-      ],
-      "referencedSbs": [
-        {
-          "id": "sb-2024-12-05-B737-27A1305",
-          "adNumber": "2024-12-05",
-          "authority": "FAA",
-          "sbNumber": "B737-27A1305",
-          "revision": "Original",
-          "manufacturer": "Boeing",
-          "documentType": "SERVICE_BULLETIN",
-          "title": "Service Bulletin B737-27A1305",
-          "issueDate": "2026-09-20",
-          "citedParagraphInAd": "Paragraph (g)",
-          "relationshipToAd": "MANDATORY_INCORPORATION",
-          "isMandatedByAd": true,
-          "analysisStatus": "PENDING_RETRIEVAL"
-        }
-      ],
-      "sbIntelligenceStatus": "SB_ANALYSIS_REQUIRED",
-      "analysisCompleteness": {
-        "isComplete": true,
-        "effectiveStatus": "ANALYZED",
-        "summary": "Todas as etapas obrigatórias da análise técnica foram concluídas com sucesso e dados auditáveis.",
-        "completedStepsCount": 9,
-        "totalMandatorySteps": 9,
-        "steps": [
-          {
-            "stepKey": "IDENTIFICATION",
-            "stepName": "Identificação e Metadados Regulatórios",
-            "isMandatory": true,
-            "status": "SUCCESS",
-            "message": "Identificador oficial (2024-12-05), autoridade (FAA) e escopo de modelos (737-8, 737-9, 737-8200, 737-800) validados."
-          },
-          {
-            "stepKey": "DOCUMENT_RETRIEVAL",
-            "stepName": "Aquisição e Integridade Documental",
-            "isMandatory": true,
-            "status": "SUCCESS",
-            "message": "Documento oficial íntegro com hash SHA-256 verificado (4b7911bca0e7...)."
-          },
-          {
-            "stepKey": "EXTRACTION_INTELLIGENCE",
-            "stepName": "Inteligência Documental e Extração de Entidades",
-            "isMandatory": true,
-            "status": "SUCCESS",
-            "message": "Parâmetros técnicos e cláusulas contratuais/regulatórias extraídos com sucesso."
-          },
-          {
-            "stepKey": "APPLICABILITY_STRUCTURING",
-            "stepName": "Regras de Aplicabilidade e Configuração",
-            "isMandatory": true,
-            "status": "SUCCESS",
-            "message": "Regra de aplicabilidade estruturada com modelos (737-700, 737-800, 737-900, 737-900ER) e critérios físicos."
-          },
-          {
-            "stepKey": "MANDATED_ACTIONS",
-            "stepName": "Ações Mandatórias e Limiares de Cumprimento",
-            "isMandatory": true,
-            "status": "SUCCESS",
-            "message": "Limiares de cumprimento, inspeções ou ações modificativas estruturados."
-          },
-          {
-            "stepKey": "SB_INTELLIGENCE",
-            "stepName": "Inteligência de Boletins de Serviço (SB)",
-            "isMandatory": true,
-            "status": "SUCCESS",
-            "message": "Inteligência técnica de SB concluída: 1 Boletim(ns) de Serviço obrigatório(s) analisado(s) com checklist de cumprimento e condições de prévia incorporação estruturados."
-          },
-          {
-            "stepKey": "KNOWLEDGE_COMPILATION",
-            "stepName": "Compilação da Base de Conhecimento Regulatório",
-            "isMandatory": true,
-            "status": "SUCCESS",
-            "message": "Conhecimento consolidado com 1 parâmetros de configuração requeridos."
-          },
-          {
-            "stepKey": "FLEET_EVALUATION",
-            "stepName": "Avaliação de Aplicabilidade na Frota",
-            "isMandatory": true,
-            "status": "SUCCESS",
-            "message": "Avaliação de frota realizada com sucesso para 3 aeronave(s) do modelo."
-          },
-          {
-            "stepKey": "AUDIT_LINKAGE",
-            "stepName": "Rastreabilidade e Vinculação Auditável",
-            "isMandatory": true,
-            "status": "SUCCESS",
-            "message": "Vínculo bidirecional auditável validado com o Requisito req-ad-2024-12-05."
-          }
-        ],
-        "failedSteps": [],
-        "reviewSteps": [],
-        "missingRequirement": false,
-        "canTransitionToAnalyzed": true,
-        "evaluatedAt": "2026-09-20T11:43:59.805Z",
-        "adAnalysisComplete": false,
-        "sbAnalysisStatus": "SB_ANALYZED",
-        "applicabilityStatus": "APPLICABILITY_DETERMINED",
-        "complianceStatus": "COMPLIANCE_EVIDENCED",
-        "referencedSbsCount": 1,
-        "sbChecklistsCount": 1,
-        "adTechnicalAnalysisCompleteness": "DEPENDENCY_PENDING",
-        "adSbAssessment": {
-          "adNumber": "2024-12-05",
-          "status": "DEPENDENCY_PENDING",
-          "summary": "AD possui dependência técnica de 1 SB(s) detectado(s). 1 documento(s) pendente(s) de localização/análise: B737-27A1305.",
-          "hasSbDependencies": true,
-          "totalDependencies": 1,
-          "resolvedDependencies": 0,
-          "pendingDependencies": [
-            "B737-27A1305"
-          ],
-          "evaluatedAt": "2026-09-20T11:43:59.807Z",
-          "fleetApplicabilityState": "PENDING_CONFIGURATION"
-        },
-        "fleetApplicabilityState": "PENDING_CONFIGURATION"
-      }
+      ]
     },
     {
       "id": "reg-faa-2023-18-04",
@@ -1507,295 +1080,6 @@
           "details": "Dados técnicos preliminares necessitam confirmação com boletim de serviço do fabricante."
         }
       ]
-    },
-    {
-      "id": "camo-faa-ad-2026-sb-complete-test",
-      "canonicalAdId": "camo-faa-ad-2026-sb-complete-test",
-      "authority": "FAA",
-      "adNumber": "FAA-2026-SB-COMPLETE",
-      "title": "AD with Available and Analyzed SB",
-      "issueDate": "2026-03-01",
-      "effectiveDate": "2026-03-15",
-      "emergencyAd": false,
-      "supersedes": [],
-      "manufacturer": "Boeing",
-      "family": "B737",
-      "modelScope": [
-        "737-800"
-      ],
-      "rawApplicabilityText": "Applies to Boeing 737-800 airplanes. Accomplish Boeing Service Bulletin B737-77-7777 terminating action.",
-      "sha256": "sha256-sb-complete-hash",
-      "sourceType": "MANUAL_UPLOAD",
-      "sourceIdentifier": "AD_FAA-2026-SB-COMPLETE.txt",
-      "firstSeenAt": "2026-09-20T11:43:54.115Z",
-      "lastSeenAt": "2026-09-20T11:43:54.115Z",
-      "lastChangedAt": "2026-09-20T11:43:54.124Z",
-      "retrievedAt": "2026-09-20T11:43:54.115Z",
-      "analysisStatus": "REVIEW_REQUIRED",
-      "importedAt": "2026-09-20T11:43:54.115Z",
-      "importedBy": "CAMO QA Auditor",
-      "version": 1,
-      "analysisStartedAt": "2026-09-20T11:43:54.116Z",
-      "auditTrail": [
-        {
-          "timestamp": "2026-09-20T11:43:54.124Z",
-          "action": "ANALYSIS_COMPLETED",
-          "actor": "CAMO QA Auditor",
-          "details": "Avaliação técnica concluída. Status determinístico: ANALYZED (9/9 etapas satisfeitas). Todas as etapas obrigatórias da análise técnica foram concluídas com sucesso e dados auditáveis."
-        },
-        {
-          "timestamp": "2026-09-20T11:43:54.116Z",
-          "action": "ANALYSIS_STARTED",
-          "actor": "CAMO QA Auditor",
-          "details": "Análise técnica iniciada pelo analista CAMO QA Auditor. Status atualizado para ANALYSIS_IN_PROGRESS."
-        }
-      ],
-      "referencedSbs": [
-        {
-          "id": "sb-FAA-2026-SB-COMPLETE-B737-77-7777",
-          "adNumber": "FAA-2026-SB-COMPLETE",
-          "authority": "FAA",
-          "sbNumber": "B737-77-7777",
-          "revision": "Original",
-          "manufacturer": "Boeing",
-          "documentType": "SERVICE_BULLETIN",
-          "title": "Service Bulletin B737-77-7777",
-          "issueDate": "2026-09-20",
-          "citedParagraphInAd": "Paragraph (g)",
-          "relationshipToAd": "TERMINATING_ACTION",
-          "isMandatedByAd": true,
-          "analysisStatus": "ANALYZED",
-          "documentAvailability": "AVAILABLE",
-          "checklistStatus": "CHECKLIST_GENERATED",
-          "checklist": {
-            "identification": {
-              "sbNumber": "B737-77-7777",
-              "revision": "Original",
-              "issueDate": "2026-09-20",
-              "title": "Service Bulletin B737-77-7777",
-              "manufacturer": "Boeing",
-              "documentType": "SERVICE_BULLETIN"
-            },
-            "applicability": {
-              "models": [
-                "737-800"
-              ],
-              "rawText": "Service Bulletin applies to Boeing 737-800 airplanes."
-            },
-            "previousIncorporation": {
-              "priorSbsReferenced": [],
-              "allowsPriorIncorporation": true,
-              "terminatingActionCondition": "Installation of terminating part",
-              "notes": "Prior accomplishment in service of this Service Bulletin or terminating modification standard satisfies initial compliance."
-            },
-            "actions": [
-              {
-                "actionType": "INSPECTION",
-                "initialThreshold": "Within 500 flight hours or 6 months",
-                "repetitiveInterval": "Every 500 FH or 12 months",
-                "summary": "Detailed visual and NDT/ultrasonic inspection according to manufacturer task card instructions."
-              },
-              {
-                "actionType": "MODIFICATION",
-                "terminatingAction": "Installation of terminating part",
-                "requiredParts": [
-                  "Approved Terminating Part Standard"
-                ],
-                "summary": "Installation of terminating redesigned component or bushing standard."
-              }
-            ],
-            "limitationsAndConditions": [
-              "Special tools and calibration equipment required for ultrasonic inspection probe.",
-              "Any crack or wear exceeding limits requires immediate part replacement prior to next flight.",
-              "Record accomplishment in Aircraft Tech Log and CAMO Configuration Ledger."
-            ],
-            "configurationData": [
-              "Component Serial Number",
-              "Physical Part Number verification",
-              "Modification Status Standard (As-Installed)"
-            ]
-          }
-        }
-      ],
-      "sbIntelligenceStatus": "SB_ANALYSIS_REQUIRED",
-      "analysisCompleteness": {
-        "isComplete": true,
-        "effectiveStatus": "ANALYZED",
-        "summary": "Todas as etapas obrigatórias da análise técnica foram concluídas com sucesso e dados auditáveis.",
-        "completedStepsCount": 9,
-        "totalMandatorySteps": 9,
-        "steps": [
-          {
-            "stepKey": "IDENTIFICATION",
-            "stepName": "Identificação e Metadados Regulatórios",
-            "isMandatory": true,
-            "status": "SUCCESS",
-            "message": "Identificador oficial (FAA-2026-SB-COMPLETE), autoridade (FAA) e escopo de modelos (737-800) validados."
-          },
-          {
-            "stepKey": "DOCUMENT_RETRIEVAL",
-            "stepName": "Aquisição e Integridade Documental",
-            "isMandatory": true,
-            "status": "SUCCESS",
-            "message": "Documento oficial íntegro com hash SHA-256 verificado (sha256-sb-co...)."
-          },
-          {
-            "stepKey": "EXTRACTION_INTELLIGENCE",
-            "stepName": "Inteligência Documental e Extração de Entidades",
-            "isMandatory": true,
-            "status": "SUCCESS",
-            "message": "Parâmetros técnicos e cláusulas contratuais/regulatórias extraídos com sucesso."
-          },
-          {
-            "stepKey": "APPLICABILITY_STRUCTURING",
-            "stepName": "Regras de Aplicabilidade e Configuração",
-            "isMandatory": true,
-            "status": "SUCCESS",
-            "message": "Regra de aplicabilidade estruturada com modelos (737-800) e critérios físicos."
-          },
-          {
-            "stepKey": "MANDATED_ACTIONS",
-            "stepName": "Ações Mandatórias e Limiares de Cumprimento",
-            "isMandatory": true,
-            "status": "SUCCESS",
-            "message": "Limiares de cumprimento, inspeções ou ações modificativas estruturados."
-          },
-          {
-            "stepKey": "SB_INTELLIGENCE",
-            "stepName": "Inteligência de Boletins de Serviço (SB)",
-            "isMandatory": true,
-            "status": "SUCCESS",
-            "message": "Inteligência técnica de SB concluída: 1 Boletim(ns) de Serviço obrigatório(s) analisado(s) com checklist de cumprimento e condições de prévia incorporação estruturados."
-          },
-          {
-            "stepKey": "KNOWLEDGE_COMPILATION",
-            "stepName": "Compilação da Base de Conhecimento Regulatório",
-            "isMandatory": true,
-            "status": "SUCCESS",
-            "message": "Conhecimento consolidado com 1 parâmetros de configuração requeridos."
-          },
-          {
-            "stepKey": "FLEET_EVALUATION",
-            "stepName": "Avaliação de Aplicabilidade na Frota",
-            "isMandatory": true,
-            "status": "SUCCESS",
-            "message": "Avaliação de frota realizada com sucesso para 2 aeronave(s) do modelo."
-          },
-          {
-            "stepKey": "AUDIT_LINKAGE",
-            "stepName": "Rastreabilidade e Vinculação Auditável",
-            "isMandatory": true,
-            "status": "SUCCESS",
-            "message": "Vínculo bidirecional auditável validado com o Requisito req-intel-1789904634116."
-          }
-        ],
-        "failedSteps": [],
-        "reviewSteps": [],
-        "missingRequirement": false,
-        "canTransitionToAnalyzed": true,
-        "evaluatedAt": "2026-09-20T11:43:59.808Z",
-        "adAnalysisComplete": false,
-        "sbAnalysisStatus": "SB_ANALYZED",
-        "applicabilityStatus": "APPLICABILITY_DETERMINED",
-        "complianceStatus": "COMPLIANCE_EVIDENCED",
-        "referencedSbsCount": 1,
-        "sbChecklistsCount": 1,
-        "adTechnicalAnalysisCompleteness": "REVIEW_REQUIRED",
-        "adSbAssessment": {
-          "adNumber": "FAA-2026-SB-COMPLETE",
-          "status": "REVIEW_REQUIRED",
-          "summary": "Conflito detectado na validação cruzada entre AD e B737-77-7777: Action conflict: AD mandates inspection but SB lacks inspection procedures.. Requer intervenção de Engenheiro CAMO.",
-          "hasSbDependencies": true,
-          "totalDependencies": 1,
-          "resolvedDependencies": 1,
-          "pendingDependencies": [],
-          "crossValidationResult": {
-            "adNumber": "FAA-2026-SB-COMPLETE",
-            "sbNumber": "B737-77-7777",
-            "sbRevision": "Rev 0",
-            "overallStatus": "CONFLICT",
-            "comparisons": {
-              "applicability": {
-                "dimension": "APPLICABILITY",
-                "adValue": "Applies to Boeing 737-800 airplanes. Accomplish Boeing Service Bulletin B737-77-7777 terminating action.",
-                "sbValue": "MSN and line numbers listed in SB Section 1.A",
-                "status": "CONSISTENT",
-                "details": "Modelos de aeronave compatíveis e consistentes entre a Diretriz de Aeronavegabilidade e o Boletim de Serviço (737-800).",
-                "adSourceReference": {
-                  "page": "Page 2",
-                  "section": "Applicability"
-                },
-                "sbSourceReference": {
-                  "page": "Page 2-3",
-                  "section": "1.A Effectivity"
-                }
-              },
-              "requiredAction": {
-                "dimension": "REQUIRED_ACTION",
-                "adValue": "Detailed visual and functional inspection per manufacturer service bulletin instructions.",
-                "sbValue": "Instruções técnicas de cumprimento descritas no Boletim de Serviço",
-                "status": "CONFLICT",
-                "details": "Conflito de ações: AD exige inspeção mandatória, mas SB não contém procedimento de inspeção estruturado.",
-                "adSourceReference": {
-                  "page": "Page 2-3",
-                  "section": "Compliance Paragraph (g)"
-                },
-                "sbSourceReference": {
-                  "page": "Page 5",
-                  "section": "2. Accomplishment Instructions"
-                }
-              },
-              "complianceRequirement": {
-                "dimension": "COMPLIANCE_REQUIREMENT",
-                "adValue": "Within 500 flight hours or 6 months",
-                "sbValue": "Conforme especificado na AD",
-                "status": "CONSISTENT",
-                "details": "Limiares e critérios de tempo de cumprimento concordantes entre AD e SB.",
-                "adSourceReference": {
-                  "page": "Page 2",
-                  "section": "Compliance Paragraph (g)"
-                },
-                "sbSourceReference": {
-                  "page": "Page 3",
-                  "section": "1.E Compliance"
-                }
-              }
-            },
-            "consolidatedTechnicalKnowledge": {
-              "applicabilitySummary": "Aplicabilidade regulatória consolidada: Applies to Boeing 737-800 airplanes. Accomplish Boeing Service Bulletin B737-77-7777 terminating action.. Refinamento técnico: MSN and line numbers listed in SB Section 1.A.",
-              "actionSummary": "Ação consolidada: Detailed visual and functional inspection per manufacturer service bulletin instructions.. Método técnico de execução detalhado no SB B737-77-7777.",
-              "complianceSummary": "Limiar consolidado: Within 500 flight hours or 6 months. Intervalo técnico: Conforme especificado na AD.",
-              "sources": [
-                {
-                  "document": "FAA-2026-SB-COMPLETE",
-                  "page": "Page 2",
-                  "section": "Applicability & Compliance"
-                },
-                {
-                  "document": "B737-77-7777",
-                  "page": "Page 1-5",
-                  "section": "Section 1.A & Section 2"
-                }
-              ]
-            },
-            "requiresHumanReview": true,
-            "reviewReasons": [
-              "Action conflict: AD mandates inspection but SB lacks inspection procedures."
-            ],
-            "validatedAt": "2026-09-20T11:43:54.119Z"
-          },
-          "evaluatedAt": "2026-09-20T11:43:59.808Z",
-          "fleetApplicabilityState": "PENDING_CONFIGURATION"
-        },
-        "fleetApplicabilityState": "PENDING_CONFIGURATION"
-      },
-      "analysisCompletedAt": "2026-09-20T11:43:54.124Z",
-      "analysisId": "req-intel-1789904634116",
-      "analyzedRequirementId": "req-intel-1789904634116",
-      "knowledgeId": "kb-faa-faa-2026-sb-complete",
-      "applicabilityPendingStatus": "APPLICABILITY_DETERMINED",
-      "compliancePendingStatus": "COMPLIANCE_EVIDENCED",
-      "adTechnicalAnalysisCompleteness": "TECHNICAL_ANALYSIS_COMPLETE"
     }
   ],
   "aiOrchestratorConfig": {
@@ -1816,290 +1100,9 @@
   },
   "aiExecutionTraces": [],
   "discoveredAiModels": [],
-  "sbRepository": [
-    {
-      "id": "sb-doc-7777",
-      "documentNumber": "B737-77-7777",
-      "revision": "Rev 0",
-      "title": "Flap Track Reinforcement",
-      "manufacturer": "Boeing",
-      "modelScope": [
-        "737-800"
-      ],
-      "extractedAt": "2026-09-20T11:43:54.115Z",
-      "status": "AVAILABLE"
-    }
-  ],
-  "adSbDependencies": [
-    {
-      "id": "dep-FAA-2026-SB-COMPLETE-B737-77-7777",
-      "adNumber": "FAA-2026-SB-COMPLETE",
-      "adId": "req-intel-1789904634116",
-      "sbNumber": "B737-77-7777",
-      "sbManufacturer": "Boeing",
-      "relationshipType": "TERMINATING_ACTION",
-      "sourcePage": "1",
-      "sourceText": "Applies to Boeing 737-800 airplanes. Accomplish Boeing Service Bulletin B737-77-7777 terminating action. AIRWORTHINESS DIRECTIVE (REGULATORY OFFICIAL RECORD) AD Number: FAA-2026-SB-COMPLETE Authority: FAA Title: AD with Available and Analyzed SB Manufacturer: Boeing Target Famil",
-      "detectionState": "ANALYZED",
-      "status": "ANALYZED",
-      "isMandatedByAd": true,
-      "detectedAt": "2026-09-20T11:43:54.118Z",
-      "notes": "Documento SB localizado no repositório e análise técnica de engenharia concluída."
-    },
-    {
-      "id": "dep-2020-24-02-737-22A1011_RB",
-      "adNumber": "2020-24-02",
-      "adId": "req-faa-2020-24-02",
-      "sbNumber": "737-22A1011 RB",
-      "sbDate": "November 16, 2020",
-      "sbManufacturer": "Boeing",
-      "relationshipType": "TERMINATING_ACTION",
-      "sourcePage": "1",
-      "sourceSection": "Paragraph (g)",
-      "sourceText": "ctions: Within 36 months or 4,500 flight cycles after the effective date of this AD, perform repetitive ultrasonic inspection of MLG actuator beam outboard pins in accordance with Boeing Alert Requirements Bulletin 737-22A1011 RB, dated November 16, 2020. (h) Exceptions to Service Information: Where Boeing Alert Requirements Bulletin 737-22A1011 RB specifies contacting Boeing, contact Seattle ACO. (i) Terminating Action: Acco",
-      "detectionState": "NOT_LOCATED",
-      "status": "NOT_LOCATED",
-      "isMandatedByAd": true,
-      "detectedAt": "2026-09-20T11:43:59.801Z",
-      "notes": "SB explicitamente referenciado no texto da AD (detectado). Documento técnico pendente de localização/incorporação no repositório."
-    },
-    {
-      "id": "dep-2020-24-02-737-34A1088_RB",
-      "adNumber": "2020-24-02",
-      "adId": "req-faa-2020-24-02",
-      "sbNumber": "737-34A1088 RB",
-      "sbDate": "November 16, 2020",
-      "sbManufacturer": "Boeing",
-      "relationshipType": "COMPLIANCE_METHOD",
-      "sourcePage": "1",
-      "sourceSection": "Paragraph (g)",
-      "sourceText": "identified in, and in accordance with, the Accomplishment Instructions of Boeing Alert Requirements Bulletin 737-22A1011 RB, dated November 16, 2020. Paragraph (g)(2): Accomplish Boeing Alert Requirements Bulletin 737-34A1088 RB, dated November 16, 2020. Paragraph (h) Exceptions to Service Information: Where Boeing Alert Requirements Bulletin 737-22A1011 RB specifies contacting Boeing, contact Seattle ACO. Paragraph (i) Term",
-      "detectionState": "NOT_LOCATED",
-      "status": "NOT_LOCATED",
-      "isMandatedByAd": true,
-      "detectedAt": "2026-09-20T11:43:59.802Z",
-      "notes": "SB explicitamente referenciado no texto da AD (detectado). Documento técnico pendente de localização/incorporação no repositório."
-    },
-    {
-      "id": "dep-2024-12-05-B737-27A1305",
-      "adNumber": "2024-12-05",
-      "adId": "req-ad-2024-12-05",
-      "sbNumber": "B737-27A1305",
-      "sbManufacturer": "Boeing",
-      "relationshipType": "COMPLIANCE_METHOD",
-      "sourcePage": "1",
-      "sourceSection": "Paragraph (g)",
-      "sourceText": "whichever occurs first, perform a detailed visual inspection (DVI) and ultrasonic inspection of the elevator tab pushrod assembly for cracking or excessive play in accordance with Boeing Alert Service Bulletin B737-27A1305. Repeat the inspections thereafter at intervals not to exceed 500 flight hours or 12 calendar months. (h) Corrective Action / Replacement: If any cracking or play exceeding 0.015 inches is found duri",
-      "detectionState": "NOT_LOCATED",
-      "status": "NOT_LOCATED",
-      "isMandatedByAd": true,
-      "detectedAt": "2026-09-20T11:43:59.807Z",
-      "notes": "SB explicitamente referenciado no texto da AD (detectado). Documento técnico pendente de localização/incorporação no repositório."
-    }
-  ],
-  "sbAnalyses": [
-    {
-      "id": "sb-ana-7777",
-      "sbNumber": "B737-77-7777",
-      "revision": "Rev 0",
-      "manufacturer": "Boeing",
-      "status": "ANALYZED",
-      "analyzedAt": "2026-09-20T11:43:54.115Z",
-      "analyzedBy": "SB Engineer",
-      "summary": "Analyzed successfully"
-    }
-  ],
-  "adSbCrossValidations": [
-    {
-      "adNumber": "FAA-2026-SB-COMPLETE",
-      "sbNumber": "B737-77-7777",
-      "sbRevision": "Rev 0",
-      "overallStatus": "CONFLICT",
-      "comparisons": {
-        "applicability": {
-          "dimension": "APPLICABILITY",
-          "adValue": "Applies to Boeing 737-800 airplanes. Accomplish Boeing Service Bulletin B737-77-7777 terminating action.",
-          "sbValue": "MSN and line numbers listed in SB Section 1.A",
-          "status": "CONSISTENT",
-          "details": "Modelos de aeronave compatíveis e consistentes entre a Diretriz de Aeronavegabilidade e o Boletim de Serviço (737-800).",
-          "adSourceReference": {
-            "page": "Page 2",
-            "section": "Applicability"
-          },
-          "sbSourceReference": {
-            "page": "Page 2-3",
-            "section": "1.A Effectivity"
-          }
-        },
-        "requiredAction": {
-          "dimension": "REQUIRED_ACTION",
-          "adValue": "Detailed visual and functional inspection per manufacturer service bulletin instructions.",
-          "sbValue": "Instruções técnicas de cumprimento descritas no Boletim de Serviço",
-          "status": "CONFLICT",
-          "details": "Conflito de ações: AD exige inspeção mandatória, mas SB não contém procedimento de inspeção estruturado.",
-          "adSourceReference": {
-            "page": "Page 2-3",
-            "section": "Compliance Paragraph (g)"
-          },
-          "sbSourceReference": {
-            "page": "Page 5",
-            "section": "2. Accomplishment Instructions"
-          }
-        },
-        "complianceRequirement": {
-          "dimension": "COMPLIANCE_REQUIREMENT",
-          "adValue": "Within 500 flight hours or 6 months",
-          "sbValue": "Conforme especificado na AD",
-          "status": "CONSISTENT",
-          "details": "Limiares e critérios de tempo de cumprimento concordantes entre AD e SB.",
-          "adSourceReference": {
-            "page": "Page 2",
-            "section": "Compliance Paragraph (g)"
-          },
-          "sbSourceReference": {
-            "page": "Page 3",
-            "section": "1.E Compliance"
-          }
-        }
-      },
-      "consolidatedTechnicalKnowledge": {
-        "applicabilitySummary": "Aplicabilidade regulatória consolidada: Applies to Boeing 737-800 airplanes. Accomplish Boeing Service Bulletin B737-77-7777 terminating action.. Refinamento técnico: MSN and line numbers listed in SB Section 1.A.",
-        "actionSummary": "Ação consolidada: Detailed visual and functional inspection per manufacturer service bulletin instructions.. Método técnico de execução detalhado no SB B737-77-7777.",
-        "complianceSummary": "Limiar consolidado: Within 500 flight hours or 6 months. Intervalo técnico: Conforme especificado na AD.",
-        "sources": [
-          {
-            "document": "FAA-2026-SB-COMPLETE",
-            "page": "Page 2",
-            "section": "Applicability & Compliance"
-          },
-          {
-            "document": "B737-77-7777",
-            "page": "Page 1-5",
-            "section": "Section 1.A & Section 2"
-          }
-        ]
-      },
-      "requiresHumanReview": true,
-      "reviewReasons": [
-        "Action conflict: AD mandates inspection but SB lacks inspection procedures."
-      ],
-      "validatedAt": "2026-09-20T11:43:54.119Z"
-    }
-  ],
-  "adCompletenessAssessments": {
-    "FAA-2026-SB-COMPLETE": {
-      "adNumber": "FAA-2026-SB-COMPLETE",
-      "status": "REVIEW_REQUIRED",
-      "summary": "Conflito detectado na validação cruzada entre AD e B737-77-7777: Action conflict: AD mandates inspection but SB lacks inspection procedures.. Requer intervenção de Engenheiro CAMO.",
-      "hasSbDependencies": true,
-      "totalDependencies": 1,
-      "resolvedDependencies": 1,
-      "pendingDependencies": [],
-      "crossValidationResult": {
-        "adNumber": "FAA-2026-SB-COMPLETE",
-        "sbNumber": "B737-77-7777",
-        "sbRevision": "Rev 0",
-        "overallStatus": "CONFLICT",
-        "comparisons": {
-          "applicability": {
-            "dimension": "APPLICABILITY",
-            "adValue": "Applies to Boeing 737-800 airplanes. Accomplish Boeing Service Bulletin B737-77-7777 terminating action.",
-            "sbValue": "MSN and line numbers listed in SB Section 1.A",
-            "status": "CONSISTENT",
-            "details": "Modelos de aeronave compatíveis e consistentes entre a Diretriz de Aeronavegabilidade e o Boletim de Serviço (737-800).",
-            "adSourceReference": {
-              "page": "Page 2",
-              "section": "Applicability"
-            },
-            "sbSourceReference": {
-              "page": "Page 2-3",
-              "section": "1.A Effectivity"
-            }
-          },
-          "requiredAction": {
-            "dimension": "REQUIRED_ACTION",
-            "adValue": "Detailed visual and functional inspection per manufacturer service bulletin instructions.",
-            "sbValue": "Instruções técnicas de cumprimento descritas no Boletim de Serviço",
-            "status": "CONFLICT",
-            "details": "Conflito de ações: AD exige inspeção mandatória, mas SB não contém procedimento de inspeção estruturado.",
-            "adSourceReference": {
-              "page": "Page 2-3",
-              "section": "Compliance Paragraph (g)"
-            },
-            "sbSourceReference": {
-              "page": "Page 5",
-              "section": "2. Accomplishment Instructions"
-            }
-          },
-          "complianceRequirement": {
-            "dimension": "COMPLIANCE_REQUIREMENT",
-            "adValue": "Within 500 flight hours or 6 months",
-            "sbValue": "Conforme especificado na AD",
-            "status": "CONSISTENT",
-            "details": "Limiares e critérios de tempo de cumprimento concordantes entre AD e SB.",
-            "adSourceReference": {
-              "page": "Page 2",
-              "section": "Compliance Paragraph (g)"
-            },
-            "sbSourceReference": {
-              "page": "Page 3",
-              "section": "1.E Compliance"
-            }
-          }
-        },
-        "consolidatedTechnicalKnowledge": {
-          "applicabilitySummary": "Aplicabilidade regulatória consolidada: Applies to Boeing 737-800 airplanes. Accomplish Boeing Service Bulletin B737-77-7777 terminating action.. Refinamento técnico: MSN and line numbers listed in SB Section 1.A.",
-          "actionSummary": "Ação consolidada: Detailed visual and functional inspection per manufacturer service bulletin instructions.. Método técnico de execução detalhado no SB B737-77-7777.",
-          "complianceSummary": "Limiar consolidado: Within 500 flight hours or 6 months. Intervalo técnico: Conforme especificado na AD.",
-          "sources": [
-            {
-              "document": "FAA-2026-SB-COMPLETE",
-              "page": "Page 2",
-              "section": "Applicability & Compliance"
-            },
-            {
-              "document": "B737-77-7777",
-              "page": "Page 1-5",
-              "section": "Section 1.A & Section 2"
-            }
-          ]
-        },
-        "requiresHumanReview": true,
-        "reviewReasons": [
-          "Action conflict: AD mandates inspection but SB lacks inspection procedures."
-        ],
-        "validatedAt": "2026-09-20T11:43:54.119Z"
-      },
-      "evaluatedAt": "2026-09-20T11:43:59.808Z",
-      "fleetApplicabilityState": "PENDING_CONFIGURATION"
-    },
-    "2020-24-02": {
-      "adNumber": "2020-24-02",
-      "status": "DEPENDENCY_PENDING",
-      "summary": "AD possui dependência técnica de 2 SB(s) detectado(s). 2 documento(s) pendente(s) de localização/análise: 737-22A1011 RB, 737-34A1088 RB.",
-      "hasSbDependencies": true,
-      "totalDependencies": 2,
-      "resolvedDependencies": 0,
-      "pendingDependencies": [
-        "737-22A1011 RB",
-        "737-34A1088 RB"
-      ],
-      "evaluatedAt": "2026-09-20T11:43:59.804Z",
-      "fleetApplicabilityState": "PENDING_CONFIGURATION"
-    },
-    "2024-12-05": {
-      "adNumber": "2024-12-05",
-      "status": "DEPENDENCY_PENDING",
-      "summary": "AD possui dependência técnica de 1 SB(s) detectado(s). 1 documento(s) pendente(s) de localização/análise: B737-27A1305.",
-      "hasSbDependencies": true,
-      "totalDependencies": 1,
-      "resolvedDependencies": 0,
-      "pendingDependencies": [
-        "B737-27A1305"
-      ],
-      "evaluatedAt": "2026-09-20T11:43:59.807Z",
-      "fleetApplicabilityState": "PENDING_CONFIGURATION"
-    }
-  },
-  "complianceObligations": []
+  "sbRepository": [],
+  "adSbDependencies": [],
+  "sbAnalyses": [],
+  "adSbCrossValidations": [],
+  "adCompletenessAssessments": {}
 }

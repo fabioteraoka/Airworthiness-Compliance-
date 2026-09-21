@@ -378,7 +378,7 @@
       "issuingAuthority": "FAA",
       "sourceNumber": "2020-24-02",
       "revision": "Original Issue",
-      "title": "Boeing 737 Main Landing Gear (MLG) Actuator Beam Outboard Pin Cracking and Corrosion Inspection",
+      "title": "The Boeing Company Model 737-8 and 737-9 Airplanes - Flight Control Computer (FCC) Software and AOA Sensor System",
       "issueDate": "2020-11-20",
       "effectiveDate": "2021-01-05",
       "emergencyAd": false,
@@ -394,19 +394,15 @@
           "Boeing"
         ],
         "aircraftModels": [
-          "737-600",
-          "737-700",
-          "737-700C",
-          "737-800",
-          "737-900",
-          "737-900ER"
+          "737-8",
+          "737-9"
         ],
         "componentPartNumbers": [
           "65-49200-1",
           "65-49200-2"
         ],
         "affectedConfiguration": "Aircraft equipped with Main Landing Gear Actuator Beam Outboard Pins.",
-        "rawText": "Applicability: The Boeing Company Model 737-600, -700, -700C, -800, -900, and -900ER series airplanes, certificated in any category."
+        "rawText": "The Boeing Company Model 737-8 and 737-9 airplanes, certificated in any category."
       },
       "requirementDetails": {
         "initialThreshold": "Within 36 months or 4,500 flight cycles after effective date of AD.",
@@ -428,7 +424,61 @@
         "mimeType": "application/pdf",
         "documentHash": "9f83a241b77382d56a04871e84a29a3a93c72b83a049d978a3c4839c09931b23",
         "rawExtractedText": "Federal Register / Vol. 85, No. 231 / Tuesday, December 1, 2020 / Rules and Regulations\nFAA AD 2020-24-02: Airworthiness Directives; The Boeing Company Model 737-600, -700, -700C, -800, -900, and -900ER Series Airplanes\nApplicability: This AD applies to The Boeing Company Model 737-600, -700, -700C, -800, -900, and -900ER series airplanes, certificated in any category.\nUnsafe Condition: This AD was prompted by reports of cracked and corroded MLG actuator beam outboard pins.\n(g) Required Actions: Within 36 months or 4,500 flight cycles after the effective date of this AD, perform repetitive ultrasonic inspection of MLG actuator beam outboard pins in accordance with Boeing Alert Requirements Bulletin 737-22A1011 RB, dated November 16, 2020.\n(h) Exceptions to Service Information: Where Boeing Alert Requirements Bulletin 737-22A1011 RB specifies contacting Boeing, contact Seattle ACO.\n(i) Terminating Action: Accomplishment of terminating actions in accordance with Boeing Alert Requirements Bulletin 737-22A1011 RB terminates the repetitive inspection requirements of this AD."
-      }
+      },
+      "softwareRequirements": [
+        {
+          "id": "sw-1790015329348-1",
+          "softwarePartNumber": "2274-COL-AC2-26",
+          "softwareVersion": "P12.1.2",
+          "targetSystem": "Flight Control Computer (FCC)",
+          "targetLru": "FCC A and FCC B",
+          "installationPosition": "Both Left and Right Flight Control Computers",
+          "currentlyInstalledSoftware": [
+            "P11.2",
+            "P11.1",
+            "P10.0",
+            "P10.1"
+          ],
+          "prohibitedSoftware": [
+            "P11.2",
+            "P11.1",
+            "P10.0"
+          ],
+          "mandatedSoftware": "2274-COL-AC2-26",
+          "verificationMethod": "ON_BOARD_DATA_LOAD",
+          "notes": "FCC software version P12.1.2 (P/N 2274-COL-AC2-26) must be loaded on both FCC A and FCC B."
+        }
+      ],
+      "mandatedActions": [
+        {
+          "id": "act-1790015329348-1",
+          "paragraphReference": "Paragraph (g)(1)",
+          "actionType": "AVIONICS_SOFTWARE_LOAD",
+          "description": "Install Flight Control Computer (FCC) software version P12.1.2 (P/N 2274-COL-AC2-26) in both FCC A and FCC B.",
+          "sequence": 1,
+          "accomplishmentReference": {
+            "documentReference": "Boeing Alert Requirements Bulletin 737-22A1011 RB"
+          },
+          "complianceThreshold": {
+            "thresholdType": "BEFORE_FURTHER_FLIGHT",
+            "rawDescription": "Before further flight"
+          }
+        },
+        {
+          "id": "act-1790015329348-2",
+          "paragraphReference": "Paragraph (g)(2)",
+          "actionType": "OPERATIONAL_PROCEDURE",
+          "description": "Revise Airplane Flight Manual (AFM) Certificate Limitations and Non-Normal Procedures.",
+          "sequence": 2,
+          "complianceThreshold": {
+            "thresholdType": "BEFORE_FURTHER_FLIGHT",
+            "rawDescription": "Before further flight"
+          }
+        }
+      ],
+      "missingFields": [],
+      "documentProcessingStatus": "EXTRACTED",
+      "extractionStatus": "SUCCESS"
     }
   ],
   "assessments": [
@@ -1104,5 +1154,6 @@
   "adSbDependencies": [],
   "sbAnalyses": [],
   "adSbCrossValidations": [],
-  "adCompletenessAssessments": {}
+  "adCompletenessAssessments": {},
+  "complianceObligations": []
 }

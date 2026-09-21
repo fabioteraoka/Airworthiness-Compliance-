@@ -260,7 +260,7 @@ A visão arquitetural do CAMO Engine estabelece que **manutenção física e con
 | **CAP-027** (Work Orders / PCM) | `PLANNED` | CAP-026 + CAP-011 | Workflow de emissão e encerramento de pacotes |
 | **CAP-028** (LLP Back-to-Birth Control)| `PLANNED` | CAP-001 + CAP-017 | Rastreamento histórico ininterrupto de ciclos de vida |
 | **CAP-029** (AI Model Orchestrator & Upgrade)| `IMPLEMENTED`| Gemini 3.8 Flash + `camoDb` | Benchmarking contínuo com dataset sintético de 50 ADs |
-| **CAP-030** (Relational Persistence Architecture)| `PLANNED` | CAP-001 + `DATABASE_PERSISTENCE_ARCHITECTURE.md` | Implementação do Repository Pattern e scripts DDL na Fase 3D |
+| **CAP-030** (Relational Persistence Architecture)| `PLANNED` | CAP-001 + `DATABASE_PERSISTENCE_ARCHITECTURE.md` | Fase 3C (Design) + Fase 3C.1 (Correction Gate Aprovado); Implementação na Fase 3D |
 
 ---
 

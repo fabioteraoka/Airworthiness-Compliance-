@@ -1,10 +1,10 @@
 # DATABASE PERSISTENCE ARCHITECTURE — CAMO AIRWORTHINESS ENGINE
 ## Arquitetura de Persistência Relacional: PostgreSQL & Firebase SQL Connect
-**Documento Canônico de Modelagem, Análise e Planejamento Técnico — Fase 3C**  
-**Versão:** 1.0.0 (Release 9.7.1)  
+**Documento Canônico de Modelagem, Análise e Planejamento Técnico — Fase 3C & 3C.1 (Correction Gate)**  
+**Versão:** 2.0.0 (Release 10.0.0-rc1)  
 **Data de Emissão:** 21 de Setembro de 2026  
 **Autoridade de Governança:** Diretoria Técnica de Engenharia & Governança CAMO  
-**Status Arquitetural:** HOMOLOGADO PARA PLANEJAMENTO • NÃO IMPLEMENTAR EM BANCO FÍSICO NESTA FASE  
+**Status Arquitetural:** AUDITADO E CORRIGIDO • HOMOLOGADO PARA PLANEJAMENTO • NÃO IMPLEMENTAR EM BANCO FÍSICO NESTA FASE  
 
 ---
 
@@ -52,42 +52,55 @@ O sistema adota estritamente seis categorias de dados mutuamente exclusivas e de
 
 ---
 
-## 3. IDENTIDADE CANÔNICA E CHAVES NATURAIS VS SURROGATE
+## 3. IDENTIDADE CANÔNICA, CHAVES NATURAIS E ESTRATÉGIA DE UUID
 
-Para impedir que a mesma AD, SB ou aeronave seja cadastrada em duplicidade sob IDs arbitrários, o sistema estabelece chaves naturais imutáveis aliadas a chaves primárias surrogates (UUIDv7) para relacionamentos de alta performance.
+Para impedir duplicidades durante importações concorrentes ou re-scans de dados legados, o sistema estabelece distinção formal entre:
+1. **Identidade Natural (Chave de Idempotência do Domínio):** Composta por atributos canônicos imutáveis da aviação civil.
+2. **Identidade Canônica / Content Hash:** SHA-256 de documentos oficiais e payloads brutos adquiridos.
+3. **Database Primary Key (Surrogate Técnico):** UUIDv7 gerado em runtime para novos registros operacionais (garantindo ordenação temporal nos índices B-Tree) ou derivado deterministicamente (UUIDv5 a partir da chave natural com namespace de domínio) durante o processo de migração batch de dados legados.
 
-| Domínio | Identidade Natural (Chave de Idempotência) | Chave Primária (Surrogate) | Regra de Unicidade / Idempotência |
-| :--- | :--- | :--- | :--- |
-| **AD Document** | `authority` + `ad_number` + `revision` | `id` (UUIDv7) | `UNIQUE (authority, ad_number, revision)` |
-| **Technical Ref (SB)** | `manufacturer` + `sb_number` + `revision` | `id` (UUIDv7) | `UNIQUE (manufacturer, sb_number, revision)` |
-| **AD × SB Dependency** | `ad_document_id` + `technical_reference_id` | `id` (UUIDv7) | `UNIQUE (ad_document_id, technical_reference_id)` |
-| **Compliance Requirement** | `ad_document_id` + `requirement_index` | `id` (UUIDv7) | `UNIQUE (ad_document_id, requirement_index)` |
-| **Operator** | `icao_code` | `id` (UUIDv7) | `UNIQUE (icao_code)` |
-| **Aircraft** | `operator_id` + `registration` | `id` (UUIDv7) | `UNIQUE (operator_id, registration)` e `UNIQUE (manufacturer, serial_number)` |
-| **Engine** | `manufacturer` + `model` + `serial_number` | `id` (UUIDv7) | `UNIQUE (manufacturer, model, serial_number)` |
-| **Component** | `part_number` + `serial_number` | `id` (UUIDv7) | `UNIQUE (part_number, serial_number)` |
-| **Compliance Obligation** | `aircraft_id` + `requirement_id` + `action_index` | `id` (UUIDv7) | `UNIQUE (aircraft_id, requirement_id, action_index)` |
-| **Evidence Record** | `sha256_hash` + `obligation_id` | `id` (UUIDv7) | `UNIQUE (sha256_hash, obligation_id)` |
-| **FAPT Document** | `fapt_number` | `id` (UUIDv7) | `UNIQUE (fapt_number)` |
-| **Audit Trail** | `timestamp` + `entity_type` + `entity_id` + `action` | `id` (UUIDv7) | Append-Only (sem update) |
+| Domínio | Identidade Natural (Chave de Idempotência) | Chave Primária (Surrogate) | Regra de Unicidade / Idempotência | Escopo Multi-Tenant |
+| :--- | :--- | :--- | :--- | :--- |
+| **AD Document** | `authority` + `ad_number` + `revision` | `id` (UUIDv7 / UUIDv5) | `UNIQUE (authority, ad_number, revision)` | **GLOBAL** (Universal) |
+| **Technical Reference** | `manufacturer` + `reference_number` + `revision` | `id` (UUIDv7 / UUIDv5) | `UNIQUE (manufacturer, reference_number, revision)` | **GLOBAL** (Universal) |
+| **AD Technical Analysis** | `ad_document_id` + `analysis_version` | `id` (UUIDv7 / UUIDv5) | `UNIQUE (ad_document_id, analysis_version)` | **GLOBAL** (Universal) |
+| **AD × Tech Ref Dependency** | `ad_document_id` + `technical_reference_id` | `id` (UUIDv7 / UUIDv5) | `UNIQUE (ad_document_id, technical_reference_id)` | **GLOBAL** (Universal) |
+| **AD × Tech Ref Cross Validation** | `ad_document_id` + `technical_reference_id` + `validation_version` | `id` (UUIDv7 / UUIDv5) | `UNIQUE (ad_document_id, technical_reference_id, validation_version)` | **GLOBAL** (Universal) |
+| **AD Analysis Completeness** | `ad_document_id` + `assessment_version` | `id` (UUIDv7 / UUIDv5) | `UNIQUE (ad_document_id, assessment_version)` | **GLOBAL** (Universal) |
+| **Compliance Requirement** | `ad_document_id` + `requirement_index` | `id` (UUIDv7 / UUIDv5) | `UNIQUE (ad_document_id, requirement_index)` | **GLOBAL** (Universal) |
+| **Operator** | `icao_code` | `id` (UUIDv7 / UUIDv5) | `UNIQUE (icao_code)` | **TENANT MASTER** |
+| **Aircraft** | `operator_id` + `registration` | `id` (UUIDv7 / UUIDv5) | `UNIQUE (operator_id, registration)` e `UNIQUE (manufacturer, serial_number)` | **TENANT** |
+| **Engine** | `manufacturer` + `model` + `serial_number` | `id` (UUIDv7 / UUIDv5) | `UNIQUE (manufacturer, model, serial_number)` | **TENANT / ASSET** |
+| **Component** | `part_number` + `serial_number` | `id` (UUIDv7 / UUIDv5) | `UNIQUE (part_number, serial_number)` | **TENANT / ASSET** |
+| **Applicability Assessment** | `aircraft_id` + `requirement_id` + `rule_version` | `id` (UUIDv7 / UUIDv5) | `UNIQUE (aircraft_id, requirement_id, rule_version)` | **TENANT × FLEET** |
+| **Compliance Obligation** | `aircraft_id` + `requirement_id` + `action_id` | `id` (UUIDv7 / UUIDv5) | `UNIQUE (aircraft_id, requirement_id, action_id)` | **TENANT × FLEET** |
+| **Compliance Cycle** | `obligation_id` + `cycle_number` | `id` (UUIDv7 / UUIDv5) | `UNIQUE (obligation_id, cycle_number)` | **TENANT × FLEET** |
+| **Compliance Event** | `cycle_id` + `event_type` + `event_timestamp` | `id` (UUIDv7 / UUIDv5) | `UNIQUE (cycle_id, event_type, event_timestamp)` | **TENANT × FLEET** |
+| **Evidence Record** | `sha256_hash` + `operator_id` | `id` (UUIDv7 / UUIDv5) | `UNIQUE (sha256_hash, operator_id)` | **TENANT** |
+| **FAPT Document** | `fapt_number` | `id` (UUIDv7 / UUIDv5) | `UNIQUE (fapt_number)` | **TENANT** |
+| **Audit Trail** | `timestamp` + `operator_id` + `entity_id` + `action` | `id` (UUIDv7 / UUIDv5) | Append-Only (sem update/delete) | **TENANT** |
 
 ---
 
-## 4. ESTRATÉGIA RELACIONAL VS JSONB
+## 4. ESTRATÉGIA RELACIONAL VS JSONB (MATRIZ JUSTIFICADA)
 
-O CAMO Engine adota uma divisão estrita entre colunas relacionais tipadas e campos semiestruturados em `JSONB`:
+O CAMO Engine adota uma divisão rigorosa: **dados estruturais de domínio e governança NUNCA são ocultados dentro de JSONB**. O JSONB é restrito a payloads variáveis de extração bruta, traces de IA e metadados de terceiros sem ciclo de vida relacional.
 
-### Quando Normalizar em Tabelas Relacionais:
-* Entidades com ciclo de vida independente e identidade própria (`aircraft`, `regulatory_ad_documents`, `compliance_obligations`, `evidence_records`).
-* Colunas sujeitas a filtros frequentes, cláusulas `WHERE`, chaves estrangeiras (`FK`) e ordenação (`status`, `authority`, `ad_number`, `registration`, `next_due_date`, `is_airworthy`).
-* Controles de integridade referencial com `ON DELETE RESTRICT` (ex: uma AD não pode ser deletada se houver obrigações ativas dependendo dela).
-* Índices B-Tree compostos para consultas de alta performance em despachos de aeronavegabilidade.
-
-### Quando Utilizar Colunas `JSONB`:
-* **Extrações brutas de IA (`raw_extraction_payload`):** Saídas transitórias do Gemini antes da homologação humana, cujo esquema pode evoluir sem exigir DDL migration.
-* **Metadados extensíveis de autoridades regulatórias (`authority_metadata`):** Estruturas variáveis do Federal Register, FAA DRS, EASA Safety Publications e ANAC SIPAC.
-* **Trilhas e Parâmetros de Execução de IA (`ai_execution_traces`):** Metadados de chamadas à API, parâmetros de temperatura, tokens utilizados e payloads de diagnóstico.
-* **Critérios dinâmicos de aplicabilidade booleana (`dynamic_criteria_json`):** Condições booleanas complexas e aninhadas avaliadas pelo Rule Engine V2, com índice funcional GIN (`jsonb_path_ops`).
+| Estrutura / Entidade | Relacional | JSONB | Motivo Arquitetural e Regulatório |
+| :--- | :---: | :---: | :--- |
+| **AD Documents & Requisitos** | **SIM** | — | Entidade canônica com identificador unívoco, integridade referencial mandatória. |
+| **Technical References (SB/ASB/RB)** | **SIM** | — | Documento técnico de engenharia com versionamento e dependências formais. |
+| **AD × Tech Ref Cross Validation** | **SIM** | — | Comparações de aplicabilidade e thresholds; consulta analítica frequente de conflitos. |
+| **AD Analysis Completeness** | **SIM** | — | Gatekeeper de 7 passos; status de completude (`TECHNICAL_ANALYSIS_COMPLETE`) é auditável. |
+| **Applicability Assessments** | **SIM** | — | Decisão booleana primária; desacoplada da obrigação de cumprimento. |
+| **Compliance Obligations & Cycles** | **SIM** | — | Máquina de 13 estados; cada ciclo possui vencimento tridimensional independente. |
+| **Evidence Records (CRS, Form 8130)**| **SIM** | — | Pacote probatório com hash SHA-256 e status de verificação de engenharia. |
+| **FAPT Assessments (Laudos)** | **SIM** | — | Parecer pericial oficial assinado com fé pública aeronáutica. |
+| **Audit Events & Ledger de Config** | **SIM** | — | Trilha imutável com colunas relacionais tipadas para indexação e busca forense. |
+| **Dynamic Criteria (Rule Engine V2)** | — | **SIM** | Expressões booleanas aninhadas e variáveis por modelo (avaliadas via índice GIN). |
+| **Raw AI Extraction Payloads** | — | **SIM** | Saída não tratada do Gemini para reprodutibilidade e re-análise sem schema lock. |
+| **AI Execution Traces & Tokens** | — | **SIM** | Metadados técnicos de telemetria da IA (temperatura, tokens de entrada/saída). |
+| **Lessor Confrontation Matrix** | — | **SIM** | Sandbox transitório de devolução de aeronaves de leasing. |
 
 ---
 

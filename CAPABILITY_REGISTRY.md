@@ -518,12 +518,12 @@ Este documento constitui o catálogo oficial, versionado e independente de capac
 * **NAME:** Arquitetura de Persistência Relacional: PostgreSQL & Firebase SQL Connect
 * **DESCRIPTION:** Especificação formal de engenharia para transição do arquivo plano monolítico (`camo_db.json`) para uma arquitetura relacional de 28 tabelas distribuídas em 6 namespaces lógicos (`core_org`, `regulatory_knowledge`, `fleet_configuration`, `compliance_state`, `evidence_verification`, `governance_audit`). Estabelece a separação estrita entre Conhecimento Regulatório Reutilizável (universal) e Estado Contextual da Frota, com suporte planejado a Cloud SQL PostgreSQL e Firebase SQL Connect via Repository Pattern.
 * **STATUS:** `PLANNED`
-* **VERSION:** 10.0.0 (Fase 3C de Planejamento Concluída)
-* **MODULES:** `DATABASE_PERSISTENCE_ARCHITECTURE.md` (Documento Canônico), `server/dataStore.ts`
+* **VERSION:** 10.0.0 (Fase 3C de Planejamento Concluída; Fase 3C.1 Correction Gate Aprovado)
+* **MODULES:** `DATABASE_PERSISTENCE_ARCHITECTURE.md` (Documento Canônico Corrigido), `server/dataStore.ts`
 * **DEPENDENCIES:** PostgreSQL 16+, `@google-cloud/cloud-sql-connector`, `pg` (Planejado para Fase 3D)
 * **TESTS:** Testes de domínio em memória preservados (187/187); suíte de migração e paridade planejada para Fase 3D.
-* **SECURITY:** Isolamento multi-tenant por `operator_id`, princípio do menor privilégio, segredos em Cloud Secret Manager, trilha append-only para auditoria e histórico de configuração.
-* **ARCHITECTURE:** Camada de Repositórios desacoplada dos motores determinísticos; o banco armazena fatos e evidências, sem inferência implícita de aeronavegabilidade.
+* **SECURITY:** Isolamento multi-tenant com separação explícita de escopo global (Universal Regulatory Knowledge) vs tenant (Fleet Configuration & Compliance Obligations); trilha append-only para auditoria e histórico de configuração.
+* **ARCHITECTURE:** Camada de Repositórios desacoplada dos motores determinísticos; modelo relacional corrigido com separação estrita de Applicability Assessment vs Compliance Obligation, ciclo de vida de recorrência, Technical Reference genérica e entidades próprias para Cross Validation e Analysis Completeness.
 * **DOCUMENTATION:** `DATABASE_PERSISTENCE_ARCHITECTURE.md`, `PRODUCT_VISION_ROADMAP.md` (Seção 7).
 * **ROADMAP:** Implementação do Repository Pattern e scripts de migração DDL na Fase 3D.
 * **LIMITATIONS:** Atualmente em fase de planejamento arquitetural; persistência física em PostgreSQL ainda não ativada em produção.

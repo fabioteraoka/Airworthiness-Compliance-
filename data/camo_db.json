@@ -256,10 +256,10 @@
   "actionAccomplishments": [],
   "configurationHistory": [
     {
-      "id": "cfg-1790098425893-ujodr",
+      "id": "cfg-1790277441249-isxja",
       "aircraftId": "ac-01",
       "aircraftRegistration": "PR-GUO",
-      "timestamp": "2026-09-22T17:33:45.892Z",
+      "timestamp": "2026-09-24T19:17:21.248Z",
       "actor": "CAMO Chief Engineer",
       "authorizedBy": "CAMO Chief Engineer",
       "reason": "Incorporação de SB mandatório 737-53A1420 para cessação de inspeção repetitiva",
@@ -274,8 +274,8 @@
       "flightHoursAtEvent": 28450,
       "flightCyclesAtEvent": 14200,
       "complianceObligationId": "OBL-TEST-001",
-      "auditHash": "f98e62bbd07bed6a061065ee658849a8eda51c48d55cdee0bcc4708cbad9b1be",
-      "recordHash": "f98e62bbd07bed6a061065ee658849a8eda51c48d55cdee0bcc4708cbad9b1be"
+      "auditHash": "55bf584be7030013534be1aef4734cad96d6244c6ded449a5d4f80b2a90bc9fb",
+      "recordHash": "55bf584be7030013534be1aef4734cad96d6244c6ded449a5d4f80b2a90bc9fb"
     },
     {
       "id": "cfg-hist-01",
@@ -449,7 +449,7 @@
       },
       "softwareRequirements": [
         {
-          "id": "sw-1790098425657-1",
+          "id": "sw-1790277440997-1",
           "softwarePartNumber": "2274-COL-AC2-26",
           "softwareVersion": "P12.1.2",
           "targetSystem": "Flight Control Computer (FCC)",
@@ -473,7 +473,7 @@
       ],
       "mandatedActions": [
         {
-          "id": "act-1790098425657-1",
+          "id": "act-1790277440997-1",
           "paragraphReference": "Paragraph (g)(1)",
           "actionType": "AVIONICS_SOFTWARE_LOAD",
           "description": "Install Flight Control Computer (FCC) software version P12.1.2 (P/N 2274-COL-AC2-26) in both FCC A and FCC B.",
@@ -487,7 +487,7 @@
           }
         },
         {
-          "id": "act-1790098425657-2",
+          "id": "act-1790277440997-2",
           "paragraphReference": "Paragraph (g)(2)",
           "actionType": "OPERATIONAL_PROCEDURE",
           "description": "Revise Airplane Flight Manual (AFM) Certificate Limitations and Non-Normal Procedures.",
@@ -671,14 +671,14 @@
   ],
   "auditTrail": [
     {
-      "id": "aud-1790098425893-fog63",
-      "timestamp": "2026-09-22T17:33:45.893Z",
+      "id": "aud-1790277441249-sj5vb",
+      "timestamp": "2026-09-24T19:17:21.249Z",
       "user": "CAMO Chief Engineer",
       "role": "CHIEF_CAMO_ENGINEER",
       "action": "CONFIGURATION_CHANGE_RECORDED",
       "entityType": "AircraftConfigurationHistoryRecord",
-      "entityId": "cfg-1790098425893-ujodr",
-      "details": "Registrada alteração de configuração na aeronave PR-GUO: evento SB_INCORPORATION (Incorporação de SB mandatório 737-53A1420 para cessação de inspeção repetitiva). Hash de integridade: f98e62bbd07bed6a..."
+      "entityId": "cfg-1790277441249-isxja",
+      "details": "Registrada alteração de configuração na aeronave PR-GUO: evento SB_INCORPORATION (Incorporação de SB mandatório 737-53A1420 para cessação de inspeção repetitiva). Hash de integridade: 55bf584be7030013..."
     },
     {
       "id": "aud-01",
@@ -840,7 +840,7 @@
       "analysisStatus": "PENDING_ANALYSIS",
       "operationalPriority": "HIGH",
       "id": "cand-easa-easa-ad-2024-0120-0",
-      "discoveryTimestamp": "2026-09-22T17:33:47.098Z"
+      "discoveryTimestamp": "2026-09-24T19:17:22.501Z"
     },
     {
       "adNumber": "FAA AD 2024-15-08",
@@ -868,7 +868,7 @@
       "analysisStatus": "PENDING_ANALYSIS",
       "operationalPriority": "CRITICAL_URGENT",
       "id": "cand-faa-faa-ad-2024-15-08-1",
-      "discoveryTimestamp": "2026-09-22T17:33:47.098Z"
+      "discoveryTimestamp": "2026-09-24T19:17:22.501Z"
     },
     {
       "adNumber": "ANAC AD 2024-03-01",
@@ -892,7 +892,7 @@
       "analysisStatus": "PENDING_ANALYSIS",
       "operationalPriority": "NORMAL",
       "id": "cand-anac-anac-ad-2024-03-01-2",
-      "discoveryTimestamp": "2026-09-22T17:33:47.098Z"
+      "discoveryTimestamp": "2026-09-24T19:17:22.501Z"
     },
     {
       "adNumber": "EASA AD 2023-0188",
@@ -917,7 +917,7 @@
       "analysisStatus": "PENDING_ANALYSIS",
       "operationalPriority": "HIGH",
       "id": "cand-easa-easa-ad-2023-0188-3",
-      "discoveryTimestamp": "2026-09-22T17:33:47.098Z"
+      "discoveryTimestamp": "2026-09-24T19:17:22.501Z"
     },
     {
       "adNumber": "FAA AD 2023-17-06",
@@ -939,7 +939,7 @@
       "analysisStatus": "PENDING_ANALYSIS",
       "operationalPriority": "NORMAL",
       "id": "cand-faa-faa-ad-2023-17-06-4",
-      "discoveryTimestamp": "2026-09-22T17:33:47.098Z"
+      "discoveryTimestamp": "2026-09-24T19:17:22.501Z"
     },
     {
       "adNumber": "EASA AD 2024-0085",
@@ -963,7 +963,7 @@
       "analysisStatus": "PENDING_ANALYSIS",
       "operationalPriority": "HIGH",
       "id": "cand-easa-easa-ad-2024-0085-5",
-      "discoveryTimestamp": "2026-09-22T17:33:47.098Z"
+      "discoveryTimestamp": "2026-09-24T19:17:22.501Z"
     },
     {
       "adNumber": "FAA AD 2024-05-11",
@@ -985,7 +985,7 @@
       "analysisStatus": "PENDING_ANALYSIS",
       "operationalPriority": "NORMAL",
       "id": "cand-faa-faa-ad-2024-05-11-6",
-      "discoveryTimestamp": "2026-09-22T17:33:47.098Z"
+      "discoveryTimestamp": "2026-09-24T19:17:22.501Z"
     },
     {
       "adNumber": "FAA AD 2024-12-05",
@@ -1009,7 +1009,7 @@
       "analysisStatus": "ANALYZED",
       "operationalPriority": "HIGH",
       "id": "cand-faa-faa-ad-2024-12-05-7",
-      "discoveryTimestamp": "2026-09-22T17:33:47.098Z"
+      "discoveryTimestamp": "2026-09-24T19:17:22.501Z"
     },
     {
       "adNumber": "FAA AD 2020-24-02",
@@ -1031,7 +1031,7 @@
       "analysisStatus": "ANALYZED",
       "operationalPriority": "CRITICAL_URGENT",
       "id": "cand-faa-faa-ad-2020-24-02-8",
-      "discoveryTimestamp": "2026-09-22T17:33:47.098Z"
+      "discoveryTimestamp": "2026-09-24T19:17:22.501Z"
     },
     {
       "adNumber": "EASA AD 2024-0044",
@@ -1055,7 +1055,7 @@
       "analysisStatus": "PENDING_ANALYSIS",
       "operationalPriority": "NORMAL",
       "id": "cand-easa-easa-ad-2024-0044-9",
-      "discoveryTimestamp": "2026-09-22T17:33:47.098Z"
+      "discoveryTimestamp": "2026-09-24T19:17:22.501Z"
     },
     {
       "adNumber": "FAA AD 2024-02-18",
@@ -1080,7 +1080,7 @@
       "analysisStatus": "PENDING_ANALYSIS",
       "operationalPriority": "HIGH",
       "id": "cand-faa-faa-ad-2024-02-18-10",
-      "discoveryTimestamp": "2026-09-22T17:33:47.098Z"
+      "discoveryTimestamp": "2026-09-24T19:17:22.501Z"
     },
     {
       "adNumber": "FAA AD 2023-22-09",
@@ -1103,7 +1103,7 @@
       "analysisStatus": "PENDING_ANALYSIS",
       "operationalPriority": "NORMAL",
       "id": "cand-faa-faa-ad-2023-22-09-11",
-      "discoveryTimestamp": "2026-09-22T17:33:47.098Z"
+      "discoveryTimestamp": "2026-09-24T19:17:22.501Z"
     },
     {
       "adNumber": "ANAC AD 2024-01-02",
@@ -1129,7 +1129,7 @@
       "analysisStatus": "PENDING_ANALYSIS",
       "operationalPriority": "HIGH",
       "id": "cand-anac-anac-ad-2024-01-02-12",
-      "discoveryTimestamp": "2026-09-22T17:33:47.098Z"
+      "discoveryTimestamp": "2026-09-24T19:17:22.501Z"
     },
     {
       "adNumber": "FAA AD 2023-14-10",
@@ -1153,7 +1153,7 @@
       "analysisStatus": "PENDING_ANALYSIS",
       "operationalPriority": "NORMAL",
       "id": "cand-faa-faa-ad-2023-14-10-13",
-      "discoveryTimestamp": "2026-09-22T17:33:47.098Z"
+      "discoveryTimestamp": "2026-09-24T19:17:22.501Z"
     },
     {
       "adNumber": "EASA AD 2024-0062",
@@ -1177,7 +1177,7 @@
       "analysisStatus": "PENDING_ANALYSIS",
       "operationalPriority": "HIGH",
       "id": "cand-easa-easa-ad-2024-0062-14",
-      "discoveryTimestamp": "2026-09-22T17:33:47.098Z"
+      "discoveryTimestamp": "2026-09-24T19:17:22.501Z"
     },
     {
       "adNumber": "ANAC AD 2023-11-04",
@@ -1199,7 +1199,7 @@
       "analysisStatus": "PENDING_ANALYSIS",
       "operationalPriority": "NORMAL",
       "id": "cand-anac-anac-ad-2023-11-04-15",
-      "discoveryTimestamp": "2026-09-22T17:33:47.098Z"
+      "discoveryTimestamp": "2026-09-24T19:17:22.501Z"
     },
     {
       "adNumber": "FAA AD 2023-19-04",
@@ -1222,7 +1222,7 @@
       "analysisStatus": "PENDING_ANALYSIS",
       "operationalPriority": "NORMAL",
       "id": "cand-faa-faa-ad-2023-19-04-16",
-      "discoveryTimestamp": "2026-09-22T17:33:47.098Z"
+      "discoveryTimestamp": "2026-09-24T19:17:22.501Z"
     },
     {
       "adNumber": "FAA AD 2023-25-07",
@@ -1248,7 +1248,7 @@
       "analysisStatus": "PENDING_ANALYSIS",
       "operationalPriority": "HIGH",
       "id": "cand-faa-faa-ad-2023-25-07-17",
-      "discoveryTimestamp": "2026-09-22T17:33:47.098Z"
+      "discoveryTimestamp": "2026-09-24T19:17:22.501Z"
     },
     {
       "adNumber": "EASA AD 2024-0012",
@@ -1273,10 +1273,10 @@
       "analysisStatus": "PENDING_ANALYSIS",
       "operationalPriority": "NORMAL",
       "id": "cand-easa-easa-ad-2024-0012-18",
-      "discoveryTimestamp": "2026-09-22T17:33:47.098Z"
+      "discoveryTimestamp": "2026-09-24T19:17:22.501Z"
     },
     {
-      "id": "cand-faa-2026-18052-1790098427237-st89",
+      "id": "cand-faa-2026-18052-1790277442644-cni8",
       "adNumber": "2026-18-03",
       "authority": "FAA",
       "title": "Airworthiness Directives; Airbus SAS Airplanes",
@@ -1302,11 +1302,11 @@
       "source": "FEDERAL_REGISTER",
       "status": "DISCOVERED",
       "analysisStatus": "PENDING_ANALYSIS",
-      "discoveryTimestamp": "2026-09-22T17:33:47.237Z",
+      "discoveryTimestamp": "2026-09-24T19:17:22.644Z",
       "operationalPriority": "NORMAL"
     },
     {
-      "id": "cand-faa-2026-17552-1790098427237-ug0f",
+      "id": "cand-faa-2026-17552-1790277442644-z5re",
       "adNumber": "2026-17-01",
       "authority": "FAA",
       "title": "Airworthiness Directives; Airbus SAS Airplanes",
@@ -1329,11 +1329,11 @@
       "source": "FEDERAL_REGISTER",
       "status": "DISCOVERED",
       "analysisStatus": "PENDING_ANALYSIS",
-      "discoveryTimestamp": "2026-09-22T17:33:47.237Z",
+      "discoveryTimestamp": "2026-09-24T19:17:22.644Z",
       "operationalPriority": "NORMAL"
     },
     {
-      "id": "cand-faa-2026-17551-1790098427237-781x",
+      "id": "cand-faa-2026-17551-1790277442644-6j2s",
       "adNumber": "2026-17-04",
       "authority": "FAA",
       "title": "Airworthiness Directives; Airbus SAS Airplanes",
@@ -1360,11 +1360,11 @@
       "source": "FEDERAL_REGISTER",
       "status": "DISCOVERED",
       "analysisStatus": "PENDING_ANALYSIS",
-      "discoveryTimestamp": "2026-09-22T17:33:47.237Z",
+      "discoveryTimestamp": "2026-09-24T19:17:22.644Z",
       "operationalPriority": "NORMAL"
     },
     {
-      "id": "cand-faa-2026-15308-1790098427237-d96s",
+      "id": "cand-faa-2026-15308-1790277442644-mwj2",
       "adNumber": "2026-15-13",
       "authority": "FAA",
       "title": "Airworthiness Directives; Airbus SAS Airplanes",
@@ -1387,11 +1387,11 @@
       "source": "FEDERAL_REGISTER",
       "status": "DISCOVERED",
       "analysisStatus": "PENDING_ANALYSIS",
-      "discoveryTimestamp": "2026-09-22T17:33:47.237Z",
+      "discoveryTimestamp": "2026-09-24T19:17:22.644Z",
       "operationalPriority": "NORMAL"
     },
     {
-      "id": "cand-faa-2026-13983-1790098427237-bf8a",
+      "id": "cand-faa-2026-13983-1790277442644-csru",
       "adNumber": "2026-14-05",
       "authority": "FAA",
       "title": "Airworthiness Directives; Airbus SAS Airplanes",
@@ -1415,11 +1415,11 @@
       "source": "FEDERAL_REGISTER",
       "status": "DISCOVERED",
       "analysisStatus": "PENDING_ANALYSIS",
-      "discoveryTimestamp": "2026-09-22T17:33:47.237Z",
+      "discoveryTimestamp": "2026-09-24T19:17:22.644Z",
       "operationalPriority": "NORMAL"
     },
     {
-      "id": "cand-faa-2026-13982-1790098427237-jrcm",
+      "id": "cand-faa-2026-13982-1790277442644-pg0o",
       "adNumber": "2026-14-04",
       "authority": "FAA",
       "title": "Airworthiness Directives; Airbus SAS Airplanes",
@@ -1449,11 +1449,11 @@
       "source": "FEDERAL_REGISTER",
       "status": "DISCOVERED",
       "analysisStatus": "PENDING_ANALYSIS",
-      "discoveryTimestamp": "2026-09-22T17:33:47.237Z",
+      "discoveryTimestamp": "2026-09-24T19:17:22.644Z",
       "operationalPriority": "NORMAL"
     },
     {
-      "id": "cand-faa-2026-11510-1790098427237-rht9",
+      "id": "cand-faa-2026-11510-1790277442644-vwqs",
       "adNumber": "2026-12-02",
       "authority": "FAA",
       "title": "Airworthiness Directives; Airbus SAS Airplanes",
@@ -1479,11 +1479,11 @@
       "source": "FEDERAL_REGISTER",
       "status": "DISCOVERED",
       "analysisStatus": "PENDING_ANALYSIS",
-      "discoveryTimestamp": "2026-09-22T17:33:47.237Z",
+      "discoveryTimestamp": "2026-09-24T19:17:22.644Z",
       "operationalPriority": "NORMAL"
     },
     {
-      "id": "cand-faa-2026-10801-1790098427237-zf03",
+      "id": "cand-faa-2026-10801-1790277442644-bql0",
       "adNumber": "2026-10-17",
       "authority": "FAA",
       "title": "Airworthiness Directives; Airbus SAS Airplanes",
@@ -1508,11 +1508,11 @@
       "source": "FEDERAL_REGISTER",
       "status": "DISCOVERED",
       "analysisStatus": "PENDING_ANALYSIS",
-      "discoveryTimestamp": "2026-09-22T17:33:47.237Z",
+      "discoveryTimestamp": "2026-09-24T19:17:22.644Z",
       "operationalPriority": "NORMAL"
     },
     {
-      "id": "cand-faa-2026-10800-1790098427237-fged",
+      "id": "cand-faa-2026-10800-1790277442644-hrc9",
       "adNumber": "2026-11-04",
       "authority": "FAA",
       "title": "Airworthiness Directives; Airbus SAS Airplanes",
@@ -1545,11 +1545,11 @@
       "source": "FEDERAL_REGISTER",
       "status": "DISCOVERED",
       "analysisStatus": "PENDING_ANALYSIS",
-      "discoveryTimestamp": "2026-09-22T17:33:47.237Z",
+      "discoveryTimestamp": "2026-09-24T19:17:22.644Z",
       "operationalPriority": "NORMAL"
     },
     {
-      "id": "cand-faa-2026-10799-1790098427237-37pq",
+      "id": "cand-faa-2026-10799-1790277442644-9qiy",
       "adNumber": "2026-10-15",
       "authority": "FAA",
       "title": "Airworthiness Directives; Airbus SAS Airplanes",
@@ -1571,11 +1571,11 @@
       "source": "FEDERAL_REGISTER",
       "status": "DISCOVERED",
       "analysisStatus": "PENDING_ANALYSIS",
-      "discoveryTimestamp": "2026-09-22T17:33:47.237Z",
+      "discoveryTimestamp": "2026-09-24T19:17:22.644Z",
       "operationalPriority": "NORMAL"
     },
     {
-      "id": "cand-faa-2026-10490-1790098427237-1yj2",
+      "id": "cand-faa-2026-10490-1790277442644-nend",
       "adNumber": "2026-10-11",
       "authority": "FAA",
       "title": "Airworthiness Directives; Airbus SAS Airplanes",
@@ -1597,11 +1597,11 @@
       "source": "FEDERAL_REGISTER",
       "status": "DISCOVERED",
       "analysisStatus": "PENDING_ANALYSIS",
-      "discoveryTimestamp": "2026-09-22T17:33:47.237Z",
+      "discoveryTimestamp": "2026-09-24T19:17:22.644Z",
       "operationalPriority": "NORMAL"
     },
     {
-      "id": "cand-faa-2026-09663-1790098427237-hy2x",
+      "id": "cand-faa-2026-09663-1790277442644-hict",
       "adNumber": "2026-09-17",
       "authority": "FAA",
       "title": "Airworthiness Directives; Airbus SAS Airplanes",
@@ -1633,11 +1633,11 @@
       "source": "FEDERAL_REGISTER",
       "status": "DISCOVERED",
       "analysisStatus": "PENDING_ANALYSIS",
-      "discoveryTimestamp": "2026-09-22T17:33:47.237Z",
+      "discoveryTimestamp": "2026-09-24T19:17:22.644Z",
       "operationalPriority": "NORMAL"
     },
     {
-      "id": "cand-faa-2026-09662-1790098427237-sbu1",
+      "id": "cand-faa-2026-09662-1790277442644-rwun",
       "adNumber": "2026-09-16",
       "authority": "FAA",
       "title": "Airworthiness Directives; Airbus SAS Airplanes",
@@ -1662,11 +1662,11 @@
       "source": "FEDERAL_REGISTER",
       "status": "DISCOVERED",
       "analysisStatus": "PENDING_ANALYSIS",
-      "discoveryTimestamp": "2026-09-22T17:33:47.237Z",
+      "discoveryTimestamp": "2026-09-24T19:17:22.644Z",
       "operationalPriority": "NORMAL"
     },
     {
-      "id": "cand-faa-2026-09171-1790098427237-v7jz",
+      "id": "cand-faa-2026-09171-1790277442644-bvae",
       "adNumber": "2026-09-06",
       "authority": "FAA",
       "title": "Airworthiness Directives; Airbus SAS Airplanes",
@@ -1686,11 +1686,11 @@
       "source": "FEDERAL_REGISTER",
       "status": "DISCOVERED",
       "analysisStatus": "PENDING_ANALYSIS",
-      "discoveryTimestamp": "2026-09-22T17:33:47.237Z",
+      "discoveryTimestamp": "2026-09-24T19:17:22.644Z",
       "operationalPriority": "NORMAL"
     },
     {
-      "id": "cand-faa-2026-09169-1790098427237-0mef",
+      "id": "cand-faa-2026-09169-1790277442644-yltr",
       "adNumber": "2026-09-03",
       "authority": "FAA",
       "title": "Airworthiness Directives; Airbus SAS Airplanes",
@@ -1718,11 +1718,11 @@
       "source": "FEDERAL_REGISTER",
       "status": "DISCOVERED",
       "analysisStatus": "PENDING_ANALYSIS",
-      "discoveryTimestamp": "2026-09-22T17:33:47.237Z",
+      "discoveryTimestamp": "2026-09-24T19:17:22.644Z",
       "operationalPriority": "NORMAL"
     },
     {
-      "id": "cand-faa-2026-04677-1790098427237-rhig",
+      "id": "cand-faa-2026-04677-1790277442644-urjo",
       "adNumber": "2026-05-14",
       "authority": "FAA",
       "title": "Airworthiness Directives; Airbus SAS Airplanes",
@@ -1743,11 +1743,11 @@
       "source": "FEDERAL_REGISTER",
       "status": "DISCOVERED",
       "analysisStatus": "PENDING_ANALYSIS",
-      "discoveryTimestamp": "2026-09-22T17:33:47.237Z",
+      "discoveryTimestamp": "2026-09-24T19:17:22.644Z",
       "operationalPriority": "NORMAL"
     },
     {
-      "id": "cand-faa-2026-04277-1790098427237-w48p",
+      "id": "cand-faa-2026-04277-1790277442644-exw7",
       "adNumber": "2026-03-10",
       "authority": "FAA",
       "title": "Airworthiness Directives; Airbus SAS Airplanes",
@@ -1776,11 +1776,11 @@
       "source": "FEDERAL_REGISTER",
       "status": "DISCOVERED",
       "analysisStatus": "PENDING_ANALYSIS",
-      "discoveryTimestamp": "2026-09-22T17:33:47.237Z",
+      "discoveryTimestamp": "2026-09-24T19:17:22.644Z",
       "operationalPriority": "NORMAL"
     },
     {
-      "id": "cand-faa-2025-24242-1790098427237-ndic",
+      "id": "cand-faa-2025-24242-1790277442644-l588",
       "adNumber": "2025-24-51",
       "authority": "FAA",
       "title": "Airworthiness Directives; Airbus SAS Airplanes",
@@ -1809,11 +1809,11 @@
       "source": "FEDERAL_REGISTER",
       "status": "DISCOVERED",
       "analysisStatus": "PENDING_ANALYSIS",
-      "discoveryTimestamp": "2026-09-22T17:33:47.237Z",
+      "discoveryTimestamp": "2026-09-24T19:17:22.644Z",
       "operationalPriority": "NORMAL"
     },
     {
-      "id": "cand-faa-2025-22348-1790098427237-vfx4",
+      "id": "cand-faa-2025-22348-1790277442644-pbur",
       "adNumber": "2025-23-09",
       "authority": "FAA",
       "title": "Airworthiness Directives; Airbus SAS Airplanes",
@@ -1839,11 +1839,11 @@
       "source": "FEDERAL_REGISTER",
       "status": "DISCOVERED",
       "analysisStatus": "PENDING_ANALYSIS",
-      "discoveryTimestamp": "2026-09-22T17:33:47.237Z",
+      "discoveryTimestamp": "2026-09-24T19:17:22.644Z",
       "operationalPriority": "NORMAL"
     },
     {
-      "id": "cand-faa-2025-21476-1790098427237-wdqo",
+      "id": "cand-faa-2025-21476-1790277442644-wqcj",
       "adNumber": "2025-20-19",
       "authority": "FAA",
       "title": "Airworthiness Directives; Airbus SAS Airplanes",
@@ -1868,11 +1868,11 @@
       "source": "FEDERAL_REGISTER",
       "status": "DISCOVERED",
       "analysisStatus": "PENDING_ANALYSIS",
-      "discoveryTimestamp": "2026-09-22T17:33:47.237Z",
+      "discoveryTimestamp": "2026-09-24T19:17:22.644Z",
       "operationalPriority": "NORMAL"
     },
     {
-      "id": "cand-faa-2025-21475-1790098427237-wr2z",
+      "id": "cand-faa-2025-21475-1790277442644-7mra",
       "adNumber": "2025-20-15",
       "authority": "FAA",
       "title": "Airworthiness Directives; Airbus SAS Airplanes",
@@ -1898,11 +1898,11 @@
       "source": "FEDERAL_REGISTER",
       "status": "DISCOVERED",
       "analysisStatus": "PENDING_ANALYSIS",
-      "discoveryTimestamp": "2026-09-22T17:33:47.237Z",
+      "discoveryTimestamp": "2026-09-24T19:17:22.644Z",
       "operationalPriority": "NORMAL"
     },
     {
-      "id": "cand-faa-2025-20925-1790098427237-v7ax",
+      "id": "cand-faa-2025-20925-1790277442644-2e8z",
       "adNumber": "2025-19-08",
       "authority": "FAA",
       "title": "Airworthiness Directives; Airbus SAS Airplanes",
@@ -1928,11 +1928,11 @@
       "source": "FEDERAL_REGISTER",
       "status": "DISCOVERED",
       "analysisStatus": "PENDING_ANALYSIS",
-      "discoveryTimestamp": "2026-09-22T17:33:47.237Z",
+      "discoveryTimestamp": "2026-09-24T19:17:22.644Z",
       "operationalPriority": "NORMAL"
     },
     {
-      "id": "cand-faa-2025-17786-1790098427237-8l3o",
+      "id": "cand-faa-2025-17786-1790277442644-9r1p",
       "adNumber": "2025-18-03",
       "authority": "FAA",
       "title": "Airworthiness Directives; Airbus SAS Airplanes",
@@ -1955,11 +1955,11 @@
       "source": "FEDERAL_REGISTER",
       "status": "DISCOVERED",
       "analysisStatus": "PENDING_ANALYSIS",
-      "discoveryTimestamp": "2026-09-22T17:33:47.237Z",
+      "discoveryTimestamp": "2026-09-24T19:17:22.644Z",
       "operationalPriority": "NORMAL"
     },
     {
-      "id": "cand-faa-2025-16728-1790098427237-3akp",
+      "id": "cand-faa-2025-16728-1790277442644-yiqt",
       "adNumber": "2025-17-17",
       "authority": "FAA",
       "title": "Airworthiness Directives; Airbus SAS Airplanes",
@@ -1982,11 +1982,11 @@
       "source": "FEDERAL_REGISTER",
       "status": "DISCOVERED",
       "analysisStatus": "PENDING_ANALYSIS",
-      "discoveryTimestamp": "2026-09-22T17:33:47.237Z",
+      "discoveryTimestamp": "2026-09-24T19:17:22.644Z",
       "operationalPriority": "NORMAL"
     },
     {
-      "id": "cand-faa-2025-16403-1790098427237-4yzu",
+      "id": "cand-faa-2025-16403-1790277442644-3fi9",
       "adNumber": "2025-17-07",
       "authority": "FAA",
       "title": "Airworthiness Directives; Airbus SAS Airplanes",
@@ -2009,11 +2009,11 @@
       "source": "FEDERAL_REGISTER",
       "status": "DISCOVERED",
       "analysisStatus": "PENDING_ANALYSIS",
-      "discoveryTimestamp": "2026-09-22T17:33:47.237Z",
+      "discoveryTimestamp": "2026-09-24T19:17:22.644Z",
       "operationalPriority": "NORMAL"
     },
     {
-      "id": "cand-faa-2026-19082-1790098427275-wcn4",
+      "id": "cand-faa-2026-19082-1790277442692-cntw",
       "adNumber": "2026-18-07",
       "authority": "FAA",
       "title": "Airworthiness Directives; The Boeing Company Airplanes",
@@ -2032,11 +2032,11 @@
       "source": "FEDERAL_REGISTER",
       "status": "DISCOVERED",
       "analysisStatus": "PENDING_ANALYSIS",
-      "discoveryTimestamp": "2026-09-22T17:33:47.275Z",
+      "discoveryTimestamp": "2026-09-24T19:17:22.692Z",
       "operationalPriority": "NORMAL"
     },
     {
-      "id": "cand-faa-2026-15936-1790098427275-ypul",
+      "id": "cand-faa-2026-15936-1790277442692-qqb3",
       "adNumber": "2026-15-11",
       "authority": "FAA",
       "title": "Airworthiness Directives; The Boeing Company Airplanes",
@@ -2055,11 +2055,11 @@
       "source": "FEDERAL_REGISTER",
       "status": "DISCOVERED",
       "analysisStatus": "PENDING_ANALYSIS",
-      "discoveryTimestamp": "2026-09-22T17:33:47.275Z",
+      "discoveryTimestamp": "2026-09-24T19:17:22.692Z",
       "operationalPriority": "NORMAL"
     },
     {
-      "id": "cand-faa-2026-14090-1790098427275-gstk",
+      "id": "cand-faa-2026-14090-1790277442692-qbqr",
       "adNumber": "2026-14-11",
       "authority": "FAA",
       "title": "Airworthiness Directives; The Boeing Company Airplanes",
@@ -2078,11 +2078,11 @@
       "source": "FEDERAL_REGISTER",
       "status": "DISCOVERED",
       "analysisStatus": "PENDING_ANALYSIS",
-      "discoveryTimestamp": "2026-09-22T17:33:47.275Z",
+      "discoveryTimestamp": "2026-09-24T19:17:22.692Z",
       "operationalPriority": "NORMAL"
     },
     {
-      "id": "cand-faa-2026-13241-1790098427275-ub4r",
+      "id": "cand-faa-2026-13241-1790277442692-5q2s",
       "adNumber": "2026-13-05",
       "authority": "FAA",
       "title": "Airworthiness Directives; The Boeing Company Airplanes",
@@ -2101,11 +2101,11 @@
       "source": "FEDERAL_REGISTER",
       "status": "DISCOVERED",
       "analysisStatus": "PENDING_ANALYSIS",
-      "discoveryTimestamp": "2026-09-22T17:33:47.275Z",
+      "discoveryTimestamp": "2026-09-24T19:17:22.692Z",
       "operationalPriority": "NORMAL"
     },
     {
-      "id": "cand-faa-2026-13208-1790098427275-vkq4",
+      "id": "cand-faa-2026-13208-1790277442692-vwfm",
       "adNumber": "2026-13-17",
       "authority": "FAA",
       "title": "Airworthiness Directives; The Boeing Company Airplanes",
@@ -2124,11 +2124,11 @@
       "source": "FEDERAL_REGISTER",
       "status": "DISCOVERED",
       "analysisStatus": "PENDING_ANALYSIS",
-      "discoveryTimestamp": "2026-09-22T17:33:47.275Z",
+      "discoveryTimestamp": "2026-09-24T19:17:22.692Z",
       "operationalPriority": "NORMAL"
     },
     {
-      "id": "cand-faa-2026-13206-1790098427275-6j7x",
+      "id": "cand-faa-2026-13206-1790277442692-lvhz",
       "adNumber": "2026-13-13",
       "authority": "FAA",
       "title": "Airworthiness Directives; The Boeing Company Airplanes",
@@ -2146,11 +2146,11 @@
       "source": "FEDERAL_REGISTER",
       "status": "DISCOVERED",
       "analysisStatus": "PENDING_ANALYSIS",
-      "discoveryTimestamp": "2026-09-22T17:33:47.275Z",
+      "discoveryTimestamp": "2026-09-24T19:17:22.692Z",
       "operationalPriority": "NORMAL"
     },
     {
-      "id": "cand-faa-2026-09535-1790098427275-noek",
+      "id": "cand-faa-2026-09535-1790277442692-gi1h",
       "adNumber": "2026-09-12",
       "authority": "FAA",
       "title": "Airworthiness Directives; The Boeing Company Airplanes",
@@ -2172,11 +2172,11 @@
       "source": "FEDERAL_REGISTER",
       "status": "DISCOVERED",
       "analysisStatus": "PENDING_ANALYSIS",
-      "discoveryTimestamp": "2026-09-22T17:33:47.275Z",
+      "discoveryTimestamp": "2026-09-24T19:17:22.692Z",
       "operationalPriority": "NORMAL"
     },
     {
-      "id": "cand-faa-2026-03615-1790098427275-mwhq",
+      "id": "cand-faa-2026-03615-1790277442692-5yx6",
       "adNumber": "2026-04-05",
       "authority": "FAA",
       "title": "Airworthiness Directives; The Boeing Company Airplanes",
@@ -2195,11 +2195,11 @@
       "source": "FEDERAL_REGISTER",
       "status": "DISCOVERED",
       "analysisStatus": "PENDING_ANALYSIS",
-      "discoveryTimestamp": "2026-09-22T17:33:47.275Z",
+      "discoveryTimestamp": "2026-09-24T19:17:22.692Z",
       "operationalPriority": "NORMAL"
     },
     {
-      "id": "cand-faa-2025-22629-1790098427275-bj5x",
+      "id": "cand-faa-2025-22629-1790277442692-147t",
       "adNumber": "2025-25-04",
       "authority": "FAA",
       "title": "Airworthiness Directives; The Boeing Company Airplanes",
@@ -2221,11 +2221,11 @@
       "source": "FEDERAL_REGISTER",
       "status": "DISCOVERED",
       "analysisStatus": "PENDING_ANALYSIS",
-      "discoveryTimestamp": "2026-09-22T17:33:47.275Z",
+      "discoveryTimestamp": "2026-09-24T19:17:22.692Z",
       "operationalPriority": "NORMAL"
     },
     {
-      "id": "cand-faa-2025-20951-1790098427275-yqjw",
+      "id": "cand-faa-2025-20951-1790277442692-8syz",
       "adNumber": "2025-24-02",
       "authority": "FAA",
       "title": "Airworthiness Directives; The Boeing Company Airplanes",
@@ -2245,11 +2245,11 @@
       "source": "FEDERAL_REGISTER",
       "status": "DISCOVERED",
       "analysisStatus": "PENDING_ANALYSIS",
-      "discoveryTimestamp": "2026-09-22T17:33:47.275Z",
+      "discoveryTimestamp": "2026-09-24T19:17:22.692Z",
       "operationalPriority": "NORMAL"
     },
     {
-      "id": "cand-faa-2025-19392-1790098427275-uxo5",
+      "id": "cand-faa-2025-19392-1790277442692-sopx",
       "adNumber": "2025-19-12",
       "authority": "FAA",
       "title": "Airworthiness Directives; The Boeing Company Airplanes",
@@ -2271,11 +2271,11 @@
       "source": "FEDERAL_REGISTER",
       "status": "DISCOVERED",
       "analysisStatus": "PENDING_ANALYSIS",
-      "discoveryTimestamp": "2026-09-22T17:33:47.275Z",
+      "discoveryTimestamp": "2026-09-24T19:17:22.692Z",
       "operationalPriority": "NORMAL"
     },
     {
-      "id": "cand-faa-2025-13595-1790098427275-1s1r",
+      "id": "cand-faa-2025-13595-1790277442692-yeq6",
       "adNumber": "2025-15-01",
       "authority": "FAA",
       "title": "Airworthiness Directives; The Boeing Company Airplanes",
@@ -2297,11 +2297,11 @@
       "source": "FEDERAL_REGISTER",
       "status": "DISCOVERED",
       "analysisStatus": "PENDING_ANALYSIS",
-      "discoveryTimestamp": "2026-09-22T17:33:47.275Z",
+      "discoveryTimestamp": "2026-09-24T19:17:22.692Z",
       "operationalPriority": "NORMAL"
     },
     {
-      "id": "cand-faa-2025-06005-1790098427275-8ysj",
+      "id": "cand-faa-2025-06005-1790277442692-1jyx",
       "adNumber": "2025-07-03",
       "authority": "FAA",
       "title": "Airworthiness Directives; The Boeing Company Airplanes",
@@ -2323,11 +2323,11 @@
       "source": "FEDERAL_REGISTER",
       "status": "DISCOVERED",
       "analysisStatus": "PENDING_ANALYSIS",
-      "discoveryTimestamp": "2026-09-22T17:33:47.275Z",
+      "discoveryTimestamp": "2026-09-24T19:17:22.692Z",
       "operationalPriority": "NORMAL"
     },
     {
-      "id": "cand-faa-2025-04782-1790098427275-ntug",
+      "id": "cand-faa-2025-04782-1790277442692-1lnq",
       "adNumber": "2025-04-02",
       "authority": "FAA",
       "title": "Airworthiness Directives; The Boeing Company Airplanes",
@@ -2349,11 +2349,11 @@
       "source": "FEDERAL_REGISTER",
       "status": "DISCOVERED",
       "analysisStatus": "PENDING_ANALYSIS",
-      "discoveryTimestamp": "2026-09-22T17:33:47.275Z",
+      "discoveryTimestamp": "2026-09-24T19:17:22.692Z",
       "operationalPriority": "NORMAL"
     },
     {
-      "id": "cand-faa-2025-04319-1790098427275-uadp",
+      "id": "cand-faa-2025-04319-1790277442692-4u67",
       "adNumber": "2025-05-16",
       "authority": "FAA",
       "title": "Airworthiness Directives; The Boeing Company Airplanes",
@@ -2370,11 +2370,11 @@
       "source": "FEDERAL_REGISTER",
       "status": "DISCOVERED",
       "analysisStatus": "PENDING_ANALYSIS",
-      "discoveryTimestamp": "2026-09-22T17:33:47.275Z",
+      "discoveryTimestamp": "2026-09-24T19:17:22.692Z",
       "operationalPriority": "NORMAL"
     },
     {
-      "id": "cand-faa-2025-03401-1790098427275-25fz",
+      "id": "cand-faa-2025-03401-1790277442692-6ezb",
       "adNumber": "2025-04-01",
       "authority": "FAA",
       "title": "Airworthiness Directives; The Boeing Company Airplanes",
@@ -2396,11 +2396,11 @@
       "source": "FEDERAL_REGISTER",
       "status": "DISCOVERED",
       "analysisStatus": "PENDING_ANALYSIS",
-      "discoveryTimestamp": "2026-09-22T17:33:47.275Z",
+      "discoveryTimestamp": "2026-09-24T19:17:22.692Z",
       "operationalPriority": "NORMAL"
     },
     {
-      "id": "cand-faa-2025-03396-1790098427275-1lg3",
+      "id": "cand-faa-2025-03396-1790277442692-fmqe",
       "adNumber": "2025-04-03",
       "authority": "FAA",
       "title": "Airworthiness Directives; The Boeing Company Airplanes",
@@ -2422,11 +2422,11 @@
       "source": "FEDERAL_REGISTER",
       "status": "DISCOVERED",
       "analysisStatus": "PENDING_ANALYSIS",
-      "discoveryTimestamp": "2026-09-22T17:33:47.275Z",
+      "discoveryTimestamp": "2026-09-24T19:17:22.692Z",
       "operationalPriority": "NORMAL"
     },
     {
-      "id": "cand-faa-2025-02383-1790098427275-8zuu",
+      "id": "cand-faa-2025-02383-1790277442693-i9g2",
       "adNumber": "2025-02-02",
       "authority": "FAA",
       "title": "Airworthiness Directives; The Boeing Company Airplanes",
@@ -2448,11 +2448,11 @@
       "source": "FEDERAL_REGISTER",
       "status": "DISCOVERED",
       "analysisStatus": "PENDING_ANALYSIS",
-      "discoveryTimestamp": "2026-09-22T17:33:47.275Z",
+      "discoveryTimestamp": "2026-09-24T19:17:22.693Z",
       "operationalPriority": "NORMAL"
     },
     {
-      "id": "cand-faa-2025-02376-1790098427275-24f1",
+      "id": "cand-faa-2025-02376-1790277442693-csap",
       "adNumber": "2025-02-07",
       "authority": "FAA",
       "title": "Airworthiness Directives; The Boeing Company Airplanes",
@@ -2473,11 +2473,11 @@
       "source": "FEDERAL_REGISTER",
       "status": "DISCOVERED",
       "analysisStatus": "PENDING_ANALYSIS",
-      "discoveryTimestamp": "2026-09-22T17:33:47.275Z",
+      "discoveryTimestamp": "2026-09-24T19:17:22.693Z",
       "operationalPriority": "NORMAL"
     },
     {
-      "id": "cand-faa-2024-28134-1790098427276-lj1r",
+      "id": "cand-faa-2024-28134-1790277442693-76jw",
       "adNumber": "2024-23-03",
       "authority": "FAA",
       "title": "Airworthiness Directives; The Boeing Company Airplanes",
@@ -2495,11 +2495,11 @@
       "source": "FEDERAL_REGISTER",
       "status": "DISCOVERED",
       "analysisStatus": "PENDING_ANALYSIS",
-      "discoveryTimestamp": "2026-09-22T17:33:47.276Z",
+      "discoveryTimestamp": "2026-09-24T19:17:22.693Z",
       "operationalPriority": "NORMAL"
     },
     {
-      "id": "cand-faa-2024-28120-1790098427276-n1y1",
+      "id": "cand-faa-2024-28120-1790277442693-a6fb",
       "adNumber": "2024-23-11",
       "authority": "FAA",
       "title": "Airworthiness Directives; The Boeing Company Airplanes",
@@ -2519,11 +2519,11 @@
       "source": "FEDERAL_REGISTER",
       "status": "DISCOVERED",
       "analysisStatus": "PENDING_ANALYSIS",
-      "discoveryTimestamp": "2026-09-22T17:33:47.276Z",
+      "discoveryTimestamp": "2026-09-24T19:17:22.693Z",
       "operationalPriority": "NORMAL"
     },
     {
-      "id": "cand-faa-2024-24369-1790098427276-08pv",
+      "id": "cand-faa-2024-24369-1790277442693-it1b",
       "adNumber": "2024-19-06",
       "authority": "FAA",
       "title": "Airworthiness Directives; The Boeing Company Airplanes",
@@ -2541,11 +2541,11 @@
       "source": "FEDERAL_REGISTER",
       "status": "DISCOVERED",
       "analysisStatus": "PENDING_ANALYSIS",
-      "discoveryTimestamp": "2026-09-22T17:33:47.276Z",
+      "discoveryTimestamp": "2026-09-24T19:17:22.693Z",
       "operationalPriority": "NORMAL"
     },
     {
-      "id": "cand-faa-2024-23541-1790098427276-tbbb",
+      "id": "cand-faa-2024-23541-1790277442693-9ytx",
       "adNumber": "2024-18-08",
       "authority": "FAA",
       "title": "Airworthiness Directives; The Boeing Company Airplanes",
@@ -2564,11 +2564,11 @@
       "source": "FEDERAL_REGISTER",
       "status": "DISCOVERED",
       "analysisStatus": "PENDING_ANALYSIS",
-      "discoveryTimestamp": "2026-09-22T17:33:47.276Z",
+      "discoveryTimestamp": "2026-09-24T19:17:22.693Z",
       "operationalPriority": "NORMAL"
     },
     {
-      "id": "cand-faa-2024-23116-1790098427276-cfs0",
+      "id": "cand-faa-2024-23116-1790277442693-ktor",
       "adNumber": "2024-18-07",
       "authority": "FAA",
       "title": "Airworthiness Directives; The Boeing Company Airplanes",
@@ -2589,7 +2589,7 @@
       "source": "FEDERAL_REGISTER",
       "status": "DISCOVERED",
       "analysisStatus": "PENDING_ANALYSIS",
-      "discoveryTimestamp": "2026-09-22T17:33:47.276Z",
+      "discoveryTimestamp": "2026-09-24T19:17:22.693Z",
       "operationalPriority": "NORMAL"
     }
   ],
@@ -2736,7 +2736,7 @@
       "operationalPriority": "HIGH",
       "auditTrail": [
         {
-          "timestamp": "2026-09-22T17:33:45.883Z",
+          "timestamp": "2026-09-24T19:17:21.239Z",
           "action": "SB_ANALYSIS_COMPLETED",
           "actor": "Eng. Homologador",
           "details": "Boletim de Serviço B737-32A1420 analisado com checklist e regras de prévia incorporação homologadas."
@@ -2759,7 +2759,7 @@
           "id": "sb-faa-2020-24-02-b737-32a1420",
           "adNumber": "2020-24-02",
           "authority": "FAA",
-          "extractedAt": "2026-09-22T17:33:45.882Z",
+          "extractedAt": "2026-09-24T19:17:21.238Z",
           "sbNumber": "B737-32A1420",
           "revision": "Rev 1",
           "manufacturer": "Boeing",
@@ -2822,7 +2822,7 @@
             ],
             "engineeringValidation": {
               "validatedBy": "Eng. Homologador",
-              "validatedAt": "2026-09-22T17:33:45.883Z",
+              "validatedAt": "2026-09-24T19:17:21.239Z",
               "notes": "Checklist validado pelo engenheiro CAMO com base no CMM e manual do fabricante.",
               "approvedForIncorporation": true
             }
@@ -2832,7 +2832,7 @@
           "id": "sb-faa-2020-24-02-737-28a1200",
           "adNumber": "2020-24-02",
           "authority": "FAA",
-          "extractedAt": "2026-09-22T17:33:45.882Z",
+          "extractedAt": "2026-09-24T19:17:21.238Z",
           "sbNumber": "737-28A1200",
           "revision": "Rev 0",
           "manufacturer": "Boeing",
@@ -3000,7 +3000,7 @@
         "reviewSteps": [],
         "missingRequirement": false,
         "canTransitionToAnalyzed": true,
-        "evaluatedAt": "2026-09-22T17:33:45.884Z",
+        "evaluatedAt": "2026-09-24T19:17:21.240Z",
         "adAnalysisComplete": false,
         "sbAnalysisStatus": "SB_ANALYZED",
         "applicabilityStatus": "APPLICABILITY_DETERMINED",
@@ -3019,7 +3019,7 @@
             "737-22A1011 RB",
             "737-34A1088 RB"
           ],
-          "evaluatedAt": "2026-09-22T17:33:45.890Z",
+          "evaluatedAt": "2026-09-24T19:17:21.246Z",
           "fleetApplicabilityState": "PENDING_CONFIGURATION"
         },
         "fleetApplicabilityState": "PENDING_CONFIGURATION"
@@ -3258,7 +3258,7 @@
       "detectionState": "NOT_LOCATED",
       "status": "NOT_LOCATED",
       "isMandatedByAd": true,
-      "detectedAt": "2026-09-22T17:33:45.888Z",
+      "detectedAt": "2026-09-24T19:17:21.244Z",
       "notes": "SB explicitamente referenciado no texto da AD (detectado). Documento técnico pendente de localização/incorporação no repositório."
     },
     {
@@ -3275,7 +3275,7 @@
       "detectionState": "NOT_LOCATED",
       "status": "NOT_LOCATED",
       "isMandatedByAd": true,
-      "detectedAt": "2026-09-22T17:33:45.889Z",
+      "detectedAt": "2026-09-24T19:17:21.245Z",
       "notes": "SB explicitamente referenciado no texto da AD (detectado). Documento técnico pendente de localização/incorporação no repositório."
     }
   ],
@@ -3290,7 +3290,7 @@
       "totalDependencies": 0,
       "resolvedDependencies": 0,
       "pendingDependencies": [],
-      "evaluatedAt": "2026-09-22T17:33:45.881Z",
+      "evaluatedAt": "2026-09-24T19:17:21.232Z",
       "fleetApplicabilityState": "DETERMINED"
     },
     "2020-24-02": {
@@ -3304,7 +3304,7 @@
         "737-22A1011 RB",
         "737-34A1088 RB"
       ],
-      "evaluatedAt": "2026-09-22T17:33:45.890Z",
+      "evaluatedAt": "2026-09-24T19:17:21.246Z",
       "fleetApplicabilityState": "PENDING_CONFIGURATION"
     }
   },
